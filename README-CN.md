@@ -1,80 +1,197 @@
 [English](README.md) | 简体中文
 
-fastGit 是一个帮助你快速提交代码的命令行工具,支持 Linux、MacOS、Windows。灵感来自 [gum](https://github.com/charmbracelet/gum)
+# fastGit
 
-> 这个项目正在使用它自己来提交代码
+🚀 一个现代化的命令行工具，通过交互式终端界面简化 Git 操作。支持 Linux、macOS 和 Windows。
 
-> ![](assets/fast-git.gif)
+> 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践！
 
-### 如何使用
+![fastGit 演示](assets/fast-git.gif)
 
-#### 1. 安装 Git
+## ✨ 特性
 
-> 项目依赖于 Git, 请先安装 Git
+- 🎯 **交互式 Git 操作** - 通过美观的 TUI 界面选择文件、分支和提交
+- 🌍 **双语支持** - 支持中英文，自动检测系统语言
+- 🎨 **现代化界面** - 美观的主题、动画和进度指示器
+- ⚡ **快速高效** - 为常见 Git 操作提供简化的工作流程
+- 🔧 **跨平台** - 支持 Linux、macOS 和 Windows
 
-```bash
-# Debian/Ubuntu
-sudo apt install git
-# macOS
-brew install git
-```
+## 📦 安装
 
-#### 2. 安装 fastGit
+### 前置要求
+
+- 系统必须安装 [Git](https://git-scm.com/)
+
+### 快速安装（推荐）
 
 ```bash
 # Linux/macOS
 curl -sSL https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
-```
 
-或者
-
-```bash
+# 或者使用 wget
 wget -qO- https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
 ```
 
-```bash
+```powershell
 # Windows
 iwr -useb https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.ps1 | iex
 ```
 
-#### 3. 运行
+### 从源码构建
 
 ```bash
-# 提交工作区全部已更改的文件
+git clone https://github.com/KevinYouu/fastGit.git
+cd fastGit
+./build.sh
+```
+
+## 🚀 快速开始
+
+### 基础用法
+
+```bash
+# 提交工作区所有更改的文件
 fastGit pa
+
+# 交互式选择要提交的文件
+fastGit ps
+
+# 查看仓库状态
+fastGit s
 ```
+
+### 高级操作
 
 ```bash
-# 提交已选择的文件
-fastGit ps
+# 创建并推送标签
+fastGit t
+
+# 删除标签
+fastGit td
+
+# 将选定分支合并到当前分支
+fastGit m
+
+# 拣选提交
+fastGit cp
+
+# 重置到选定提交
+fastGit rs
+
+# 查看远程仓库
+fastGit rv
+
+# 初始化 fastGit 配置
+fastGit init
+
+# 更新 fastGit
+fastGit update
 ```
 
-### 功能
+## 📖 命令参考
 
-- [x] `fastGit pa`, 提交工作区全部已更改的代码
+| 命令 | 别名 | 描述 |
+|------|------|------|
+| `push-all` | `pa` | 暂存并提交所有更改的文件 |
+| `push-selected` | `ps` | 交互式选择文件进行暂存和提交 |
+| `status` | `s` | 显示增强 UI 的仓库状态 |
+| `tag` | `t` | 创建并推送带语义版本标签 |
+| `tag-delete` | `td` | 在本地和远程删除标签 |
+| `merge` | `m` | 将选定分支合并到当前分支 |
+| `cherry-pick` | `cp` | 从其他分支拣选提交 |
+| `reset` | `rs` | 重置仓库到选定提交 |
+| `remotes` | `rv` | 列出所有远程仓库 |
+| `init` | - | 初始化 fastGit 配置 |
+| `update` | - | 更新 fastGit 到最新版本 |
+| `version` | - | 显示当前版本信息 |
 
-- [x] `fastGit ps`, 提交部分已修改的代码
+### 语言支持
 
-- [x] `fastGit t`, 创建和推送 tag
+fastGit 会自动检测您的系统语言，您也可以手动指定：
 
-- [x] `fastGit m`, 将选择的分支合并到当前分支
+```bash
+# 强制使用英文
+fastGit --language en pa
 
-- [x] `fastGit rs`, 重置到选择的 hash 版本
+# 强制使用中文
+fastGit --language zh pa
+```
 
-- [x] `fastGit init`, 初始化 fastGit 配置
+## 🛠️ 开发
 
-- [x] `fastGit s`, 查看工作区状态
+### 从源码构建
 
-- [x] `fastGit rv`, 获取所有远程仓库
+```bash
+# 克隆仓库
+git clone https://github.com/KevinYouu/fastGit.git
+cd fastGit
 
-更多功能正在开发中.....
+# 安装依赖
+go mod tidy
 
-### 感谢以下开源项目
+# 构建并注入版本信息
+./build.sh
 
-[go](https://github.com/golang/go)
+# 或手动构建
+go build -o fastGit ./cmd/fastgit
+```
 
-[cobra](https://github.com/spf13/cobra)
+### 运行测试
 
-[bubbletea](https://github.com/charmbracelet/bubbletea)
+```bash
+# 运行所有测试
+go test ./...
 
-[huh](https://github.com/charmbracelet/huh)
+# 运行特定包测试
+go test ./internal/i18n
+
+# 运行基准测试
+go test -bench=. ./internal/i18n
+```
+
+### 项目结构
+
+```
+fastGit/
+├── cmd/fastgit/          # CLI 命令和入口点
+│   ├── main.go          # 应用程序入口
+│   ├── root.go          # 根命令设置
+│   └── commands/        # 各个命令的实现
+├── internal/            # 内部包
+│   ├── gitcmd/          # Git 操作实现
+│   ├── i18n/            # 国际化
+│   ├── form/            # TUI 表单组件
+│   ├── spinner/         # 加载动画
+│   ├── theme/           # 视觉样式
+│   └── config/          # 配置管理
+└── docs/                # 文档
+```
+
+## 🤝 贡献
+
+欢迎贡献！请随时提交 Pull Request。对于重大更改，请先开启 issue 讨论您想要更改的内容。
+
+### 开发指南
+
+- 遵循 Go 约定和最佳实践
+- 为新功能添加测试
+- 根据需要更新文档
+- 确保所有命令都支持中英文
+
+## 📄 许可证
+
+本项目采用 [LICENSE](LICENSE) 文件中的许可证。
+
+## 🙏 致谢
+
+基于这些优秀的开源项目构建：
+
+- [Go](https://github.com/golang/go) - Go 编程语言
+- [Cobra](https://github.com/spf13/cobra) - 强大的 CLI 应用程序
+- [Bubbletea](https://github.com/charmbracelet/bubbletea) - 强大的 TUI 框架
+- [Huh](https://github.com/charmbracelet/huh) - 交互式终端表单
+- [Lipgloss](https://github.com/charmbracelet/lipgloss) - 终端 UI 样式定义
+
+---
+
+**由 [KevinYouu](https://github.com/KevinYouu) 用 ❤️ 制作**

@@ -1,34 +1,35 @@
 English | [简体中文](README-CN.md)
 
-fastGit is a tool that helps you quickly submit code with a command line interface. It supports Linux, Mac, and Windows. The inspiration comes from [gum](https://github.com/charmbracelet/gum)
+# fastGit
 
-> This project is utilizing its own features to submit code.
+🚀 A modern CLI tool that simplifies Git operations with an interactive terminal user interface. Supports Linux, macOS, and Windows.
 
-![](assets/fast-git.gif)
+> This project uses its own features to commit code - dogfooding at its finest!
 
-### How to use
+![fastGit Demo](assets/fast-git.gif)
 
-#### 1. Install Git
+## ✨ Features
 
-> Project dependencies on Git, please install Git first
+- 🎯 **Interactive Git Operations** - Select files, branches, and commits with a beautiful TUI
+- 🌍 **Bilingual Support** - English and Chinese with automatic language detection
+- 🎨 **Modern Interface** - Beautiful themes, animations, and progress indicators
+- ⚡ **Fast & Efficient** - Streamlined workflows for common Git operations
+- 🔧 **Cross-Platform** - Works on Linux, macOS, and Windows
 
-```bash
-# Debian/Ubuntu
-sudo apt install git
-# macOS
-brew install git
-```
+## 📦 Installation
 
-#### 2. Install fastGit
+### Prerequisites
+
+- [Git](https://git-scm.com/) must be installed on your system
+
+### Quick Install (Recommended)
 
 ```bash
 # Linux/macOS
 curl -sSL https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
 
-# or
-
+# Or using wget
 wget -qO- https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
-
 ```
 
 ```powershell
@@ -36,44 +37,161 @@ wget -qO- https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | 
 iwr -useb https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.ps1 | iex
 ```
 
-#### 3. Run
+### Build from Source
 
 ```bash
-# Submit all changed files in the working directory
+git clone https://github.com/KevinYouu/fastGit.git
+cd fastGit
+./build.sh
+```
+
+## 🚀 Quick Start
+
+### Basic Usage
+
+```bash
+# Push all changes in the working directory
 fastGit pa
+
+# Push selected files in the working directory
+fastGit ps
+
+# Check repository status
+fastGit s
 ```
+
+### Advanced Operations
 
 ```bash
-# Submit the selected files in the working directory
-fastGit ps
+# Create and push a tag
+fastGit t
+
+# Delete a tag
+fastGit td
+
+# Merge selected branch into current branch
+fastGit m
+
+# Cherry-pick commits
+fastGit cp
+
+# Reset to selected commit
+fastGit rs
+
+# View remote repositories
+fastGit rv
+
+# Initialize fastGit configuration
+fastGit init
+
+# Update fastGit
+fastGit update
 ```
 
-### Features
+## 📖 Command Reference
 
-- [x] `fastGit pa`, Submit all changes in the working directory
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `push-all` | `pa` | Stage and commit all changed files |
+| `push-selected` | `ps` | Interactively select files to stage and commit |
+| `status` | `s` | Show repository status with enhanced UI |
+| `tag` | `t` | Create and push tags with semantic versioning |
+| `tag-delete` | `td` | Delete tags locally and remotely |
+| `merge` | `m` | Merge selected branch into current branch |
+| `cherry-pick` | `cp` | Cherry-pick commits from other branches |
+| `reset` | `rs` | Reset repository to selected commit |
+| `remotes` | `rv` | List all remote repositories |
+| `init` | - | Initialize fastGit configuration |
+| `update` | - | Update fastGit to latest version |
+| `version` | - | Show current version information |
 
-- [x] `fastGit ps`, Submit some changes in the working directory
+### Language Support
 
-- [x] `fastGit t`, Create and push a tag
+fastGit automatically detects your system language or you can specify it manually:
 
-- [x] `fastGit m`, Merge the selected branch into the current branch.
+```bash
+# Force English
+fastGit --language en pa
 
-- [x] `fastGit rs` Reset to the selected hash version.
+# Force Chinese
+fastGit --language zh pa
+```
 
-- [x] `fastGit init` Initialize fastGit configuration.
+## 🛠️ Development
 
-- [x] `fastGit s`, check the status of the repository
+### Building from Source
 
-- [x] `fastGit rv`, get all remote repositories
+```bash
+# Clone the repository
+git clone https://github.com/KevinYouu/fastGit.git
+cd fastGit
 
-More features will be added soon......
+# Install dependencies
+go mod tidy
 
-### Thanks to the following open source projects
+# Build with version injection
+./build.sh
 
-[go](https://github.com/golang/go)
+# Or build manually
+go build -o fastGit ./cmd/fastgit
+```
 
-[cobra](https://github.com/spf13/cobra)
+### Running Tests
 
-[bubbletea](https://github.com/charmbracelet/bubbletea)
+```bash
+# Run all tests
+go test ./...
 
-[huh](https://github.com/charmbracelet/huh)
+# Run specific package tests
+go test ./internal/i18n
+
+# Run benchmarks
+go test -bench=. ./internal/i18n
+```
+
+### Project Structure
+
+```
+fastGit/
+├── cmd/fastgit/          # CLI commands and entry point
+│   ├── main.go          # Application entry point
+│   ├── root.go          # Root command setup
+│   └── commands/        # Individual command implementations
+├── internal/            # Internal packages
+│   ├── gitcmd/          # Git operation implementations
+│   ├── i18n/            # Internationalization
+│   ├── form/            # TUI form components
+│   ├── spinner/         # Loading animations
+│   ├── theme/           # Visual styling
+│   └── config/          # Configuration management
+└── docs/                # Documentation
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Guidelines
+
+- Follow Go conventions and best practices
+- Add tests for new features
+- Update documentation as needed
+- Ensure all commands support both English and Chinese
+
+## 📄 License
+
+This project is licensed under the [LICENSE](LICENSE) file.
+
+## 🙏 Acknowledgments
+
+Built with these amazing open source projects:
+
+- [Go](https://github.com/golang/go) - The Go programming language
+- [Cobra](https://github.com/spf13/cobra) - Powerful CLI applications
+- [Bubbletea](https://github.com/charmbracelet/bubbletea) - Powerful TUI framework
+- [Huh](https://github.com/charmbracelet/huh) - Interactive terminal forms
+- [Lipgloss](https://github.com/charmbracelet/lipgloss) - Style definitions for terminal UI
+
+---
+
+**Made with ❤️ by [KevinYouu](https://github.com/KevinYouu)**
