@@ -35,6 +35,21 @@ var enTranslations = map[string]string{
 	// Cherry-pick command
 	"cherry.pick.short": "Cherry-pick commits from other branches",
 
+	// Branch commands
+	"branch.delete.short":       "Delete git branches",
+	"branch.no.branches":        "No branches found in repository",
+	"branch.delete.select":      "Choose a branch to delete",
+	"branch.delete.confirm":     "Are you sure you want to delete branch '%s'?",
+	"branch.delete.cancelled":   "🚫 Branch deletion cancelled.",
+	"branch.delete.local":       "Deleting local branch",
+	"branch.delete.local.loading": "Deleting local branch %s...",
+	"branch.delete.local.success": "Local branch %s deleted successfully",
+	"branch.delete.remote.confirm": "Do you want to delete the remote branch as well?",
+	"branch.delete.remote":      "Deleting remote branch",
+	"branch.delete.remote.loading": "Deleting remote branch %s...",
+	"branch.delete.remote.success": "Remote branch %s deleted successfully",
+	"branch.no.deletable.branches": "No deletable branches found (you cannot delete the current branch).",
+
 	// Update command
 	"update.short": "Update fastGit to the latest version",
 

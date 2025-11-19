@@ -35,6 +35,21 @@ var zhTranslations = map[string]string{
 	// Cherry-pick command
 	"cherry.pick.short": "从其他分支选择提交",
 
+	// Branch commands
+	"branch.delete.short":        "删除 git 分支",
+	"branch.no.branches":         "仓库中未找到分支",
+	"branch.delete.select":       "选择要删除的分支",
+	"branch.delete.confirm":      "您确定要删除分支 '%s' 吗？",
+	"branch.delete.cancelled":    "🚫 分支删除已取消。",
+	"branch.delete.local":        "正在删除本地分支",
+	"branch.delete.local.loading": "正在删除本地分支 %s...",
+	"branch.delete.local.success": "本地分支 %s 删除成功",
+	"branch.delete.remote.confirm": "您是否也想删除远程分支？",
+	"branch.delete.remote":       "正在删除远程分支",
+	"branch.delete.remote.loading": "正在删除远程分支 %s...",
+	"branch.delete.remote.success": "远程分支 %s 删除成功",
+	"branch.no.deletable.branches": "没有可删除的分支 (您不能删除当前所在分支)。",
+
 	// Update command
 	"update.short": "更新 fastGit 到最新版本",
 

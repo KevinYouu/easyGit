@@ -52,7 +52,7 @@ func PushSelected() error {
 
 	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
 	if err != nil {
-		return fmt.Errorf("Input: %w", err)
+		return fmt.Errorf("input: %w", err)
 	}
 
 	// 使用新的命令执行器执行Git操作

@@ -14,18 +14,18 @@ func PushAll() error {
 	options, err := config.GetOptions()
 	if err != nil {
 		logs.Error(i18n.T("error.get.options"))
-		return fmt.Errorf("GetOptions: %w", err)
+		return fmt.Errorf("get options: %w", err)
 	}
 
 	_, suffix, err := form.SelectForm(i18n.T("push.select.commit.type"), options)
 	if err != nil {
-		return fmt.Errorf("SelectForm: %w", err)
+		return fmt.Errorf("select form: %w", err)
 	}
 	config.IncrementUsage(suffix)
 
 	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
 	if err != nil {
-		return fmt.Errorf("Input: %w", err)
+		return fmt.Errorf("input: %w", err)
 	}
 
 	// 使用新的命令执行器执行Git操作

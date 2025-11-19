@@ -37,6 +37,8 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("tag.short")
 		case "td":
 			cmd.Short = i18n.T("tag.delete.short")
+		case "bd":
+			cmd.Short = i18n.T("branch.delete.short")
 		case "merge":
 			cmd.Short = i18n.T("merge.short")
 		case "cherry-pick":
@@ -59,6 +61,7 @@ func init() {
 		commands.ResetCommand(),
 		commands.TagCommand(),
 		commands.TagDeleteCommand(),
+		commands.BranchDeleteCommand(),
 		commands.StatusCommand(),
 		commands.MergeCommand(),
 		commands.CherryPickCommand(),
