@@ -94,3 +94,33 @@ func GetCurrentBranch(t *testing.T, repoDir string) string {
 	}
 	return strings.TrimSpace(string(output))
 }
+
+// CreateTempGitRepo 创建临时 Git 仓库并返回清理函数
+func CreateTempGitRepo(t *testing.T) (string, func()) {
+	t.Helper()
+
+	tmpDir := t.TempDir()
+
+	// 初始化仓库
+	cmd := exec.Command("git", "init")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init failed: %v", err)
+	}
+
+	// 配置用户
+	runGitCmd(t, tmpDir, "config", "user.name", "Test User")
+	runGitCmd(t, tmpDir, "config", "user.email", "test@example.com")
+
+	cleanup := func() {
+		// t.TempDir() 会自动清理,这里不需要额外操作
+	}
+
+	return tmpDir, cleanup
+}
+
+// RunGitCommand 执行 Git 命令(导出版本)
+func RunGitCommand(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	runGitCmd(t, dir, args...)
+}
