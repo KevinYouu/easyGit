@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KevinYouu/easyGit/internal/colors"
 	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 )
@@ -12,23 +11,6 @@ import (
 type FileStatus struct {
 	Status string
 	Path   string
-}
-
-func statusColor(status string) string {
-	switch status {
-	case "M":
-		return "yellow"
-	case "A":
-		return "green"
-	case "D":
-		return "red"
-	case "U":
-		return "green"
-	case "??":
-		return "green"
-	default:
-		return "white"
-	}
 }
 
 func getFileStatuses() ([]FileStatus, error) {
@@ -50,23 +32,4 @@ func getFileStatuses() ([]FileStatus, error) {
 	}
 
 	return files, nil
-}
-
-func Status() error {
-	fileStatuss, err := getFileStatuses()
-	if err != nil {
-		return fmt.Errorf(i18n.T("error.file.status")+" %w", err)
-	}
-
-	if len(fileStatuss) == 0 {
-		fmt.Println(colors.RenderColor("blue", i18n.T("git.status.no_changes")))
-		return nil
-	}
-
-	fmt.Println(i18n.T("git.status.title"))
-	for _, file := range fileStatuss {
-		color := statusColor(file.Status)
-		fmt.Println(colors.RenderColor(color, file.Status+" "+file.Path))
-	}
-	return nil
 }

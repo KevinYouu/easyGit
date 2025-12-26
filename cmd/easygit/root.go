@@ -23,14 +23,10 @@ func updateRootCommandDescriptions() {
 		switch cmd.Use {
 		case "version":
 			cmd.Short = i18n.T("version.short")
-		case "status":
-			cmd.Short = i18n.T("status.short")
 		case "push-all":
 			cmd.Short = i18n.T("push.all.short")
 		case "push-selected":
 			cmd.Short = i18n.T("push.selected.short")
-		case "remotes":
-			cmd.Short = i18n.T("remotes.short")
 		case "reset":
 			cmd.Short = i18n.T("reset.short")
 		case "tag-create":
@@ -66,7 +62,6 @@ func init() {
 		commands.TagCommand(),
 		commands.TagDeleteCommand(),
 		commands.BranchDeleteCommand(),
-		commands.StatusCommand(),
 		commands.MergeCommand(),
 		commands.CherryPickCommand(),
 		commands.VersionCommand(),
