@@ -10,8 +10,8 @@ import (
 
 func BranchDeleteCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "bd",
-		Aliases: []string{"branch-delete", "delbranch"},
+		Use:     "branch-delete",
+		Aliases: []string{"bd", "delbranch"},
 		Short:   i18n.T("branch.delete.short"),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := gitcmd.DeleteBranch(); err != nil {

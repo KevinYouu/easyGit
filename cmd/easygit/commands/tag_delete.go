@@ -10,8 +10,8 @@ import (
 
 func TagDeleteCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "td",
-		Aliases: []string{"tag-delete", "deltag"},
+		Use:     "tag-delete",
+		Aliases: []string{"td", "deltag"},
 		Short:   i18n.T("tag.delete.short"),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := gitcmd.DeleteAndPushTag(); err != nil {

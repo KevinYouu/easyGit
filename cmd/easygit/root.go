@@ -33,11 +33,11 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("remotes.short")
 		case "reset":
 			cmd.Short = i18n.T("reset.short")
-		case "tag":
+		case "tag-create":
 			cmd.Short = i18n.T("tag.short")
-		case "td":
+		case "tag-delete":
 			cmd.Short = i18n.T("tag.delete.short")
-		case "bd":
+		case "branch-delete":
 			cmd.Short = i18n.T("branch.delete.short")
 		case "merge":
 			cmd.Short = i18n.T("merge.short")

@@ -10,8 +10,8 @@ import (
 
 func TagCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "tag",
-		Aliases: []string{"t"},
+		Use:     "tag-create",
+		Aliases: []string{"tag", "tc"},
 		Short:   i18n.T("tag.short"),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := gitcmd.CreateAndPushTag(); err != nil {
