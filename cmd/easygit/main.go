@@ -5,11 +5,19 @@ import (
 	"os"
 	"strings"
 
+	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
 func main() {
-	// Pre-parse language flag before executing the command
+	// Initialize database and load language setting (Priority 1: Database)
+	if err := config.Initialize(); err == nil {
+		if dbLang, err := config.GetLanguage(); err == nil && dbLang != "" {
+			i18n.LoadLanguageFromDB(dbLang)
+		}
+	}
+
+	// Pre-parse language flag before executing the command (Priority 2: Runtime)
 	for i, arg := range os.Args {
 		if (arg == "-l" || arg == "--language") && i+1 < len(os.Args) {
 			lang := strings.ToLower(os.Args[i+1])

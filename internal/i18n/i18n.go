@@ -15,9 +15,11 @@ const (
 )
 
 var (
-	currentLang Language
-	once        sync.Once
-	mu          sync.RWMutex
+	currentLang     Language
+	runtimeLang     Language // 运行时临时设置的语言
+	hasRuntimeLang  bool     // 是否设置了运行时语言
+	once            sync.Once
+	mu              sync.RWMutex
 )
 
 // T translates a given key to the current language
@@ -50,10 +52,12 @@ func T(key string) string {
 	return key
 }
 
-// SetLanguage manually sets the language
+// SetLanguage manually sets the language (runtime temporary setting - priority 2)
 func SetLanguage(lang Language) {
 	mu.Lock()
 	defer mu.Unlock()
+	runtimeLang = lang
+	hasRuntimeLang = true
 	currentLang = lang
 }
 
@@ -64,12 +68,44 @@ func GetCurrentLanguage() Language {
 	return currentLang
 }
 
-// initLanguage detects and sets the language based on system locale
+// initLanguage detects and sets the language based on priority:
+// 1. Database setting (highest priority)
+// 2. Runtime setting (if set via SetLanguage)
+// 3. System locale (default)
 func initLanguage() {
-	lang := detectSystemLanguage()
+	lang := determineLanguage()
 	mu.Lock()
 	currentLang = lang
 	mu.Unlock()
+}
+
+// determineLanguage determines the language based on priority
+func determineLanguage() Language {
+	// Priority 1: Database setting (需要导入 config 包)
+	// 这里先返回检测到的语言,稍后会在外部调用 LoadLanguageFromDB
+
+	// Priority 2: Runtime setting
+	if hasRuntimeLang {
+		return runtimeLang
+	}
+
+	// Priority 3: System locale
+	return detectSystemLanguage()
+}
+
+// LoadLanguageFromDB loads language from database (priority 1)
+// This should be called during application initialization
+func LoadLanguageFromDB(dbLang string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// 只有在没有运行时设置时才使用数据库设置
+	if !hasRuntimeLang && dbLang != "" {
+		lang := Language(dbLang)
+		if lang == LangEN || lang == LangZH {
+			currentLang = lang
+		}
+	}
 }
 
 // detectSystemLanguage detects system language from environment variables

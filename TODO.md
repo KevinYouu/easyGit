@@ -1,5 +1,90 @@
 # TODO 任务清单
 
+## [x] 语言设置持久化 (2025-12-26)
+
+### 已完成任务
+
+- [x] 分析现有语言设置机制
+- [x] 在 config 包中添加语言设置存储
+- [x] 修改 i18n 包实现三级优先级
+- [x] 添加语言设置命令
+- [x] 编写测试用例
+- [x] 更新文档
+
+### 功能特性
+
+#### 三级语言优先级
+
+1. **运行时参数(最高优先级)**
+   - `--language=zh` 或 `-l zh`
+   - 临时生效,不持久化
+
+2. **数据库配置**
+   - 通过 `set-language` 命令设置
+   - 持久化存储在 `~/.easyGit.db`
+
+3. **系统环境变量(最低优先级)**
+   - 自动检测 `LC_ALL`, `LC_MESSAGES`, `LANG`
+   - 默认为英文
+
+#### 新增命令
+
+```bash
+# 查看当前语言设置
+./easyGit set-language
+
+# 设置为中文(持久化)
+./easyGit set-language zh
+
+# 设置为英文(持久化)
+./easyGit set-language en
+
+# 临时使用中文(不影响数据库)
+./easyGit version --language=zh
+```
+
+### 代码修改
+
+#### 新增文件
+
+- `internal/config/language.go` - 语言数据库存储
+- `internal/config/language_test.go` - 配置测试
+- `cmd/easygit/commands/set_language.go` - 设置命令
+- `internal/i18n/language_priority_test.go` - 优先级测试
+- `docs/features/语言设置.md` - 功能文档
+
+#### 修改文件
+
+- `internal/config/db.go` - 添加 settings 表
+- `internal/i18n/i18n.go` - 实现优先级逻辑
+- `internal/i18n/zh.go` - 添加中文翻译
+- `internal/i18n/en.go` - 添加英文翻译
+- `cmd/easygit/main.go` - 启动时加载数据库语言
+- `cmd/easygit/root.go` - 注册新命令
+
+### 数据库结构
+
+新增 `settings` 表:
+```sql
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+```
+
+### 测试覆盖
+
+- ✅ 语言保存和读取
+- ✅ 优先级测试
+- ✅ 并发安全测试
+- ✅ 数据持久化测试
+- ✅ 所有测试通过
+
+### 文档更新
+
+- ✅ `docs/features/语言设置.md` - 详细功能文档
+- ✅ 包含使用示例和场景说明
+
 ## [x] 测试用例开发 (2025-12-26)
 
 ### 已完成任务

@@ -56,6 +56,17 @@ var zhTranslations = map[string]string{
 	// Init command
 	"init.short": "初始化新的 git 仓库",
 
+	// Language settings
+	"language.set.short":       "设置默认语言",
+	"language.set.error":       "设置语言失败",
+	"language.set.success":     "✅ 语言设置成功",
+	"language.current.title":   "📝 当前语言设置",
+	"language.current.active":  "当前激活",
+	"language.current.database": "数据库设置",
+	"language.current.not.set": "未设置",
+	"language.available":       "可用语言",
+	"language.invalid":         "无效的语言代码,请使用 'en' 或 'zh'",
+
 	// Common messages
 	"error.general":      "发生错误：",
 	"error.not.git.repo": "不是 git 仓库",

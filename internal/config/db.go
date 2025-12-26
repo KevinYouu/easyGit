@@ -146,6 +146,16 @@ func Initialize() error {
 		return err
 	}
 
+	// Create the settings table
+	settingsTable := `CREATE TABLE IF NOT EXISTS settings (
+		key TEXT PRIMARY KEY,
+		value TEXT
+	)`
+	_, err = db.Exec(settingsTable)
+	if err != nil {
+		return err
+	}
+
 	// Count the number of options
 	countQuery := `SELECT COUNT(*) FROM options`
 	var count int

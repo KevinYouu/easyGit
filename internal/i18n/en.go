@@ -56,6 +56,17 @@ var enTranslations = map[string]string{
 	// Init command
 	"init.short": "Initialize a new git repository",
 
+	// Language settings
+	"language.set.short":        "Set default language",
+	"language.set.error":        "Failed to set language",
+	"language.set.success":      "✅ Language set successfully",
+	"language.current.title":    "📝 Current Language Settings",
+	"language.current.active":   "Currently Active",
+	"language.current.database": "Database Setting",
+	"language.current.not.set":  "Not set",
+	"language.available":        "Available Languages",
+	"language.invalid":          "Invalid language code, please use 'en' or 'zh'",
+
 	// Common messages
 	"error.general":      "An error occurred:",
 	"error.not.git.repo": "Not a git repository",
