@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KevinYouu/fastGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
 func main() {

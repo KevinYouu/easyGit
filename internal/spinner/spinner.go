@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )

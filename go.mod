@@ -1,4 +1,4 @@
-module github.com/KevinYouu/fastGit
+module github.com/KevinYouu/easyGit
 
 go 1.24.6
 

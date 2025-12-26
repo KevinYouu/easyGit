@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KevinYouu/fastGit/internal/config"
-	"github.com/KevinYouu/fastGit/internal/form"
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/form"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
 // CherryPickOption represents different cherry-pick options
@@ -354,13 +354,13 @@ func executeCherryPick(commit Commit, option CherryPickOption) error {
 		}
 
 		if strings.Contains(outputStr, "empty commit") {
-			logs.Waring(i18n.T("cherry.pick.empty.commit") + ": " + commit.Hash[:8])
+			logs.Warning(i18n.T("cherry.pick.empty.commit") + ": " + commit.Hash[:8])
 			// For empty commits, we might want to continue with --allow-empty or skip
 			return fmt.Errorf("%s", i18n.T("cherry.pick.empty.commit.error"))
 		}
 
 		if strings.Contains(outputStr, "already exists") || strings.Contains(outputStr, "nothing to commit") {
-			logs.Waring(i18n.T("cherry.pick.already.applied") + ": " + commit.Hash[:8])
+			logs.Warning(i18n.T("cherry.pick.already.applied") + ": " + commit.Hash[:8])
 			return nil // Skip this commit as it's already applied
 		}
 

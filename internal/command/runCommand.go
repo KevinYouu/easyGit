@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/KevinYouu/fastGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
 // RunCmd run a command with args

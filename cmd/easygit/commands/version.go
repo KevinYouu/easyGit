@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/version"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/version"
 	"github.com/spf13/cobra"
 )
 

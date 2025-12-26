@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/KevinYouu/fastGit/cmd/fastgit/commands"
-	"github.com/KevinYouu/fastGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/cmd/easygit/commands"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "fastGit",
+	Use:   "easyGit",
 	Short: "", // Will be set dynamically
 	Run: func(cmd *cobra.Command, args []string) {
 		commands.VersionCommand().Run(cmd, args)

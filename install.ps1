@@ -1,7 +1,7 @@
 # PowerShell install script
 # Created by KevinYouu on 2025-05-21
-# Description: Install fastGit
-# Github: https://github.com/KevinYouu/fastGit
+# Description: Install easyGit
+# Github: https://github.com/KevinYouu/easyGit
 
 # Check if Git is installed
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -11,7 +11,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 
 # GitHub repo
-$repo = "KevinYouu/fastGit"
+$repo = "KevinYouu/easyGit"
 
 # Get the latest release version
 try {
@@ -34,8 +34,8 @@ switch ($arch) {
 }
 
 # Build download URL and file name
-$url = "https://github.com/$repo/releases/download/$version/fastGit_${version}_${package_name}.zip"
-$file = "fastGit_${version}_${package_name}.zip"
+$url = "https://github.com/$repo/releases/download/$version/easyGit_${version}_${package_name}.zip"
+$file = "easyGit_${version}_${package_name}.zip"
 
 # Download ZIP file
 Write-Host "Downloading: $url"
@@ -48,7 +48,7 @@ try {
 }
 
 # Extract ZIP
-$destination = "$env:USERPROFILE\fastGit"
+$destination = "$env:USERPROFILE\easyGit"
 if (-not (Test-Path $destination)) {
     New-Item -ItemType Directory -Path $destination | Out-Null
 }
@@ -61,8 +61,8 @@ try {
 }
 
 # Add to PATH (current user)
-$fastGitPath = "$destination\fastGit.exe"
-if (-not (Test-Path $fastGitPath)) {
+$easyGitPath = "$destination\easyGit.exe"
+if (-not (Test-Path $easyGitPath)) {
     Write-Host "Executable not found in extracted files"
     exit 1
 }
@@ -70,17 +70,17 @@ if (-not (Test-Path $fastGitPath)) {
 $envPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if (-not ($envPath -split ";" | Where-Object { $_ -eq $destination })) {
     [Environment]::SetEnvironmentVariable("Path", "$envPath;$destination", "User")
-    Write-Host "fastGit has been added to PATH. Restart terminal to apply changes."
+    Write-Host "easyGit has been added to PATH. Restart terminal to apply changes."
 } else {
-    Write-Host "fastGit is already in PATH"
+    Write-Host "easyGit is already in PATH"
 }
 
 # Initialize config
 try {
-    & "$fastGitPath" init
+    & "$easyGitPath" init
     Write-Host "Configuration initialized"
 } catch {
-    Write-Host "Failed to initialize config. You can manually run: fastGit init"
+    Write-Host "Failed to initialize config. You can manually run: easyGit init"
 }
 
 # Clean up

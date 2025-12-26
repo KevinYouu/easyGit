@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KevinYouu/fastGit/internal/config"
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

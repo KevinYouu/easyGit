@@ -3,8 +3,8 @@ package form
 import (
 	"errors"
 
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/huh"
 )
 

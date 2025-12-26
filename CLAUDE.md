@@ -1,118 +1,40 @@
-# CLAUDE.md
+# easyGit 编码规范
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 命名规范
+- 文件名: snake_case (push_all.go, cherry_pick.go)
+- 包名: 小写单词 (gitcmd, i18n, config)
+- 函数/方法: PascalCase 导出, camelCase 私有
+- 常量: PascalCase 或 UPPER_SNAKE_CASE
+- 变量: camelCase
 
-## Build and Development Commands
+## 国际化
+- 所有用户可见文本必须使用 `i18n.T("key")`
+- 翻译键添加到 `internal/i18n/en.go` 和 `zh.go`
+- 键名使用点分层级: `"command.push.description"`
 
-### Building the Project
-- **Local Development Build**: `./build.sh` - Builds fastGit with version injection using git tag or dev version
-- **Standard Go Build**: `go build -o fastGit ./cmd/fastgit` - Basic build without version injection
-- **Release Build**: `goreleaser release --clean` - Creates cross-platform releases (triggered by git tags)
+## Git 操作
+- 所有 Git 命令封装在 `internal/gitcmd/` 包
+- 每个操作独立文件 (merge.go, reset.go 等)
+- 使用 `exec.Command("git", args...)` 执行命令
+- 错误信息通过 `internal/logs` 统一输出
 
-### Testing
-- **Run Tests**: `go test ./...` - Runs all tests across the project
-- **Run Specific Test**: `go test ./internal/i18n` - Runs tests for specific package
-- **Benchmark Tests**: `go test -bench=. ./internal/i18n` - Runs performance benchmarks
+## TUI 组件
+- 表单使用 `internal/form` 包 (Input, Select, MultiSelect)
+- 长时操作使用 `internal/spinner` 显示进度
+- 样式统一使用 `internal/theme` 主题
 
-### Dependencies
-- **Install Dependencies**: `go mod tidy` - Cleans up and installs required dependencies
-- **Update Dependencies**: `go get -u ./...` - Updates all dependencies
+## 错误处理
+- 立即检查错误: `if err != nil { return err }`
+- Git 命令失败使用 `logs.Error()` 输出
+- 用户输入验证在表单层完成
 
-## Project Architecture
+## 性能要求
+- CLI 启动 < 100ms
+- 单次 Git 操作避免多次命令调用
+- 配置读取使用 SQLite (已优化)
 
-### Core Structure
-fastGit is a CLI tool written in Go that simplifies Git operations through an interactive TUI (Terminal User Interface). The project follows a clean modular architecture:
-
-### Key Directories
-- `cmd/fastgit/` - Main application entry point and CLI commands
-  - `main.go` - Application entry point with language detection
-  - `root.go` - Root command setup and subcommand registration
-  - `commands/` - Individual command implementations (push_all.go, merge.go, etc.)
-- `internal/` - Internal packages (not exported)
-  - `gitcmd/` - Core Git operation implementations
-  - `i18n/` - Internationalization support (English/Chinese)
-  - `form/` - TUI form components (input, select, multi-select)
-  - `spinner/` - Loading animations and progress indicators
-  - `theme/` - Visual styling and color themes
-  - `config/` - Configuration management
-  - `command/` - Command execution utilities
-
-### Architecture Patterns
-- **Command Pattern**: Each Git operation is encapsulated as a separate command in `cmd/fastgit/commands/`
-- **MVC-like Separation**: Clear separation between CLI commands, business logic (internal packages), and data models
-- **Dependency Injection**: Commands depend on internal packages rather than direct implementations
-- **Internationalization**: All UI strings go through the i18n system with language detection
-
-### Core Technologies
-- **CLI Framework**: Cobra for command-line interface structure
-- **TUI Framework**: Bubbletea for terminal user interface
-- **Form Components**: Huh for interactive forms
-- **Styling**: Lipgloss for terminal styling and theming
-- **Git Operations**: Direct git command execution through os/exec
-
-### Key Features
-- Interactive file selection for Git operations
-- Multi-step Git workflows with progress tracking
-- Bilingual support (English/Chinese) with automatic detection
-- Modern TUI with themes, animations, and progress indicators
-- Cross-platform support (Linux, macOS, Windows)
-
-### Command Flow
-1. `main.go` detects language from environment or flags
-2. `root.go` sets up command structure with translated descriptions
-3. Individual commands in `commands/` use internal packages for:
-   - Git operations via `internal/gitcmd`
-   - UI components via `internal/form` and `internal/spinner`
-   - Configuration via `internal/config`
-
-### Configuration
-- Uses SQLite for storing configuration and usage data
-- Supports version injection during build process
-- Theme customization through `internal/theme` package
-
-## Development Notes
-
-### Language Support
-- All user-facing strings must use `i18n.T()` function
-- Translation keys are stored in `internal/i18n/en.go` and `internal/i18n/zh.go`
-- Language can be set via command-line flags (`-l`, `--language`) or detected automatically
-
-### Git Operations
-- Git commands are executed through the `internal/gitcmd` package
-- Each Git operation (push, merge, reset, etc.) has its own implementation file
-- Commands support both interactive and non-interactive modes
-
-### Testing Strategy
-- Unit tests exist for i18n functionality with benchmarks
-- Performance testing ensures translation speed (< 10ms for 10000 translations)
-- Test files follow Go conventions with `_test.go` suffix
-
-### UI/UX Principles
-- All interactive elements use modern TUI components
-- Progress tracking for long-running operations
-- Consistent theming and color schemes
-- Accessibility through keyboard navigation
-
-## Common Development Tasks
-
-### Adding a New Command
-1. Create command file in `cmd/fastgit/commands/`
-2. Implement command function returning `*cobra.Command`
-3. Add translation keys in `internal/i18n/en.go` and `internal/i18n/zh.go`
-4. Register command in `cmd/fastgit/root.go`
-5. Implement core logic in appropriate `internal/` package
-
-### Modifying Git Operations
-- Core Git logic is in `internal/gitcmd/` directory
-- Each operation has its own file (e.g., `pushAll.go`, `merge.go`)
-- Follow existing patterns for error handling and user feedback
-
-### Updating UI/Theme
-- Modify `internal/theme/theme.go` for visual changes
-- Form components are in `internal/form/`
-- Spinner animations are in `internal/spinner/`
-
-### Release Process
-- Tag a commit with version number (e.g., `v1.2.3`)
-- GitHub Actions trigger GoReleaser automatically
-- Cross-platform binaries are created and attached to release
+## 禁止事项
+- ❌ 硬编码文本 (必须用 i18n)
+- ❌ 直接 fmt.Println 调试代码
+- ❌ 跨包直接调用 Git 命令
+- ❌ 使用 CGO 依赖

@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/KevinYouu/fastGit/internal/command"
-	"github.com/KevinYouu/fastGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/command"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
 const (

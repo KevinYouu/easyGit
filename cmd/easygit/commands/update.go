@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/update"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/update"
 	"github.com/spf13/cobra"
 )
 

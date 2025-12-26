@@ -1,12 +1,12 @@
 [English](README.md) | 简体中文
 
-# fastGit
+# easyGit
 
 🚀 一个现代化的命令行工具，通过交互式终端界面简化 Git 操作。支持 Linux、macOS 和 Windows。
 
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践！
 
-![fastGit 演示](assets/fast-git.gif)
+![easyGit 演示](assets/fast-git.gif)
 
 ## ✨ 特性
 
@@ -26,22 +26,22 @@
 
 ```bash
 # Linux/macOS
-curl -sSL https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 
 # 或者使用 wget
-wget -qO- https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 ```
 
 ```powershell
 # Windows
-iwr -useb https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
 ```
 
 ### 从源码构建
 
 ```bash
-git clone https://github.com/KevinYouu/fastGit.git
-cd fastGit
+git clone https://github.com/KevinYouu/easyGit.git
+cd easyGit
 ./build.sh
 ```
 
@@ -51,41 +51,41 @@ cd fastGit
 
 ```bash
 # 提交工作区所有更改的文件
-fastGit pa
+easyGit pa
 
 # 交互式选择要提交的文件
-fastGit ps
+easyGit ps
 
 # 查看仓库状态
-fastGit s
+easyGit s
 ```
 
 ### 高级操作
 
 ```bash
 # 创建并推送标签
-fastGit t
+easyGit t
 
 # 删除标签
-fastGit td
+easyGit td
 
 # 将选定分支合并到当前分支
-fastGit m
+easyGit m
 
 # 拣选提交
-fastGit cp
+easyGit cp
 
 # 重置到选定提交
-fastGit rs
+easyGit rs
 
 # 查看远程仓库
-fastGit rv
+easyGit rv
 
-# 初始化 fastGit 配置
-fastGit init
+# 初始化 easyGit 配置
+easyGit init
 
-# 更新 fastGit
-fastGit update
+# 更新 easyGit
+easyGit update
 ```
 
 ## 📖 命令参考
@@ -101,20 +101,20 @@ fastGit update
 | `cherry-pick` | `cp` | 从其他分支拣选提交 |
 | `reset` | `rs` | 重置仓库到选定提交 |
 | `remotes` | `rv` | 列出所有远程仓库 |
-| `init` | - | 初始化 fastGit 配置 |
-| `update` | - | 更新 fastGit 到最新版本 |
+| `init` | - | 初始化 easyGit 配置 |
+| `update` | - | 更新 easyGit 到最新版本 |
 | `version` | - | 显示当前版本信息 |
 
 ### 语言支持
 
-fastGit 会自动检测您的系统语言，您也可以手动指定：
+easyGit 会自动检测您的系统语言，您也可以手动指定：
 
 ```bash
 # 强制使用英文
-fastGit --language en pa
+easyGit --language en pa
 
 # 强制使用中文
-fastGit --language zh pa
+easyGit --language zh pa
 ```
 
 ## 🛠️ 开发
@@ -123,8 +123,8 @@ fastGit --language zh pa
 
 ```bash
 # 克隆仓库
-git clone https://github.com/KevinYouu/fastGit.git
-cd fastGit
+git clone https://github.com/KevinYouu/easyGit.git
+cd easyGit
 
 # 安装依赖
 go mod tidy
@@ -133,7 +133,7 @@ go mod tidy
 ./build.sh
 
 # 或手动构建
-go build -o fastGit ./cmd/fastgit
+go build -o easyGit ./cmd/fastgit
 ```
 
 ### 运行测试
@@ -152,7 +152,7 @@ go test -bench=. ./internal/i18n
 ### 项目结构
 
 ```
-fastGit/
+easyGit/
 ├── cmd/fastgit/          # CLI 命令和入口点
 │   ├── main.go          # 应用程序入口
 │   ├── root.go          # 根命令设置

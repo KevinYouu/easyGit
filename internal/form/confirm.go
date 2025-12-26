@@ -1,7 +1,7 @@
 package form
 
 import (
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/huh"
 )
 

@@ -3,11 +3,11 @@ package logs
 import (
 	"fmt"
 
-	"github.com/KevinYouu/fastGit/internal/colors"
+	"github.com/KevinYouu/easyGit/internal/colors"
 )
 
-// Waring should be used to render warning text
-func Waring(text string) {
+// Warning should be used to render warning text
+func Warning(text string) {
 	fmt.Println(colors.RenderColor("yellow", text))
 }
 

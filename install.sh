@@ -1,9 +1,9 @@
 #!/bin/bash
 # Created by KevinYouu on 2024-03-24 14:30:11
-# Description: install fastGit
-# Github: https://github.com/KevinYouu/fastGit
+# Description: install easyGit
+# Github: https://github.com/KevinYouu/easyGit
 
-repo="KevinYouu/fastGit"
+repo="KevinYouu/easyGit"
 
 # Check if git is installed
 if ! command -v git &>/dev/null; then
@@ -53,8 +53,8 @@ function systemCheck() {
 }
 
 systemCheck
-url=https://github.com/$repo/releases/download/$version/fastGit_"$version"_"$package_name".zip
-file=fastGit_"$version"_"$package_name".zip
+url=https://github.com/$repo/releases/download/$version/easyGit_"$version"_"$package_name".zip
+file=easyGit_"$version"_"$package_name".zip
 
 echo "Downloading $url"
 
@@ -75,7 +75,7 @@ else
 fi
 
 # Set permissions
-if sudo chmod +x "$install_dir/fastGit"; then
+if sudo chmod +x "$install_dir/easyGit"; then
     echo "Permissions set successfully"
 else
     echo "Failed to set permissions"
@@ -89,7 +89,7 @@ rm "$file"
 echo "Please restart your terminal or source your config manually."
 
 # Initialize config
-if [ ! -d "$install_dir/fastGit" ]; then
-    "$install_dir/fastGit" init
+if [ ! -d "$install_dir/easyGit" ]; then
+    "$install_dir/easyGit" init
     echo "Config initialized successfully"
 fi

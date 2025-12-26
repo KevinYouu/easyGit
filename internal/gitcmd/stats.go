@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KevinYouu/fastGit/internal/colors"
-	"github.com/KevinYouu/fastGit/internal/command"
-	"github.com/KevinYouu/fastGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/colors"
+	"github.com/KevinYouu/easyGit/internal/command"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
 type FileStatus struct {

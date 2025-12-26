@@ -3,7 +3,7 @@ package form
 import (
 	"os"
 
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/huh"
 	"golang.org/x/term"
 )

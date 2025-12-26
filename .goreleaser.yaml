@@ -1,6 +1,6 @@
 version: 2
 
-project_name: fastGit
+project_name: easyGit
 
 dist: .builds
 
@@ -10,10 +10,10 @@ before:
 
 builds:
   - id: build_noncgo
-    main: ./cmd/fastgit
-    binary: fastGit
+    main: ./cmd/easygit
+    binary: easyGit
     ldflags:
-      - -s -w -X github.com/KevinYouu/fastGit/internal/version.Version={{.Version}}
+      - -s -w -X github.com/KevinYouu/easyGit/internal/version.Version={{.Version}}
     env:
       - CGO_ENABLED=0
     goos:

@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KevinYouu/fastGit/internal/command"
-	"github.com/KevinYouu/fastGit/internal/config"
-	"github.com/KevinYouu/fastGit/internal/form"
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/theme"
+	"github.com/KevinYouu/easyGit/internal/command"
+	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/form"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/lipgloss"
 )
 

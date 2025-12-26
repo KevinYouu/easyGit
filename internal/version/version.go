@@ -3,9 +3,9 @@ package version
 import (
 	"fmt"
 
-	"github.com/KevinYouu/fastGit/internal/colors"
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/random"
+	"github.com/KevinYouu/easyGit/internal/colors"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/random"
 )
 
 var Version = "untracked"
@@ -19,7 +19,7 @@ func GetVersion() {
 	random.ExecuteRandomly(funcProbs)
 
 	fmt.Println(i18n.T("version.version"), colors.RenderColor("blue", Version))
-	fmt.Println(i18n.T("version.github"), colors.RenderColor("blue", "https://github.com/KevinYouu/fastGit"))
+	fmt.Println(i18n.T("version.github"), colors.RenderColor("blue", "https://github.com/KevinYouu/easyGit"))
 	fmt.Println(i18n.T("version.about"), colors.RenderColor("blue", "https://www.kevnu.com/about"))
 }
 

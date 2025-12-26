@@ -1,12 +1,12 @@
 English | [简体中文](README-CN.md)
 
-# fastGit
+# easyGit
 
 🚀 A modern CLI tool that simplifies Git operations with an interactive terminal user interface. Supports Linux, macOS, and Windows.
 
 > This project uses its own features to commit code - dogfooding at its finest!
 
-![fastGit Demo](assets/fast-git.gif)
+![easyGit Demo](assets/fast-git.gif)
 
 ## ✨ Features
 
@@ -26,22 +26,22 @@ English | [简体中文](README-CN.md)
 
 ```bash
 # Linux/macOS
-curl -sSL https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 
 # Or using wget
-wget -qO- https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 ```
 
 ```powershell
 # Windows
-iwr -useb https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/KevinYouu/fastGit.git
-cd fastGit
+git clone https://github.com/KevinYouu/easyGit.git
+cd easyGit
 ./build.sh
 ```
 
@@ -51,41 +51,41 @@ cd fastGit
 
 ```bash
 # Push all changes in the working directory
-fastGit pa
+easyGit pa
 
 # Push selected files in the working directory
-fastGit ps
+easyGit ps
 
 # Check repository status
-fastGit s
+easyGit s
 ```
 
 ### Advanced Operations
 
 ```bash
 # Create and push a tag
-fastGit t
+easyGit t
 
 # Delete a tag
-fastGit td
+easyGit td
 
 # Merge selected branch into current branch
-fastGit m
+easyGit m
 
 # Cherry-pick commits
-fastGit cp
+easyGit cp
 
 # Reset to selected commit
-fastGit rs
+easyGit rs
 
 # View remote repositories
-fastGit rv
+easyGit rv
 
-# Initialize fastGit configuration
-fastGit init
+# Initialize easyGit configuration
+easyGit init
 
-# Update fastGit
-fastGit update
+# Update easyGit
+easyGit update
 ```
 
 ## 📖 Command Reference
@@ -101,20 +101,20 @@ fastGit update
 | `cherry-pick` | `cp` | Cherry-pick commits from other branches |
 | `reset` | `rs` | Reset repository to selected commit |
 | `remotes` | `rv` | List all remote repositories |
-| `init` | - | Initialize fastGit configuration |
-| `update` | - | Update fastGit to latest version |
+| `init` | - | Initialize easyGit configuration |
+| `update` | - | Update easyGit to latest version |
 | `version` | - | Show current version information |
 
 ### Language Support
 
-fastGit automatically detects your system language or you can specify it manually:
+easyGit automatically detects your system language or you can specify it manually:
 
 ```bash
 # Force English
-fastGit --language en pa
+easyGit --language en pa
 
 # Force Chinese
-fastGit --language zh pa
+easyGit --language zh pa
 ```
 
 ## 🛠️ Development
@@ -123,8 +123,8 @@ fastGit --language zh pa
 
 ```bash
 # Clone the repository
-git clone https://github.com/KevinYouu/fastGit.git
-cd fastGit
+git clone https://github.com/KevinYouu/easyGit.git
+cd easyGit
 
 # Install dependencies
 go mod tidy
@@ -133,7 +133,7 @@ go mod tidy
 ./build.sh
 
 # Or build manually
-go build -o fastGit ./cmd/fastgit
+go build -o easyGit ./cmd/fastgit
 ```
 
 ### Running Tests
@@ -152,7 +152,7 @@ go test -bench=. ./internal/i18n
 ### Project Structure
 
 ```
-fastGit/
+easyGit/
 ├── cmd/fastgit/          # CLI commands and entry point
 │   ├── main.go          # Application entry point
 │   ├── root.go          # Root command setup

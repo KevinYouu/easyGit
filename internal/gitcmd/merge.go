@@ -5,11 +5,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/KevinYouu/fastGit/internal/command"
-	"github.com/KevinYouu/fastGit/internal/config"
-	"github.com/KevinYouu/fastGit/internal/form"
-	"github.com/KevinYouu/fastGit/internal/i18n"
-	"github.com/KevinYouu/fastGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/command"
+	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/form"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
 // MergeStrategy represents different merge strategies
@@ -85,7 +85,7 @@ func checkWorkingDirectoryStatus() error {
 	}
 
 	if len(strings.TrimSpace(string(output))) > 0 {
-		logs.Waring(i18n.T("merge.warning.dirty.working.directory"))
+		logs.Warning(i18n.T("merge.warning.dirty.working.directory"))
 		confirmed := form.Confirm(i18n.T("merge.confirm.continue.with.changes"))
 		if !confirmed {
 			return fmt.Errorf("merge cancelled by user")
@@ -110,7 +110,7 @@ func getAllAvailableBranches() ([]config.Option, error) {
 	// Get remote branches
 	remoteBranches, err := getRemoteBranches(currentBranch)
 	if err != nil {
-		logs.Waring("Failed to get remote branches: " + err.Error())
+		logs.Warning("Failed to get remote branches: " + err.Error())
 		remoteBranches = []config.Option{} // Continue with local branches only
 	}
 
