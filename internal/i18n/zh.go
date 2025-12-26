@@ -105,9 +105,17 @@ var zhTranslations = map[string]string{
 	"form.multiselect.title": "请选择选项",
 
 	// Git commands and operations
-	"git.remotes.title":     "远程仓库：",
-	"git.status.no_changes": "没有文件更改。",
-	"git.status.title":      "文件状态：",
+	"git.remotes.title":          "远程仓库：",
+	"git.status.no_changes":      "没有文件更改。",
+	"git.status.title":           "文件状态：",
+	"git.select.remote":          "选择远程仓库",
+	"git.select.branch":          "选择目标分支",
+	"git.select.remote.first":    "检测到多个远程仓库,请选择默认推送的远程",
+	"git.select.remotes.first":   "检测到多个远程仓库,请选择默认推送的远程(可多选)",
+	"git.select.branch.first":    "请选择默认推送的目标分支",
+	"git.push.to.remote":         "推送到 %s",
+	"git.push.loading.remote":    "正在推送到 %s...",
+	"git.push.success.remote":    "✅ 成功推送到 %s",
 
 	// Reset command
 	"reset.title":           "🔄 Git 重置",
@@ -429,10 +437,31 @@ var zhTranslations = map[string]string{
 	"cherry.pick.option.signoff.name":          "签名",
 	"cherry.pick.option.signoff.description":   "在提交信息中添加 Signed-off-by 行",
 
+	// Push config command
+	"push.config.short":         "配置默认推送的远程和分支",
+	"push.config.not.set":       "📝 当前未设置推送配置",
+	"push.config.help":          "使用 'set-push-config' 设置默认推送的远程和分支",
+	"push.config.current.title": "📝 当前推送配置",
+	"push.config.remotes":       "远程仓库",
+	"push.config.branch":        "目标分支",
+	"push.config.change.hint":   "💡 使用 'set-push-config' 修改配置,或 'set-push-config clear' 清除配置",
+	"push.config.cleared":       "✅ 推送配置已清除,下次推送时将重新选择",
+	"push.config.setup.title":   "⚙️  设置默认推送配置",
+	"push.config.saved":         "✅ 推送配置已保存: %s → %s",
+	"push.using.config":         "📤 推送到: %s/%s",
+
 	// Error messages - detailed
-	"error.get.options":        "获取选项失败：",
-	"error.get.file.status":    "获取文件状态失败",
-	"error.multiselect.form":   "获取文件状态失败：",
-	"error.select.form.detail": "选择分支出错：",
-	"error.current.branch":     "获取当前分支失败：",
+	"error.get.options":         "获取选项失败：",
+	"error.get.file.status":     "获取文件状态失败",
+	"error.multiselect.form":    "获取文件状态失败：",
+	"error.select.form.detail":  "选择分支出错：",
+	"error.current.branch":      "获取当前分支失败：",
+	"error.get.remotes":         "获取远程仓库失败",
+	"error.get.current.branch":  "获取当前分支失败",
+	"error.get.push.config":     "获取推送配置失败",
+	"error.save.push.config":    "保存推送配置失败",
+	"error.clear.push.config":   "清除推送配置失败",
+	"error.select.remote":       "选择远程失败",
+	"error.select.branch":       "选择分支失败",
+	"error.no.remote.selected":  "未选择任何远程仓库",
 }

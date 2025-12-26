@@ -1,6 +1,6 @@
-# FastGit UI 增强说明
+# EasyGit UI 增强说明
 
-经过优化后，FastGit 的 TUI 组件现在具有更现代、更美观的界面和丰富的加载动画效果。
+经过优化后，EasyGit 的 TUI 组件现在具有更现代、更美观的界面和丰富的加载动画效果。
 
 ## 🎨 主要改进
 
@@ -115,7 +115,7 @@ icon := theme.GetStatusIcon("info")     // ℹ️
 
 ```go
 // 获取带装饰的标题
-header := theme.GetHeader("FastGit 操作")
+header := theme.GetHeader("EasyGit 操作")
 
 // 获取分隔线
 rule := theme.GetHorizontalRule(50)
@@ -205,4 +205,4 @@ ErrorColor = lipgloss.Color("#YOUR_ERROR_COLOR")
 - **终端控制**: charmbracelet/bubbletea
 - **样式系统**: 自定义主题系统
 
-现在你的 FastGit 拥有了更加现代和用户友好的界面！🎉
+现在你的 EasyGit 拥有了更加现代和用户友好的界面！🎉

@@ -49,6 +49,8 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("init.short")
 		case "set-language":
 			cmd.Short = i18n.T("language.set.short")
+		case "set-push-config":
+			cmd.Short = i18n.T("push.config.short")
 		}
 	}
 }
@@ -71,5 +73,6 @@ func init() {
 		commands.UpdateCommand(),
 		commands.InitCommand(),
 		commands.SetLanguageCmd,
+		commands.SetPushConfigCommand(),
 	)
 }

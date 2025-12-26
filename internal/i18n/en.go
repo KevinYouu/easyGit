@@ -105,9 +105,17 @@ var enTranslations = map[string]string{
 	"form.multiselect.title": "Please select options",
 
 	// Git commands and operations
-	"git.remotes.title":     "Remotes:",
-	"git.status.no_changes": "No files changed.",
-	"git.status.title":      "File statuses:",
+	"git.remotes.title":          "Remotes:",
+	"git.status.no_changes":      "No files changed.",
+	"git.status.title":           "File statuses:",
+	"git.select.remote":          "Select remote repository",
+	"git.select.branch":          "Select target branch",
+	"git.select.remote.first":    "Multiple remotes detected, please select default push remote",
+	"git.select.remotes.first":   "Multiple remotes detected, please select default push remotes (multi-select)",
+	"git.select.branch.first":    "Please select default push target branch",
+	"git.push.to.remote":         "Push to %s",
+	"git.push.loading.remote":    "Pushing to %s...",
+	"git.push.success.remote":    "✅ Successfully pushed to %s",
 
 	// Reset command
 	"reset.title":           "🔄 Git Reset",
@@ -429,10 +437,31 @@ var enTranslations = map[string]string{
 	"cherry.pick.option.signoff.name":          "Sign-off",
 	"cherry.pick.option.signoff.description":   "Add Signed-off-by line to commit message",
 
+	// Push config command
+	"push.config.short":         "Configure default push remote and branch",
+	"push.config.not.set":       "📝 Push configuration not set",
+	"push.config.help":          "Use 'set-push-config' to set default push remote and branch",
+	"push.config.current.title": "📝 Current Push Configuration",
+	"push.config.remotes":       "Remotes",
+	"push.config.branch":        "Branch",
+	"push.config.change.hint":   "💡 Use 'set-push-config' to change, or 'set-push-config clear' to reset",
+	"push.config.cleared":       "✅ Push configuration cleared, will re-select on next push",
+	"push.config.setup.title":   "⚙️  Setup Default Push Configuration",
+	"push.config.saved":         "✅ Push configuration saved: %s → %s",
+	"push.using.config":         "📤 Pushing to: %s/%s",
+
 	// Error messages - detailed
-	"error.get.options":        "Failed to get options:",
-	"error.get.file.status":    "Failed to get file statuses",
-	"error.multiselect.form":   "Failed to get file statuses:",
-	"error.select.form.detail": "error selecting branch:",
-	"error.current.branch":     "Failed to get current branch:",
+	"error.get.options":         "Failed to get options:",
+	"error.get.file.status":     "Failed to get file statuses",
+	"error.multiselect.form":    "Failed to get file statuses:",
+	"error.select.form.detail":  "error selecting branch:",
+	"error.current.branch":      "Failed to get current branch:",
+	"error.get.remotes":         "Failed to get remotes",
+	"error.get.current.branch":  "Failed to get current branch",
+	"error.get.push.config":     "Failed to get push configuration",
+	"error.save.push.config":    "Failed to save push configuration",
+	"error.clear.push.config":   "Failed to clear push configuration",
+	"error.select.remote":       "Failed to select remote",
+	"error.select.branch":       "Failed to select branch",
+	"error.no.remote.selected":  "No remote selected",
 }

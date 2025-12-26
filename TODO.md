@@ -1,159 +1,159 @@
 # TODO 任务清单
 
-## [x] 语言设置持久化 (2025-12-26)
+## [ ] 后续开发计划
 
-### 已完成任务
+> 详细优化方案请查看: `docs/OPTIMIZATION_ROADMAP.md`
 
-- [x] 分析现有语言设置机制
-- [x] 在 config 包中添加语言设置存储
-- [x] 修改 i18n 包实现三级优先级
-- [x] 添加语言设置命令
-- [x] 编写测试用例
-- [x] 更新文档
+### Sprint 1: 核心问题修复 (1 周) 🔴 高优先级
 
-### 功能特性
+- [/] **修复硬编码问题**
 
-#### 三级语言优先级
+  - [x] 分支硬编码 - 支持选择推送分支
+  - [x] 远程仓库硬编码 - 支持多远程场景
+  - [ ] 配置化常量 - 提交类型/颜色主题等
 
-1. **运行时参数(最高优先级)**
-   - `--language=zh` 或 `-l zh`
-   - 临时生效,不持久化
+- [ ] **响应式布局优化**
 
-2. **数据库配置**
-   - 通过 `set-language` 命令设置
-   - 持久化存储在 `~/.easyGit.db`
+  - [ ] 动态列宽计算
+  - [ ] 响应式高度调整
+  - [ ] 终端尺寸变化监听
 
-3. **系统环境变量(最低优先级)**
-   - 自动检测 `LC_ALL`, `LC_MESSAGES`, `LANG`
-   - 默认为英文
+- [/] **测试用例补充 - gitcmd 包**
+  - [x] remote 远程选择测试
+  - [ ] pushAll/pushSelected 测试
+  - [ ] cherry_pick 测试
+  - [ ] 目标覆盖率: 60%
 
-#### 新增命令
+### Sprint 2: 组件现代化 (1 周) 🟡 重要
 
-```bash
-# 查看当前语言设置
-./easyGit set-language
+- [ ] **使用 Huh 重构表单组件**
 
-# 设置为中文(持久化)
-./easyGit set-language zh
+  - [ ] form/input.go → huh.Input
+  - [ ] form/select.go → huh.Select
+  - [ ] form/multiSelect.go → huh.MultiSelect
+  - [ ] form/confirm.go → huh.Confirm
 
-# 设置为英文(持久化)
-./easyGit set-language en
+- [ ] **增强表格组件**
 
-# 临时使用中文(不影响数据库)
-./easyGit version --language=zh
-```
+  - [ ] 添加搜索过滤 (使用 bubbles/textinput)
+  - [ ] 添加列排序
+  - [ ] 添加多选模式
+  - [ ] 键盘快捷键提示
 
-### 代码修改
+- [ ] **进度显示优化**
 
-#### 新增文件
+  - [ ] 使用 bubbles/progress
+  - [ ] 显示实际进度百分比
+  - [ ] 多任务并行进度
 
-- `internal/config/language.go` - 语言数据库存储
-- `internal/config/language_test.go` - 配置测试
-- `cmd/easygit/commands/set_language.go` - 设置命令
-- `internal/i18n/language_priority_test.go` - 优先级测试
-- `docs/features/语言设置.md` - 功能文档
+- [ ] **测试用例补充 - command 包**
+  - [ ] RunCmd 测试
+  - [ ] 错误处理测试
+  - [ ] 目标覆盖率: 50%
 
-#### 修改文件
+### Sprint 3: UI/UX 提升 (1 周) 🟢 建议
 
-- `internal/config/db.go` - 添加 settings 表
-- `internal/i18n/i18n.go` - 实现优先级逻辑
-- `internal/i18n/zh.go` - 添加中文翻译
-- `internal/i18n/en.go` - 添加英文翻译
-- `cmd/easygit/main.go` - 启动时加载数据库语言
-- `cmd/easygit/root.go` - 注册新命令
+- [ ] **主题系统增强**
 
-### 数据库结构
+  - [ ] 支持 Dark/Light/Custom 主题
+  - [ ] 主题切换命令
+  - [ ] 自适应终端配色
 
-新增 `settings` 表:
-```sql
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-);
-```
+- [ ] **交互体验优化**
 
-### 测试覆盖
+  - [ ] 全局键盘快捷键 (?/\//Ctrl+R)
+  - [ ] 上下文菜单
+  - [ ] 面包屑导航
+  - [ ] 优化确认对话框
 
-- ✅ 语言保存和读取
-- ✅ 优先级测试
-- ✅ 并发安全测试
-- ✅ 数据持久化测试
-- ✅ 所有测试通过
+- [ ] **可视化增强**
 
-### 文档更新
+  - [ ] Git 分支图可视化
+  - [ ] 提交历史时间线
+  - [ ] 文件变更 diff 预览
+  - [ ] 状态图标和颜色编码
 
-- ✅ `docs/features/语言设置.md` - 详细功能文档
-- ✅ 包含使用示例和场景说明
+- [ ] **测试用例补充 - 其他包**
+  - [ ] spinner 包测试
+  - [ ] update 包测试
+  - [ ] 目标整体覆盖率: 40%+
 
-## [x] 测试用例开发 (2025-12-26)
+### Sprint 4: 复杂工作流整合 (3-5 天) ⚪ 可选
 
-### 已完成任务
+**设计原则:**
 
-- [x] 检查现有测试覆盖率
-- [x] 为 gitcmd 包补充测试用例
-- [x] 为 form 包补充测试用例
-- [x] 运行所有测试并修复问题
-- [x] 执行代码质量检查
-- [x] 创建测试文档
+- ❌ 不重复 Git 原生简单命令 (switch/stash 等)
+- ✅ 只整合多步骤、难记忆的复杂工作流
 
-### 测试覆盖率提升
+- [ ] **复杂工作流整合**
 
-#### gitcmd 包
-- **之前**: 4.7%
-- **之后**: 14.3%
-- **提升**: +9.6%
+  - [ ] 交互式 rebase 引导
+  - [ ] 冲突解决助手
+  - [ ] 发布工作流自动化 (version bump + tag + push + changelog)
+  - [ ] 子模块更新助手
 
-新增测试文件:
-- `internal/gitcmd/branch_test.go` - 分支操作测试
-- `internal/gitcmd/merge_test.go` - 合并操作测试
-- `internal/gitcmd/reset_test.go` - 重置操作测试
+- [ ] **批量操作支持**
+  - [ ] 批量标签管理
+  - [ ] 批量分支清理
+  - [ ] 批量文件操作
 
-#### form 包
-- **之前**: 0.0%
-- **之后**: 0.0%
-- **说明**: 交互式组件难以单元测试,已添加数据验证逻辑测试
+**不实现的命令 (Git 原生已足够):**
 
-新增测试文件:
-- `internal/form/form_test.go` - 表单组件测试
+- ❌ switch/stash/quick-push 等单步操作
 
-#### testutil 工具包增强
+**不实现的功能 (已有更好方案):**
 
-新增辅助函数:
-- `CreateTempGitRepo(t)` - 创建临时 Git 仓库并返回清理函数
-- `RunGitCommand(t, dir, args...)` - 执行 Git 命令的导出版本
+- ❌ 智能默认值 - 已通过使用次数排序实现
 
-### 代码质量检查
+### 技术栈优化
 
-全部通过:
-- ✅ `go vet ./...` - 无警告
-- ✅ `go build ./...` - 编译成功
-- ✅ `go test ./...` - 所有测试通过
+**充分利用现有库:**
 
-### 文档更新
+- `charmbracelet/bubbles` v0.21.0 - TUI 组件库
+- `charmbracelet/bubbletea` v1.3.6 - Elm 架构框架
+- `charmbracelet/huh` v0.7.0 - 高级表单组件
+- `charmbracelet/lipgloss` v1.1.0 - 样式系统
 
-新增文档:
-- `docs/features/测试用例.md` - 完整的测试用例文档
+### 成功指标
 
-文档包含:
-- 测试覆盖率统计
-- 测试用例详解
-- 运行测试指南
-- 测试策略说明
-- 持续改进方向
+**功能指标:**
+
+- ✅ 核心模块测试覆盖率 > 60%
+- ✅ 整体测试覆盖率 > 40%
+- ✅ 无硬编码的分支/远程
+- ✅ 支持 60-200 列终端尺寸
+
+**用户体验指标:**
+
+- ✅ 操作步骤减少 30%
+- ✅ 响应速度 < 100ms
+- ✅ 支持键盘全操作
+- ✅ 错误提示清晰友好
+
+**代码质量指标:**
+
+- ✅ 无 linter 警告
+- ✅ 关键功能有集成测试
+- ✅ 代码复用率 > 70%
+
+---
 
 ## [ ] 待优化项
 
 ### 测试覆盖率待提升
 
 1. **command 包** (2.0%)
+
    - 命令执行框架
    - 交互式进度显示
 
 2. **spinner 包** (12.7%)
+
    - 加载动画组件
    - 状态管理
 
 3. **update 包** (9.8%)
+
    - 自动更新功能
    - 版本检查逻辑
 
@@ -173,20 +173,20 @@ CREATE TABLE IF NOT EXISTS settings (
 
 ### 当前覆盖率汇总
 
-| 包名 | 覆盖率 | 状态 |
-|------|--------|------|
-| logs | 100.0% | ✅ 优秀 |
-| random | 100.0% | ✅ 优秀 |
-| theme | 100.0% | ✅ 优秀 |
-| i18n | 90.6% | ✅ 良好 |
-| colors | 75.0% | ✅ 良好 |
-| config | 73.4% | ✅ 良好 |
-| version | 42.9% | ⚠️ 中等 |
-| gitcmd | 14.3% | ⚠️ 改进中 |
-| spinner | 12.7% | ⚠️ 偏低 |
-| update | 9.8% | ⚠️ 偏低 |
-| command | 2.0% | ⚠️ 偏低 |
-| form | 0.0% | ℹ️ 交互式 |
+| 包名    | 覆盖率 | 状态      |
+| ------- | ------ | --------- |
+| logs    | 100.0% | ✅ 优秀   |
+| random  | 100.0% | ✅ 优秀   |
+| theme   | 100.0% | ✅ 优秀   |
+| i18n    | 90.6%  | ✅ 良好   |
+| colors  | 75.0%  | ✅ 良好   |
+| config  | 73.4%  | ✅ 良好   |
+| version | 42.9%  | ⚠️ 中等   |
+| gitcmd  | 14.3%  | ⚠️ 改进中 |
+| spinner | 12.7%  | ⚠️ 偏低   |
+| update  | 9.8%   | ⚠️ 偏低   |
+| command | 2.0%   | ⚠️ 偏低   |
+| form    | 0.0%   | ℹ️ 交互式 |
 
 ### 新增测试数量
 

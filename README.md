@@ -1,4 +1,4 @@
-English | [简体中文](README-CN.md)
+English | [简体中文](README-ZH.md)
 
 # easyGit
 
@@ -7,6 +7,19 @@ English | [简体中文](README-CN.md)
 > This project uses its own features to commit code - dogfooding at its finest!
 
 ![easyGit Demo](assets/fast-git.gif)
+
+## 📖 Design Philosophy
+
+**easyGit is a Git workflow enhancement tool, not a replacement for Git commands.**
+
+We focus on:
+
+- 🎯 **Integrating multi-step workflows** - Combining multiple Git commands into one interactive flow
+- 🧠 **Simplifying complex commands** - Providing friendly UIs for hard-to-remember parameters
+- 🚀 **Optimizing repetitive work** - Batch operations and smart defaults
+- ✨ **Enhancing user experience** - Beautiful TUI with clear visual feedback
+
+📚 Read more: [Design Philosophy](docs/DESIGN_PHILOSOPHY.md) | [设计哲学 (中文)](docs/DESIGN_PHILOSOPHY_ZH.md)
 
 ## ✨ Features
 
@@ -84,26 +97,30 @@ easyGit rv
 # Initialize easyGit configuration
 easyGit init
 
+# Configure push settings (remote and branch)
+easyGit set-push-config
+
 # Update easyGit
 easyGit update
 ```
 
 ## 📖 Command Reference
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `push-all` | `pa` | Stage and commit all changed files |
-| `push-selected` | `ps` | Interactively select files to stage and commit |
-| `status` | `s` | Show repository status with enhanced UI |
-| `tag` | `t` | Create and push tags with semantic versioning |
-| `tag-delete` | `td` | Delete tags locally and remotely |
-| `merge` | `m` | Merge selected branch into current branch |
-| `cherry-pick` | `cp` | Cherry-pick commits from other branches |
-| `reset` | `rs` | Reset repository to selected commit |
-| `remotes` | `rv` | List all remote repositories |
-| `init` | - | Initialize easyGit configuration |
-| `update` | - | Update easyGit to latest version |
-| `version` | - | Show current version information |
+| Command            | Alias | Description                                              |
+| ------------------ | ----- | -------------------------------------------------------- |
+| `push-all`         | `pa`  | Stage and commit all changed files                       |
+| `push-selected`    | `ps`  | Interactively select files to stage and commit           |
+| `status`           | `s`   | Show repository status with enhanced UI                  |
+| `tag`              | `t`   | Create and push tags with semantic versioning            |
+| `tag-delete`       | `td`  | Delete tags locally and remotely                         |
+| `merge`            | `m`   | Merge selected branch into current branch                |
+| `cherry-pick`      | `cp`  | Cherry-pick commits from other branches                  |
+| `reset`            | `rs`  | Reset repository to selected commit                      |
+| `init`             | -     | Initialize easyGit configuration                         |
+| `set-push-config`  | -     | Configure default push remote(s) and branch              |
+| `set-language`     | -     | Set default language (en/zh)                             |
+| `update`           | -     | Update easyGit to latest version                         |
+| `version`          | -     | Show current version information                         |
 
 ### Language Support
 

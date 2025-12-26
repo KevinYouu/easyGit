@@ -20,9 +20,13 @@ func max(a, b int) int {
 	return b
 }
 
-func SelectForm(title string, options []config.Option) (label, value string, err error) {
+func SelectForm(title string, options []config.Option, preselected ...string) (label, value string, err error) {
 	// 使用统一的紧凑布局
 	var selectedValue string
+	// 如果提供了预选值，使用预选值初始化
+	if len(preselected) > 0 && preselected[0] != "" {
+		selectedValue = preselected[0]
+	}
 
 	selectOpts := make([]huh.Option[string], len(options))
 	for i, opt := range options {
