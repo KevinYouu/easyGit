@@ -36,11 +36,24 @@ func GetTagPatch() (Patch, error) {
 }
 
 func SavePatches(patches []Patch) error {
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// 先清空表(因为 patches 表没有主键,只存储一条配置)
+	_, err = db.Exec("DELETE FROM patches")
+	if err != nil {
+		return err
+	}
+
+	// 插入新配置
 	return SaveRecords(
 		patches,
 		"patches",
 		[]string{"prefix", "major", "minor", "patch", "suffix"},
 		"",
-		nil, // does not need to be updated
+		nil,
 	)
 }

@@ -13,10 +13,20 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+var testDBPath string // 测试用数据库路径
+
+// SetTestDBPath 设置测试数据库路径(仅用于测试)
+func SetTestDBPath(path string) {
+	testDBPath = path
+}
+
 // Get the path to the SQLite database
 func getDBPath() string {
+	if testDBPath != "" {
+		return testDBPath
+	}
 	homeDir, _ := os.UserHomeDir()
-	return filepath.Join(homeDir, ".fastGit.db")
+	return filepath.Join(homeDir, ".easyGit.db")
 }
 
 // Open the SQLite database

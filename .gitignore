@@ -1,2 +1,4 @@
 .vscode/
 .builds/
+coverage.out
+easyGit
