@@ -6,7 +6,7 @@
 
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践!
 
-![easyGit 演示](assets/fast-git.gif)
+![easyGit 演示](assets/easygit.gif)
 
 ## 📖 设计哲学
 
