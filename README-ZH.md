@@ -2,15 +2,27 @@
 
 # easyGit
 
-🚀 一个现代化的命令行工具,通过交互式终端界面简化 Git 操作。支持 Linux、macOS 和 Windows。
+🚀 一个现代化的交互式 Git CLI 工具，简化您的日常 Git 工作流。提交代码、管理分支、处理标签等操作，全部通过直观的终端界面完成。
 
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践!
 
 ![easyGit 演示](assets/easygit.gif)
 
+## 📖 什么是 easyGit？
+
+**easyGit 是为热爱 Git 但希望工作更高效的开发者设计的。**
+
+无需输入多个 Git 命令或记忆复杂的参数，easyGit 提供：
+
+- ⚡ **一键工作流** - 用单个命令推送所有更改或选择特定文件
+- 🎯 **交互式选择** - 通过可视化菜单选择分支、提交、标签和文件
+- 🔧 **智能配置** - 保存您的推送偏好设置（远程仓库/分支）和语言设置
+- 🌍 **多语言** - 完整的中英文支持，自动检测系统语言
+- 🎨 **美观界面** - 现代化 TUI 组件提供清晰的视觉反馈
+
 ## 📖 设计哲学
 
-**easyGit 是一个 Git 工作流增强工具,而不是 Git 命令的替代品。**
+**easyGit 是一个 Git 工作流增强工具，而不是 Git 命令的替代品。**
 
 我们专注于:
 
@@ -21,13 +33,30 @@
 
 📚 了解更多: [设计哲学](docs/DESIGN_PHILOSOPHY_ZH.md) | [Design Philosophy (English)](docs/DESIGN_PHILOSOPHY.md)
 
-## ✨ 特性
+## ✨ 核心功能
 
-- 🎯 **交互式 Git 操作** - 通过美观的 TUI 界面选择文件、分支和提交
-- 🌍 **双语支持** - 支持中英文，自动检测系统语言
-- 🎨 **现代化界面** - 美观的主题、动画和进度指示器
-- ⚡ **快速高效** - 为常见 Git 操作提供简化的工作流程
-- 🔧 **跨平台** - 支持 Linux、macOS 和 Windows
+### 提交和推送
+- **push-all** - 用一个命令暂存并推送所有更改的文件
+- **push-selected** - 交互式选择要提交的文件
+- **set-push-config** - 保存默认的远程仓库和分支偏好设置
+
+### 分支和合并管理
+- **merge** - 通过交互式选择将任意分支合并到当前分支
+- **branch-delete** - 安全地删除本地或远程分支
+- **cherry-pick** - 通过可视化选择从其他分支拣选提交
+
+### 标签操作
+- **tag-create** - 创建并推送标签，支持语义化版本控制
+- **tag-delete** - 在本地和远程删除标签
+
+### 仓库控制
+- **reset** - 通过可视化提交历史重置到任意提交
+- **init** - 为仓库初始化 easyGit 配置
+- **update** - 更新 easyGit 到最新版本
+
+### 自定义设置
+- **set-language** - 在中英文之间切换
+- **--language 参数** - 按命令覆盖语言设置
 
 ## 📦 安装
 
@@ -64,38 +93,41 @@ cd easyGit
 
 ```bash
 # 提交工作区所有更改的文件
-easyGit pa
+easyGit push-all
 
 # 交互式选择要提交的文件
-easyGit ps
+easyGit push-selected
 
-# 查看仓库状态
-easyGit s
+# 初始化 easyGit 配置
+easyGit init
 ```
 
 ### 高级操作
 
 ```bash
 # 创建并推送标签
-easyGit t
+easyGit tag-create
 
 # 删除标签
-easyGit td
+easyGit tag-delete
+
+# 删除本地或远程分支
+easyGit branch-delete
 
 # 将选定分支合并到当前分支
-easyGit m
+easyGit merge
 
 # 拣选提交
-easyGit cp
+easyGit cherry-pick
 
 # 重置到选定提交
-easyGit rs
+easyGit reset
 
-# 查看远程仓库
-easyGit rv
+# 配置推送设置（远程仓库和分支）
+easyGit set-push-config
 
-# 初始化 easyGit 配置
-easyGit init
+# 设置界面语言
+easyGit set-language
 
 # 更新 easyGit
 easyGit update
@@ -103,20 +135,21 @@ easyGit update
 
 ## 📖 命令参考
 
-| 命令            | 别名 | 描述                         |
-| --------------- | ---- | ---------------------------- |
-| `push-all`      | `pa` | 暂存并提交所有更改的文件     |
-| `push-selected` | `ps` | 交互式选择文件进行暂存和提交 |
-| `status`        | `s`  | 显示增强 UI 的仓库状态       |
-| `tag`           | `t`  | 创建并推送带语义版本标签     |
-| `tag-delete`    | `td` | 在本地和远程删除标签         |
-| `merge`         | `m`  | 将选定分支合并到当前分支     |
-| `cherry-pick`   | `cp` | 从其他分支拣选提交           |
-| `reset`         | `rs` | 重置仓库到选定提交           |
-| `remotes`       | `rv` | 列出所有远程仓库             |
-| `init`          | -    | 初始化 easyGit 配置          |
-| `update`        | -    | 更新 easyGit 到最新版本      |
-| `version`       | -    | 显示当前版本信息             |
+| 命令               | 描述                       |
+| ------------------ | -------------------------- |
+| `push-all`         | 暂存并提交所有更改的文件   |
+| `push-selected`    | 交互式选择文件进行暂存提交 |
+| `tag-create`       | 创建并推送带语义版本标签   |
+| `tag-delete`       | 在本地和远程删除标签       |
+| `branch-delete`    | 删除本地或远程分支         |
+| `merge`            | 将选定分支合并到当前分支   |
+| `cherry-pick`      | 从其他分支拣选提交         |
+| `reset`            | 重置仓库到选定提交         |
+| `init`             | 初始化 easyGit 配置        |
+| `set-push-config`  | 配置默认推送远程和分支     |
+| `set-language`     | 设置默认语言（en/zh）      |
+| `update`           | 更新 easyGit 到最新版本    |
+| `version`          | 显示当前版本信息           |
 
 ### 语言支持
 
@@ -124,10 +157,10 @@ easyGit 会自动检测您的系统语言，您也可以手动指定：
 
 ```bash
 # 强制使用英文
-easyGit --language en pa
+easyGit --language en push-all
 
 # 强制使用中文
-easyGit --language zh pa
+easyGit --language zh push-all
 ```
 
 ## 🛠️ 开发

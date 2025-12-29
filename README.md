@@ -2,11 +2,23 @@ English | [简体中文](README-ZH.md)
 
 # easyGit
 
-🚀 A modern CLI tool that simplifies Git operations with an interactive terminal user interface. Supports Linux, macOS, and Windows.
+🚀 A modern interactive Git CLI that streamlines your daily Git workflow. Make commits, manage branches, handle tags, and more - all through an intuitive terminal interface.
 
 > This project uses its own features to commit code - dogfooding at its finest!
 
 ![easyGit Demo](assets/easygit.gif)
+
+## 📖 What is easyGit?
+
+**easyGit is designed for developers who love Git but want to work faster.**
+
+Instead of typing multiple Git commands or remembering complex flags, easyGit provides:
+
+- ⚡ **One-Command Workflows** - Push all changes or select specific files with a single command
+- 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus
+- 🔧 **Smart Configuration** - Save your push preferences (remote/branch) and language settings
+- 🌍 **Multilingual** - Full English and Chinese support with auto-detection
+- 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components
 
 ## 📖 Design Philosophy
 
@@ -21,13 +33,30 @@ We focus on:
 
 📚 Read more: [Design Philosophy](docs/DESIGN_PHILOSOPHY.md) | [设计哲学 (中文)](docs/DESIGN_PHILOSOPHY_ZH.md)
 
-## ✨ Features
+## ✨ Core Features
 
-- 🎯 **Interactive Git Operations** - Select files, branches, and commits with a beautiful TUI
-- 🌍 **Bilingual Support** - English and Chinese with automatic language detection
-- 🎨 **Modern Interface** - Beautiful themes, animations, and progress indicators
-- ⚡ **Fast & Efficient** - Streamlined workflows for common Git operations
-- 🔧 **Cross-Platform** - Works on Linux, macOS, and Windows
+### Commit & Push
+- **push-all** - Stage and push all changed files with one command
+- **push-selected** - Interactively select which files to commit
+- **set-push-config** - Save default remote and branch preferences
+
+### Branch & Merge Management
+- **merge** - Merge any branch into current branch through interactive selection
+- **branch-delete** - Delete local or remote branches safely
+- **cherry-pick** - Pick commits from other branches with visual selection
+
+### Tag Operations
+- **tag-create** - Create and push tags with semantic versioning support
+- **tag-delete** - Remove tags locally and remotely
+
+### Repository Control
+- **reset** - Reset to any commit with visual commit history
+- **init** - Initialize easyGit configuration for a repository
+- **update** - Update easyGit to the latest version
+
+### Customization
+- **set-language** - Switch between English and Chinese
+- **--language flag** - Override language per-command
 
 ## 📦 Installation
 
@@ -64,41 +93,41 @@ cd easyGit
 
 ```bash
 # Push all changes in the working directory
-easyGit pa
+easyGit push-all
 
 # Push selected files in the working directory
-easyGit ps
+easyGit push-selected
 
-# Check repository status
-easyGit s
+# Initialize easyGit configuration
+easyGit init
 ```
 
 ### Advanced Operations
 
 ```bash
 # Create and push a tag
-easyGit t
+easyGit tag-create
 
 # Delete a tag
-easyGit td
+easyGit tag-delete
+
+# Delete local or remote branches
+easyGit branch-delete
 
 # Merge selected branch into current branch
-easyGit m
+easyGit merge
 
 # Cherry-pick commits
-easyGit cp
+easyGit cherry-pick
 
 # Reset to selected commit
-easyGit rs
-
-# View remote repositories
-easyGit rv
-
-# Initialize easyGit configuration
-easyGit init
+easyGit reset
 
 # Configure push settings (remote and branch)
 easyGit set-push-config
+
+# Set interface language
+easyGit set-language
 
 # Update easyGit
 easyGit update
@@ -106,21 +135,21 @@ easyGit update
 
 ## 📖 Command Reference
 
-| Command           | Alias | Description                                    |
-| ----------------- | ----- | ---------------------------------------------- |
-| `push-all`        | `pa`  | Stage and commit all changed files             |
-| `push-selected`   | `ps`  | Interactively select files to stage and commit |
-| `status`          | `s`   | Show repository status with enhanced UI        |
-| `tag`             | `t`   | Create and push tags with semantic versioning  |
-| `tag-delete`      | `td`  | Delete tags locally and remotely               |
-| `merge`           | `m`   | Merge selected branch into current branch      |
-| `cherry-pick`     | `cp`  | Cherry-pick commits from other branches        |
-| `reset`           | `rs`  | Reset repository to selected commit            |
-| `init`            | -     | Initialize easyGit configuration               |
-| `set-push-config` | -     | Configure default push remote(s) and branch    |
-| `set-language`    | -     | Set default language (en/zh)                   |
-| `update`          | -     | Update easyGit to latest version               |
-| `version`         | -     | Show current version information               |
+| Command            | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `push-all`         | Stage and commit all changed files             |
+| `push-selected`    | Interactively select files to stage and commit |
+| `tag-create`       | Create and push tags with semantic versioning  |
+| `tag-delete`       | Delete tags locally and remotely               |
+| `branch-delete`    | Delete local or remote branches                |
+| `merge`            | Merge selected branch into current branch      |
+| `cherry-pick`      | Cherry-pick commits from other branches        |
+| `reset`            | Reset repository to selected commit            |
+| `init`             | Initialize easyGit configuration               |
+| `set-push-config`  | Configure default push remote(s) and branch    |
+| `set-language`     | Set default language (en/zh)                   |
+| `update`           | Update easyGit to latest version               |
+| `version`          | Show current version information               |
 
 ### Language Support
 
@@ -128,10 +157,10 @@ easyGit automatically detects your system language or you can specify it manuall
 
 ```bash
 # Force English
-easyGit --language en pa
+easyGit --language en push-all
 
 # Force Chinese
-easyGit --language zh pa
+easyGit --language zh push-all
 ```
 
 ## 🛠️ Development
