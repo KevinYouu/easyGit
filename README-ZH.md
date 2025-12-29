@@ -146,7 +146,7 @@ go mod tidy
 ./build.sh
 
 # 或手动构建
-go build -o easyGit ./cmd/fastgit
+go build -o easyGit ./cmd/easygit
 ```
 
 ### 运行测试
@@ -166,7 +166,7 @@ go test -bench=. ./internal/i18n
 
 ```
 easyGit/
-├── cmd/fastgit/          # CLI 命令和入口点
+├── cmd/easygit/          # CLI 命令和入口点
 │   ├── main.go          # 应用程序入口
 │   ├── root.go          # 根命令设置
 │   └── commands/        # 各个命令的实现

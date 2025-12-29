@@ -150,7 +150,7 @@ go mod tidy
 ./build.sh
 
 # Or build manually
-go build -o easyGit ./cmd/fastgit
+go build -o easyGit ./cmd/easygit
 ```
 
 ### Running Tests
@@ -170,7 +170,7 @@ go test -bench=. ./internal/i18n
 
 ```
 easyGit/
-├── cmd/fastgit/          # CLI commands and entry point
+├── cmd/easygit/          # CLI commands and entry point
 │   ├── main.go          # Application entry point
 │   ├── root.go          # Root command setup
 │   └── commands/        # Individual command implementations

@@ -16,7 +16,7 @@ import (
 
 const (
 	repoOwner = "KevinYouu"
-	repoName  = "fastGit"
+	repoName  = "easyGit"
 )
 
 type GitHubRelease struct {
@@ -86,7 +86,7 @@ func UpdateSelf() error {
 	if runtime.GOOS == "windows" {
 		fmt.Println(i18n.T("update.running_windows_script"))
 		_, err := command.RunCmdWithSpinnerOptions("powershell",
-			[]string{"-Command", "iwr -useb https://raw.githubusercontent.com/KevinYouu/fastGit/main/install.ps1 | iex"},
+			[]string{"-Command", "iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex"},
 			i18n.T("update.downloading_running_script"),
 			i18n.T("update.script_executed_success"), true)
 		if err != nil {
@@ -114,11 +114,11 @@ func updateUnix() error {
 		return err
 	}
 
-	assetName := fmt.Sprintf("fastGit_%s_%s.zip", version, platform)
+	assetName := fmt.Sprintf("easyGit_%s_%s.zip", version, platform)
 	url := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", repoOwner, repoName, version, assetName)
 
 	// 创建临时目录
-	tempDir, err := os.MkdirTemp("", "fastgit-update-*")
+	tempDir, err := os.MkdirTemp("", "easygit-update-*")
 	if err != nil {
 		return fmt.Errorf(i18n.T("update.failed_create_temp_dir")+": %w", err)
 	}
@@ -159,8 +159,8 @@ func updateUnix() error {
 
 	// 安装文件
 	installDir := getInstallDir()
-	extractedBinary := filepath.Join(tempDir, "fastGit")
-	targetPath := filepath.Join(installDir, "fastGit")
+	extractedBinary := filepath.Join(tempDir, "easyGit")
+	targetPath := filepath.Join(installDir, "easyGit")
 
 	fmt.Printf(i18n.T("update.installing_to")+": %s...\n", installDir)
 
@@ -236,7 +236,7 @@ func extractZip(src, dest string) error {
 
 // hasWritePermission 检查是否对目录有写权限
 func hasWritePermission(dir string) bool {
-	testFile := filepath.Join(dir, ".fastgit-write-test")
+	testFile := filepath.Join(dir, ".easygit-write-test")
 	file, err := os.Create(testFile)
 	if err != nil {
 		return false

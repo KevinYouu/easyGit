@@ -183,7 +183,7 @@ func (m AdvancedSpinnerModel) renderHeader() string {
 		Width(60).
 		Align(lipgloss.Center)
 
-	return headerStyle.Render(i18n.T("spinner.fastgit.operation"))
+	return headerStyle.Render(i18n.T("spinner.easygit.operation"))
 }
 
 // renderMainMessage 渲染主消息
