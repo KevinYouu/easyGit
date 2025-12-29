@@ -4,6 +4,8 @@ English | [简体中文](README-ZH.md)
 
 🚀 A modern interactive Git CLI that streamlines your daily Git workflow. Make commits, manage branches, handle tags, and more - all through an intuitive terminal interface.
 
+**🔧 Cross-Platform Support: Linux | macOS | Windows**
+
 > This project uses its own features to commit code - dogfooding at its finest!
 
 ![easyGit Demo](assets/easygit.gif)
@@ -19,6 +21,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 - 🔧 **Smart Configuration** - Save your push preferences (remote/branch) and language settings
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components
+- 💻 **Cross-Platform** - Works seamlessly on Linux, macOS, and Windows
 
 ## 📖 Design Philosophy
 
@@ -60,26 +63,32 @@ We focus on:
 
 ## 📦 Installation
 
+easyGit supports **Linux, macOS, and Windows**. Choose your platform below:
+
 ### Prerequisites
 
 - [Git](https://git-scm.com/) must be installed on your system
 
 ### Quick Install (Recommended)
 
+**Linux / macOS:**
 ```bash
-# Linux/macOS
+# Using curl
 curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 
 # Or using wget
 wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 ```
 
+**Windows:**
 ```powershell
-# Windows
+# Using PowerShell
 iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
 ```
 
 ### Build from Source
+
+Works on all platforms with Go installed:
 
 ```bash
 git clone https://github.com/KevinYouu/easyGit.git

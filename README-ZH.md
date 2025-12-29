@@ -4,6 +4,8 @@
 
 🚀 一个现代化的交互式 Git CLI 工具，简化您的日常 Git 工作流。提交代码、管理分支、处理标签等操作，全部通过直观的终端界面完成。
 
+**🔧 跨平台支持: Linux | macOS | Windows**
+
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践!
 
 ![easyGit 演示](assets/easygit.gif)
@@ -19,6 +21,7 @@
 - 🔧 **智能配置** - 保存您的推送偏好设置（远程仓库/分支）和语言设置
 - 🌍 **多语言** - 完整的中英文支持，自动检测系统语言
 - 🎨 **美观界面** - 现代化 TUI 组件提供清晰的视觉反馈
+- 💻 **跨平台** - 在 Linux、macOS 和 Windows 上无缝运行
 
 ## 📖 设计哲学
 
@@ -60,26 +63,32 @@
 
 ## 📦 安装
 
+easyGit 支持 **Linux、macOS 和 Windows**。请选择您的平台：
+
 ### 前置要求
 
 - 系统必须安装 [Git](https://git-scm.com/)
 
 ### 快速安装（推荐）
 
+**Linux / macOS:**
 ```bash
-# Linux/macOS
+# 使用 curl
 curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 
 # 或者使用 wget
 wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
 ```
 
+**Windows:**
 ```powershell
-# Windows
+# 使用 PowerShell
 iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
 ```
 
 ### 从源码构建
+
+在所有安装了 Go 的平台上都可以构建：
 
 ```bash
 git clone https://github.com/KevinYouu/easyGit.git
