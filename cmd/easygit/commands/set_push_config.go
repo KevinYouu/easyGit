@@ -43,10 +43,8 @@ func setPushConfig() {
 	// 获取当前配置（用于预选）
 	pushConfig, _ := config.GetPushConfig()
 	var currentRemotes []string
-	var currentBranch string
 	if pushConfig != nil {
 		currentRemotes = pushConfig.Remotes
-		currentBranch = pushConfig.Branch
 	}
 
 	// 获取所有远程
@@ -68,22 +66,16 @@ func setPushConfig() {
 		return
 	}
 
-	// 选择目标分支，预选当前配置的分支
-	branch, err := gitcmd.SelectBranch(remotes[0], currentBranch)
-	if err != nil {
-		logs.Error(i18n.T("error.select.branch"))
-		return
-	}
-
 	// 保存配置
-	err = config.SavePushConfig(remotes, branch)
+	err = config.SavePushConfig(remotes)
 	if err != nil {
 		logs.Error(i18n.T("error.save.push.config"))
 		return
 	}
 
 	remotesStr := strings.Join(remotes, ", ")
-	logs.Success(fmt.Sprintf(i18n.T("push.config.saved"), remotesStr, branch))
+	logs.Success(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
+	logs.Info(i18n.T("push.config.will.use.current.branch"))
 }
 
 // SetPushConfigCommand 返回 set-push-config 命令

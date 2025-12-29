@@ -3,6 +3,7 @@ package gitcmd
 import (
 	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/KevinYouu/easyGit/internal/config"
@@ -77,11 +78,8 @@ func SelectRemoteWithConfig() ([]string, bool, error) {
 		// 验证配置的远程是否还存在
 		validRemotes := []string{}
 		for _, configRemote := range pushConfig.Remotes {
-			for _, remote := range remotes {
-				if remote == configRemote {
-					validRemotes = append(validRemotes, configRemote)
-					break
-				}
+			if slices.Contains(remotes, configRemote) {
+				validRemotes = append(validRemotes, configRemote)
 			}
 		}
 
@@ -180,57 +178,6 @@ func GetRemoteBranches(remote string) ([]string, error) {
 	}
 
 	return branches, nil
-}
-
-// SelectBranchWithConfig 智能选择分支(支持配置持久化)
-func SelectBranchWithConfig(remote string) (string, bool, error) {
-	// 获取当前分支
-	currentBranch, err := GetCurrentBranch()
-	if err != nil {
-		logs.Error(i18n.T("error.get.current.branch"))
-		return "", false, err
-	}
-
-	// 检查是否已有配置
-	pushConfig, err := config.GetPushConfig()
-	if err != nil {
-		logs.Error(i18n.T("error.get.push.config"))
-	}
-
-	// 如果有配置,使用配置的分支
-	if pushConfig != nil && pushConfig.Branch != "" {
-		return pushConfig.Branch, false, nil
-	}
-
-	// 获取远程分支列表
-	remoteBranches, err := GetRemoteBranches(remote)
-	if err != nil {
-		// 如果获取远程分支失败,返回当前分支(可能是新分支)
-		return currentBranch, true, nil
-	}
-
-	// 构建选项列表: 当前分支在最前面
-	var options []config.Option
-	options = append(options, config.Option{Label: currentBranch, Value: currentBranch})
-
-	// 添加远程已存在的其他分支
-	for _, branch := range remoteBranches {
-		if branch != currentBranch {
-			options = append(options, config.Option{Label: branch, Value: branch})
-		}
-	}
-
-	// 只有一个分支选项时直接返回
-	if len(options) == 1 {
-		return options[0].Value, true, nil
-	}
-
-	_, selected, err := form.SelectForm(i18n.T("git.select.branch.first"), options)
-	if err != nil {
-		return "", false, err
-	}
-
-	return selected, true, nil
 }
 
 // SelectBranch 让用户选择要推送的分支(不持久化,用于配置命令)

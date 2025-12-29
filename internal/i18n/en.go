@@ -438,16 +438,17 @@ var enTranslations = map[string]string{
 	"cherry.pick.option.signoff.description":   "Add Signed-off-by line to commit message",
 
 	// Push config command
-	"push.config.short":         "Configure default push remote and branch",
-	"push.config.not.set":       "📝 Push configuration not set",
-	"push.config.help":          "Use 'set-push-config' to set default push remote and branch",
-	"push.config.current.title": "📝 Current Push Configuration",
-	"push.config.remotes":       "Remotes",
-	"push.config.branch":        "Branch",
-	"push.config.change.hint":   "💡 Use 'set-push-config' to change, or 'set-push-config clear' to reset",
-	"push.config.cleared":       "✅ Push configuration cleared, will re-select on next push",
-	"push.config.setup.title":   "⚙️  Setup Default Push Configuration",
-	"push.config.saved":         "✅ Push configuration saved: %s → %s",
+	"push.config.short":                   "Configure default push remotes",
+	"push.config.not.set":                 "📝 Push configuration not set",
+	"push.config.help":                    "Use 'set-push-config' to set default push remotes",
+	"push.config.current.title":           "📝 Current Push Configuration",
+	"push.config.remotes":                 "Remotes",
+	"push.config.change.hint":             "💡 Use 'set-push-config' to change, or 'set-push-config clear' to reset",
+	"push.config.cleared":                 "✅ Push configuration cleared, will re-select on next push",
+	"push.config.setup.title":             "⚙️  Setup Default Push Configuration",
+	"push.config.saved.remotes":           "✅ Push configuration saved: %s",
+	"push.config.will.use.current.branch": "💡 Will push to current branch when pushing",
+	"push.using.config.remotes":           "📤 Using push config: %s",
 	"push.using.config":         "📤 Pushing to: %s/%s",
 
 	// Error messages - detailed

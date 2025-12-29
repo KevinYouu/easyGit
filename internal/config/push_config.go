@@ -11,7 +11,6 @@ import (
 // PushConfig 推送配置
 type PushConfig struct {
 	Remotes []string // 远程仓库名列表(支持多个)
-	Branch  string   // 目标分支名
 }
 
 // getRepoKey 获取当前仓库的唯一标识
@@ -47,7 +46,6 @@ func GetPushConfig() (*PushConfig, error) {
 
 	// 使用仓库路径作为 key 前缀
 	remotesKey := fmt.Sprintf("push_remotes:%s", repoKey)
-	branchKey := fmt.Sprintf("push_branch:%s", repoKey)
 
 	// 获取远程列表 (逗号分隔格式存储)
 	var remotesStr string
@@ -61,26 +59,18 @@ func GetPushConfig() (*PushConfig, error) {
 		remotes = strings.Split(remotesStr, ",")
 	}
 
-	// 获取分支
-	var branch string
-	err = db.QueryRow("SELECT value FROM settings WHERE key = ?", branchKey).Scan(&branch)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("get push_branch: %w", err)
-	}
-
 	// 如果没有配置,返回 nil
-	if len(remotes) == 0 && branch == "" {
+	if len(remotes) == 0 {
 		return nil, nil
 	}
 
 	return &PushConfig{
 		Remotes: remotes,
-		Branch:  branch,
 	}, nil
 }
 
 // SavePushConfig 保存当前仓库的推送配置
-func SavePushConfig(remotes []string, branch string) error {
+func SavePushConfig(remotes []string) error {
 	repoKey, err := getRepoKey()
 	if err != nil {
 		return err
@@ -93,7 +83,6 @@ func SavePushConfig(remotes []string, branch string) error {
 
 	// 使用仓库路径作为 key 前缀
 	remotesKey := fmt.Sprintf("push_remotes:%s", repoKey)
-	branchKey := fmt.Sprintf("push_branch:%s", repoKey)
 
 	// 保存远程列表 (逗号分隔格式)
 	remotesStr := strings.Join(remotes, ",")
@@ -104,15 +93,6 @@ func SavePushConfig(remotes []string, branch string) error {
 	`, remotesKey, remotesStr)
 	if err != nil {
 		return fmt.Errorf("save push_remotes: %w", err)
-	}
-
-	// 保存目标分支
-	_, err = db.Exec(`
-		INSERT INTO settings (key, value) VALUES (?, ?)
-		ON CONFLICT(key) DO UPDATE SET value = excluded.value
-	`, branchKey, branch)
-	if err != nil {
-		return fmt.Errorf("save push_branch: %w", err)
 	}
 
 	return nil
@@ -131,9 +111,8 @@ func ClearPushConfig() error {
 	}
 
 	remotesKey := fmt.Sprintf("push_remotes:%s", repoKey)
-	branchKey := fmt.Sprintf("push_branch:%s", repoKey)
 
-	_, err = db.Exec("DELETE FROM settings WHERE key IN (?, ?)", remotesKey, branchKey)
+	_, err = db.Exec("DELETE FROM settings WHERE key = ?", remotesKey)
 	if err != nil {
 		return fmt.Errorf("clear push config: %w", err)
 	}

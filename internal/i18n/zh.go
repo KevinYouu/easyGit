@@ -438,16 +438,17 @@ var zhTranslations = map[string]string{
 	"cherry.pick.option.signoff.description":   "在提交信息中添加 Signed-off-by 行",
 
 	// Push config command
-	"push.config.short":         "配置默认推送的远程和分支",
-	"push.config.not.set":       "📝 当前未设置推送配置",
-	"push.config.help":          "使用 'set-push-config' 设置默认推送的远程和分支",
-	"push.config.current.title": "📝 当前推送配置",
-	"push.config.remotes":       "远程仓库",
-	"push.config.branch":        "目标分支",
-	"push.config.change.hint":   "💡 使用 'set-push-config' 修改配置,或 'set-push-config clear' 清除配置",
-	"push.config.cleared":       "✅ 推送配置已清除,下次推送时将重新选择",
-	"push.config.setup.title":   "⚙️  设置默认推送配置",
-	"push.config.saved":         "✅ 推送配置已保存: %s → %s",
+	"push.config.short":                   "配置默认推送的远程仓库",
+	"push.config.not.set":                 "📝 当前未设置推送配置",
+	"push.config.help":                    "使用 'set-push-config' 设置默认推送的远程仓库",
+	"push.config.current.title":           "📝 当前推送配置",
+	"push.config.remotes":                 "远程仓库",
+	"push.config.change.hint":             "💡 使用 'set-push-config' 修改配置,或 'set-push-config clear' 清除配置",
+	"push.config.cleared":                 "✅ 推送配置已清除,下次推送时将重新选择",
+	"push.config.setup.title":             "⚙️  设置默认推送配置",
+	"push.config.saved.remotes":           "✅ 推送配置已保存: %s",
+	"push.config.will.use.current.branch": "💡 推送时将使用当前所在的分支",
+	"push.using.config.remotes":           "📤 使用推送配置: %s",
 	"push.using.config":         "📤 推送到: %s/%s",
 
 	// Error messages - detailed

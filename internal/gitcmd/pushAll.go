@@ -29,31 +29,32 @@ func PushAll() error {
 		return fmt.Errorf("input: %w", err)
 	}
 
+	// 获取当前分支
+	currentBranch, err := GetCurrentBranch()
+	if err != nil {
+		logs.Error(i18n.T("error.get.current.branch"))
+		return fmt.Errorf("get current branch: %w", err)
+	}
+
 	// 选择远程仓库(支持配置持久化和多选)
 	remotes, needSave, err := SelectRemoteWithConfig()
 	if err != nil {
 		return fmt.Errorf("select remote: %w", err)
 	}
 
-	// 选择目标分支(支持配置持久化)
-	branch, needSaveBranch, err := SelectBranchWithConfig(remotes[0])
-	if err != nil {
-		return fmt.Errorf("select branch: %w", err)
-	}
-
 	// 如果需要保存配置(首次选择或配置变更)
-	if needSave || needSaveBranch {
-		err = config.SavePushConfig(remotes, branch)
+	if needSave {
+		err = config.SavePushConfig(remotes)
 		if err != nil {
 			logs.Error(i18n.T("error.save.push.config"))
 		} else {
 			remotesStr := strings.Join(remotes, ", ")
-			logs.Info(fmt.Sprintf(i18n.T("push.config.saved"), remotesStr, branch))
+			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
 		}
 	} else {
 		// 显示当前使用的配置
 		remotesStr := strings.Join(remotes, ", ")
-		logs.Info(fmt.Sprintf(i18n.T("push.using.config"), remotesStr, branch))
+		logs.Info(fmt.Sprintf(i18n.T("push.using.config.remotes"), remotesStr))
 	}
 
 	// 构建所有命令列表: add -> commit -> pull -> push(为每个远程创建一个步骤)
@@ -74,7 +75,7 @@ func PushAll() error {
 		},
 		{
 			Command:     "git",
-			Args:        []string{"pull", remotes[0], branch},
+			Args:        []string{"pull"},
 			Description: i18n.T("git.pull.description"),
 			LoadingMsg:  i18n.T("git.pull.loading"),
 			SuccessMsg:  i18n.T("git.pull.success"),
@@ -85,7 +86,7 @@ func PushAll() error {
 	for _, remote := range remotes {
 		allCommands = append(allCommands, command.CommandInfo{
 			Command:     "git",
-			Args:        []string{"push", remote, branch},
+			Args:        []string{"push", remote, currentBranch},
 			Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
 			LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
 			SuccessMsg:  fmt.Sprintf(i18n.T("git.push.success.remote"), remote),
