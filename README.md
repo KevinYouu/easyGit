@@ -39,25 +39,30 @@ We focus on:
 ## ✨ Core Features
 
 ### Commit & Push
+
 - **push-all** - Stage and push all changed files with one command
 - **push-selected** - Interactively select which files to commit
 - **set-push-config** - Save default remote and branch preferences
 
 ### Branch & Merge Management
+
 - **merge** - Merge any branch into current branch through interactive selection
 - **branch-delete** - Delete local or remote branches safely
 - **cherry-pick** - Pick commits from other branches with visual selection
 
 ### Tag Operations
+
 - **tag-create** - Create and push tags with semantic versioning support
 - **tag-delete** - Remove tags locally and remotely
 
 ### Repository Control
+
 - **reset** - Reset to any commit with visual commit history
 - **init** - Initialize easyGit configuration for a repository
 - **update** - Update easyGit to the latest version
 
 ### Customization
+
 - **set-language** - Switch between English and Chinese
 - **--language flag** - Override language per-command
 
@@ -72,6 +77,7 @@ easyGit supports **Linux, macOS, and Windows**. Choose your platform below:
 ### Quick Install (Recommended)
 
 **Linux / macOS:**
+
 ```bash
 # Using curl
 curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
@@ -81,6 +87,7 @@ wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | 
 ```
 
 **Windows:**
+
 ```powershell
 # Using PowerShell
 iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
@@ -102,10 +109,10 @@ cd easyGit
 
 ```bash
 # Push all changes in the working directory
-easyGit push-all
+easyGit push-all  # or: easyGit pa
 
 # Push selected files in the working directory
-easyGit push-selected
+easyGit push-selected  # or: easyGit ps
 
 # Initialize easyGit configuration
 easyGit init
@@ -115,22 +122,22 @@ easyGit init
 
 ```bash
 # Create and push a tag
-easyGit tag-create
+easyGit tag-create  # or: easyGit tc
 
 # Delete a tag
-easyGit tag-delete
+easyGit tag-delete  # or: easyGit td
 
 # Delete local or remote branches
-easyGit branch-delete
+easyGit branch-delete  # or: easyGit bd
 
 # Merge selected branch into current branch
-easyGit merge
+easyGit merge  # or: easyGit m
 
 # Cherry-pick commits
-easyGit cherry-pick
+easyGit cherry-pick  # or: easyGit cp
 
 # Reset to selected commit
-easyGit reset
+easyGit reset  # or: easyGit rs
 
 # Configure push settings (remote and branch)
 easyGit set-push-config
@@ -144,21 +151,21 @@ easyGit update
 
 ## 📖 Command Reference
 
-| Command            | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `push-all`         | Stage and commit all changed files             |
-| `push-selected`    | Interactively select files to stage and commit |
-| `tag-create`       | Create and push tags with semantic versioning  |
-| `tag-delete`       | Delete tags locally and remotely               |
-| `branch-delete`    | Delete local or remote branches                |
-| `merge`            | Merge selected branch into current branch      |
-| `cherry-pick`      | Cherry-pick commits from other branches        |
-| `reset`            | Reset repository to selected commit            |
-| `init`             | Initialize easyGit configuration               |
-| `set-push-config`  | Configure default push remote(s) and branch    |
-| `set-language`     | Set default language (en/zh)                   |
-| `update`           | Update easyGit to latest version               |
-| `version`          | Show current version information               |
+| Command           | Alias | Description                                    |
+| ----------------- | ----- | ---------------------------------------------- |
+| `push-all`        | `pa`  | Stage and commit all changed files             |
+| `push-selected`   | `ps`  | Interactively select files to stage and commit |
+| `tag-create`      | `tc`  | Create and push tags with semantic versioning  |
+| `tag-delete`      | `td`  | Delete tags locally and remotely               |
+| `branch-delete`   | `bd`  | Delete local or remote branches                |
+| `merge`           | `m`   | Merge selected branch into current branch      |
+| `cherry-pick`     | `cp`  | Cherry-pick commits from other branches        |
+| `reset`           | `rs`  | Reset repository to selected commit            |
+| `init`            | -     | Initialize easyGit configuration               |
+| `set-push-config` | -     | Configure default push remote(s) and branch    |
+| `set-language`    | -     | Set default language (en/zh)                   |
+| `update`          | -     | Update easyGit to latest version               |
+| `version`         | `v`   | Show current version information               |
 
 ### Language Support
 
@@ -241,11 +248,17 @@ This project is licensed under the [LICENSE](LICENSE) file.
 
 Built with these amazing open source projects:
 
+### Core Dependencies
+
 - [Go](https://github.com/golang/go) - The Go programming language
-- [Cobra](https://github.com/spf13/cobra) - Powerful CLI applications
+- [Cobra](https://github.com/spf13/cobra) - Powerful CLI framework
 - [Bubbletea](https://github.com/charmbracelet/bubbletea) - Powerful TUI framework
+- [Bubbles](https://github.com/charmbracelet/bubbles) - TUI components for Bubbletea
 - [Huh](https://github.com/charmbracelet/huh) - Interactive terminal forms
 - [Lipgloss](https://github.com/charmbracelet/lipgloss) - Style definitions for terminal UI
+- [SQLite](https://gitlab.com/cznic/sqlite) - Pure Go SQLite implementation for configuration storage
+- [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) - Terminal utilities
+- [golang.org/x/text](https://pkg.go.dev/golang.org/x/text) - Text processing and i18n support
 
 ---
 

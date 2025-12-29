@@ -39,25 +39,30 @@
 ## ✨ 核心功能
 
 ### 提交和推送
+
 - **push-all** - 用一个命令暂存并推送所有更改的文件
 - **push-selected** - 交互式选择要提交的文件
 - **set-push-config** - 保存默认的远程仓库和分支偏好设置
 
 ### 分支和合并管理
+
 - **merge** - 通过交互式选择将任意分支合并到当前分支
 - **branch-delete** - 安全地删除本地或远程分支
 - **cherry-pick** - 通过可视化选择从其他分支拣选提交
 
 ### 标签操作
+
 - **tag-create** - 创建并推送标签，支持语义化版本控制
 - **tag-delete** - 在本地和远程删除标签
 
 ### 仓库控制
+
 - **reset** - 通过可视化提交历史重置到任意提交
 - **init** - 为仓库初始化 easyGit 配置
 - **update** - 更新 easyGit 到最新版本
 
 ### 自定义设置
+
 - **set-language** - 在中英文之间切换
 - **--language 参数** - 按命令覆盖语言设置
 
@@ -72,6 +77,7 @@ easyGit 支持 **Linux、macOS 和 Windows**。请选择您的平台：
 ### 快速安装（推荐）
 
 **Linux / macOS:**
+
 ```bash
 # 使用 curl
 curl -sSL https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | bash
@@ -81,6 +87,7 @@ wget -qO- https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.sh | 
 ```
 
 **Windows:**
+
 ```powershell
 # 使用 PowerShell
 iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex
@@ -102,10 +109,10 @@ cd easyGit
 
 ```bash
 # 提交工作区所有更改的文件
-easyGit push-all
+easyGit push-all  # 或: easyGit pa
 
 # 交互式选择要提交的文件
-easyGit push-selected
+easyGit push-selected  # 或: easyGit ps
 
 # 初始化 easyGit 配置
 easyGit init
@@ -115,22 +122,22 @@ easyGit init
 
 ```bash
 # 创建并推送标签
-easyGit tag-create
+easyGit tag-create  # 或: easyGit tc
 
 # 删除标签
-easyGit tag-delete
+easyGit tag-delete  # 或: easyGit td
 
 # 删除本地或远程分支
-easyGit branch-delete
+easyGit branch-delete  # 或: easyGit bd
 
 # 将选定分支合并到当前分支
-easyGit merge
+easyGit merge  # 或: easyGit m
 
 # 拣选提交
-easyGit cherry-pick
+easyGit cherry-pick  # 或: easyGit cp
 
 # 重置到选定提交
-easyGit reset
+easyGit reset  # 或: easyGit rs
 
 # 配置推送设置（远程仓库和分支）
 easyGit set-push-config
@@ -144,21 +151,21 @@ easyGit update
 
 ## 📖 命令参考
 
-| 命令               | 描述                       |
-| ------------------ | -------------------------- |
-| `push-all`         | 暂存并提交所有更改的文件   |
-| `push-selected`    | 交互式选择文件进行暂存提交 |
-| `tag-create`       | 创建并推送带语义版本标签   |
-| `tag-delete`       | 在本地和远程删除标签       |
-| `branch-delete`    | 删除本地或远程分支         |
-| `merge`            | 将选定分支合并到当前分支   |
-| `cherry-pick`      | 从其他分支拣选提交         |
-| `reset`            | 重置仓库到选定提交         |
-| `init`             | 初始化 easyGit 配置        |
-| `set-push-config`  | 配置默认推送远程和分支     |
-| `set-language`     | 设置默认语言（en/zh）      |
-| `update`           | 更新 easyGit 到最新版本    |
-| `version`          | 显示当前版本信息           |
+| 命令              | 简写 | 描述                       |
+| ----------------- | ---- | -------------------------- |
+| `push-all`        | `pa` | 暂存并提交所有更改的文件   |
+| `push-selected`   | `ps` | 交互式选择文件进行暂存提交 |
+| `tag-create`      | `tc` | 创建并推送带语义版本标签   |
+| `tag-delete`      | `td` | 在本地和远程删除标签       |
+| `branch-delete`   | `bd` | 删除本地或远程分支         |
+| `merge`           | `m`  | 将选定分支合并到当前分支   |
+| `cherry-pick`     | `cp` | 从其他分支拣选提交         |
+| `reset`           | `rs` | 重置仓库到选定提交         |
+| `init`            | -    | 初始化 easyGit 配置        |
+| `set-push-config` | -    | 配置默认推送远程和分支     |
+| `set-language`    | -    | 设置默认语言（en/zh）      |
+| `update`          | -    | 更新 easyGit 到最新版本    |
+| `version`         | `v`  | 显示当前版本信息           |
 
 ### 语言支持
 
@@ -241,11 +248,17 @@ easyGit/
 
 基于这些优秀的开源项目构建：
 
+### 核心依赖
+
 - [Go](https://github.com/golang/go) - Go 编程语言
-- [Cobra](https://github.com/spf13/cobra) - 强大的 CLI 应用程序
+- [Cobra](https://github.com/spf13/cobra) - 强大的 CLI 框架
 - [Bubbletea](https://github.com/charmbracelet/bubbletea) - 强大的 TUI 框架
+- [Bubbles](https://github.com/charmbracelet/bubbles) - Bubbletea 的 TUI 组件
 - [Huh](https://github.com/charmbracelet/huh) - 交互式终端表单
 - [Lipgloss](https://github.com/charmbracelet/lipgloss) - 终端 UI 样式定义
+- [SQLite](https://gitlab.com/cznic/sqlite) - 纯 Go 实现的 SQLite，用于配置存储
+- [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) - 终端工具
+- [golang.org/x/text](https://pkg.go.dev/golang.org/x/text) - 文本处理和国际化支持
 
 ---
 
