@@ -2,6 +2,11 @@
 
 # easyGit
 
+[![Release](https://img.shields.io/github/v/release/KevinYouu/easyGit)](https://github.com/KevinYouu/easyGit/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/KevinYouu/easyGit)](go.mod)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)]()
+
 🚀 一个现代化的交互式 Git CLI 工具，简化您的日常 Git 工作流。提交代码、管理分支、处理标签等操作，全部通过直观的终端界面完成。支持 Linux/macOS/Windows
 
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践!
@@ -34,11 +39,43 @@
 
 📚 了解更多: [设计哲学](docs/DESIGN_PHILOSOPHY_ZH.md) | [Design Philosophy (English)](docs/DESIGN_PHILOSOPHY.md)
 
+---
+
+## ⚡ 为什么选择 easyGit?
+
+### easyGit vs 原生 Git
+
+看看使用 easyGit 能节省多少时间:
+
+| 操作           | 原生 Git                                                       | easyGit                     | 节省时间 |
+| -------------- | -------------------------------------------------------------- | --------------------------- | -------- |
+| 提交所有更改   | `git add .`<br>`git commit -m "msg"`<br>`git push`             | `easyGit pa`                | **~75%** |
+| 删除远程分支   | `git push origin --delete branch-name`                         | `easyGit bd` (交互式)       | **~60%** |
+| 创建并推送标签 | `git tag v1.0.0`<br>`git push origin v1.0.0`                   | `easyGit tc` (向导模式)     | **~70%** |
+| 合并功能分支   | `git checkout main`<br>`git merge feature`<br>`git push`       | `easyGit m` (交互式)        | **~65%** |
+| 拣选提交       | `git log` (查找哈希)<br>`git cherry-pick <hash>`<br>`git push` | `easyGit cp` (可视化选择器) | **~70%** |
+
+**核心优势:**
+
+- 🎯 **交互式选择** - 无需记忆分支名、提交哈希或标签名
+- 🔄 **工作流整合** - 多个 Git 命令合并为一个
+- 💡 **智能默认** - 记住你的偏好设置(远程仓库、分支、语言)
+- ✅ **错误预防** - 破坏性操作前进行可视化确认
+
+---
+
 ## 📦 安装
 
 ### 前置要求
 
 - 系统必须安装 [Git](https://git-scm.com/)
+
+### 系统要求
+
+- **操作系统:** Linux / macOS / Windows 10+
+- **Git 版本:** 2.0+
+- **终端:** 支持 ANSI 颜色的现代终端
+- **磁盘空间:** < 10MB
 
 ### 快速安装（推荐）
 
@@ -68,6 +105,26 @@ git clone https://github.com/KevinYouu/easyGit.git
 cd easyGit
 ./build.sh
 ```
+
+### 验证安装
+
+安装完成后,验证 easyGit 是否正常工作:
+
+```bash
+# 检查 easyGit 是否已安装
+easyGit version
+
+# 预期输出:
+# easyGit version x.x.x
+# Built with Go 1.21+
+
+# 尝试简单命令
+easyGit --help
+```
+
+如遇到任何问题,请查看[常见问题](#-常见问题)章节。
+
+---
 
 ## 🚀 快速开始
 
@@ -117,21 +174,40 @@ easyGit update
 
 ## 📖 命令参考
 
-| 命令              | 简写 | 描述                       |
-| ----------------- | ---- | -------------------------- |
-| `push-all`        | `pa` | 暂存并提交所有更改的文件   |
-| `push-selected`   | `ps` | 交互式选择文件进行暂存提交 |
-| `tag-create`      | `tc` | 创建并推送带语义版本标签   |
-| `tag-delete`      | `td` | 在本地和远程删除标签       |
-| `branch-delete`   | `bd` | 删除本地或远程分支         |
-| `merge`           | `m`  | 将选定分支合并到当前分支   |
-| `cherry-pick`     | `cp` | 从其他分支拣选提交         |
-| `reset`           | `rs` | 重置仓库到选定提交         |
-| `init`            | -    | 初始化 easyGit 配置        |
-| `set-push-config` | -    | 配置默认推送远程和分支     |
-| `set-language`    | -    | 设置默认语言（en/zh）      |
-| `update`          | -    | 更新 easyGit 到最新版本    |
-| `version`         | `v`  | 显示当前版本信息           |
+### 日常操作
+
+| 命令            | 简写 | 描述                       | 使用场景         |
+| --------------- | ---- | -------------------------- | ---------------- |
+| `push-all`      | `pa` | 暂存并提交所有更改的文件   | 快速提交所有修改 |
+| `push-selected` | `ps` | 交互式选择文件进行暂存提交 | 精细控制提交内容 |
+
+### 分支与标签管理
+
+| 命令            | 简写 | 描述                     | 使用场景                     |
+| --------------- | ---- | ------------------------ | ---------------------------- |
+| `merge`         | `m`  | 将选定分支合并到当前分支 | 集成功能分支                 |
+| `branch-delete` | `bd` | 删除本地或远程分支       | 清理已合并或废弃的分支       |
+| `tag-create`    | `tc` | 创建并推送带语义版本标签 | 版本发布 (v1.0.0, v2.1.0 等) |
+| `tag-delete`    | `td` | 在本地和远程删除标签     | 删除错误或废弃的标签         |
+
+### 高级 Git 操作
+
+| 命令          | 简写 | 描述               | 使用场景               |
+| ------------- | ---- | ------------------ | ---------------------- |
+| `cherry-pick` | `cp` | 从其他分支拣选提交 | 应用特定提交到当前分支 |
+| `reset`       | `rs` | 重置仓库到选定提交 | 撤销提交或回到之前状态 |
+
+### 配置与工具
+
+| 命令              | 简写 | 描述                    | 使用场景                 |
+| ----------------- | ---- | ----------------------- | ------------------------ |
+| `init`            | -    | 初始化 easyGit 配置     | 首次设置（通常自动执行） |
+| `set-push-config` | -    | 配置默认推送远程和分支  | 保存你的推送偏好设置     |
+| `set-language`    | -    | 设置默认语言（en/zh）   | 切换界面语言             |
+| `update`          | -    | 更新 easyGit 到最新版本 | 获取新功能和错误修复     |
+| `version`         | `v`  | 显示当前版本信息        | 查看已安装版本           |
+
+---
 
 ## 🛠️ 开发
 
@@ -183,6 +259,52 @@ easyGit/
 └── docs/                # 文档
 ```
 
+---
+
+## 🔧 兼容性
+
+✅ 完全兼容原生 Git 工作流
+✅ 可与 Git 命令混合使用
+✅ 不修改 `.git` 目录结构
+✅ 支持所有 Git hooks
+
+---
+
+## ❓ 常见问题
+
+### easyGit 与其他 Git 工具有什么不同?
+
+easyGit 专注于**工作流整合**而非替换单个 Git 命令。它将多个 Git 操作组合为交互式流程，让复杂任务变得简单。
+
+### easyGit 会修改我的 Git 仓库吗?
+
+不会。easyGit 底层使用标准 Git 命令，不会修改你的 `.git` 目录结构。你可以安全地与常规 Git 命令混用。
+
+### 可以在 CI/CD 流水线中使用 easyGit 吗?
+
+easyGit 是为交互式终端使用而设计的。对于 CI/CD，我们建议使用标准 Git 命令。
+
+### 遇到 Bug 怎么办?
+
+请[提交 issue](https://github.com/KevinYouu/easyGit/issues)，包含:
+
+- 你的操作系统和 Git 版本
+- 复现步骤
+- 期望行为 vs 实际行为
+
+### 如何验证安装?
+
+```bash
+# 查看版本
+easyGit version
+
+# 预期输出
+easyGit version x.x.x
+Built with Go 1.21+
+```
+
+---
+
 ## 🤝 贡献
 
 欢迎贡献！请随时提交 Pull Request。对于重大更改，请先开启 issue 讨论您想要更改的内容。
@@ -194,9 +316,11 @@ easyGit/
 - 根据需要更新文档
 - 确保所有命令都支持中英文
 
+---
+
 ## 📄 许可证
 
-本项目采用 [LICENSE](LICENSE) 文件中的许可证。
+本项目采用 GPL-3.0 许可证 - 详见 [LICENSE](LICENSE) 文件。
 
 ## 🙏 致谢
 
