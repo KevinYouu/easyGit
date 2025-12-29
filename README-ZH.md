@@ -2,9 +2,7 @@
 
 # easyGit
 
-🚀 一个现代化的交互式 Git CLI 工具，简化您的日常 Git 工作流。提交代码、管理分支、处理标签等操作，全部通过直观的终端界面完成。
-
-**🔧 跨平台支持: Linux | macOS | Windows**
+🚀 一个现代化的交互式 Git CLI 工具，简化您的日常 Git 工作流。提交代码、管理分支、处理标签等操作，全部通过直观的终端界面完成。支持 Linux/macOS/Windows
 
 > 这个项目使用自己的功能来提交代码 - 自我测试的最佳实践!
 
@@ -36,39 +34,7 @@
 
 📚 了解更多: [设计哲学](docs/DESIGN_PHILOSOPHY_ZH.md) | [Design Philosophy (English)](docs/DESIGN_PHILOSOPHY.md)
 
-## ✨ 核心功能
-
-### 提交和推送
-
-- **push-all** - 用一个命令暂存并推送所有更改的文件
-- **push-selected** - 交互式选择要提交的文件
-- **set-push-config** - 保存默认的远程仓库和分支偏好设置
-
-### 分支和合并管理
-
-- **merge** - 通过交互式选择将任意分支合并到当前分支
-- **branch-delete** - 安全地删除本地或远程分支
-- **cherry-pick** - 通过可视化选择从其他分支拣选提交
-
-### 标签操作
-
-- **tag-create** - 创建并推送标签，支持语义化版本控制
-- **tag-delete** - 在本地和远程删除标签
-
-### 仓库控制
-
-- **reset** - 通过可视化提交历史重置到任意提交
-- **init** - 为仓库初始化 easyGit 配置
-- **update** - 更新 easyGit 到最新版本
-
-### 自定义设置
-
-- **set-language** - 在中英文之间切换
-- **--language 参数** - 按命令覆盖语言设置
-
 ## 📦 安装
-
-easyGit 支持 **Linux、macOS 和 Windows**。请选择您的平台：
 
 ### 前置要求
 
@@ -114,7 +80,7 @@ easyGit push-all  # 或: easyGit pa
 # 交互式选择要提交的文件
 easyGit push-selected  # 或: easyGit ps
 
-# 初始化 easyGit 配置
+# 初始化 easyGit 配置, 通常不用手动设置, 会在第一次启动时自动初始化
 easyGit init
 ```
 
@@ -166,18 +132,6 @@ easyGit update
 | `set-language`    | -    | 设置默认语言（en/zh）      |
 | `update`          | -    | 更新 easyGit 到最新版本    |
 | `version`         | `v`  | 显示当前版本信息           |
-
-### 语言支持
-
-easyGit 会自动检测您的系统语言，您也可以手动指定：
-
-```bash
-# 强制使用英文
-easyGit --language en push-all
-
-# 强制使用中文
-easyGit --language zh push-all
-```
 
 ## 🛠️ 开发
 

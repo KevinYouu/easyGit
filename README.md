@@ -2,9 +2,7 @@ English | [简体中文](README-ZH.md)
 
 # easyGit
 
-🚀 A modern interactive Git CLI that streamlines your daily Git workflow. Make commits, manage branches, handle tags, and more - all through an intuitive terminal interface.
-
-**🔧 Cross-Platform Support: Linux | macOS | Windows**
+🚀 A modern interactive Git CLI that streamlines your daily Git workflow. Make commits, manage branches, handle tags, and more - all through an intuitive terminal interface. Supports Linux/macOS/Windows
 
 > This project uses its own features to commit code - dogfooding at its finest!
 
@@ -36,39 +34,7 @@ We focus on:
 
 📚 Read more: [Design Philosophy](docs/DESIGN_PHILOSOPHY.md) | [设计哲学 (中文)](docs/DESIGN_PHILOSOPHY_ZH.md)
 
-## ✨ Core Features
-
-### Commit & Push
-
-- **push-all** - Stage and push all changed files with one command
-- **push-selected** - Interactively select which files to commit
-- **set-push-config** - Save default remote and branch preferences
-
-### Branch & Merge Management
-
-- **merge** - Merge any branch into current branch through interactive selection
-- **branch-delete** - Delete local or remote branches safely
-- **cherry-pick** - Pick commits from other branches with visual selection
-
-### Tag Operations
-
-- **tag-create** - Create and push tags with semantic versioning support
-- **tag-delete** - Remove tags locally and remotely
-
-### Repository Control
-
-- **reset** - Reset to any commit with visual commit history
-- **init** - Initialize easyGit configuration for a repository
-- **update** - Update easyGit to the latest version
-
-### Customization
-
-- **set-language** - Switch between English and Chinese
-- **--language flag** - Override language per-command
-
 ## 📦 Installation
-
-easyGit supports **Linux, macOS, and Windows**. Choose your platform below:
 
 ### Prerequisites
 
@@ -114,7 +80,7 @@ easyGit push-all  # or: easyGit pa
 # Push selected files in the working directory
 easyGit push-selected  # or: easyGit ps
 
-# Initialize easyGit configuration
+# Initialize easyGit configuration (usually auto-initialized on first run)
 easyGit init
 ```
 
