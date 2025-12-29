@@ -66,6 +66,9 @@ var enTranslations = map[string]string{
 	"language.current.not.set":  "Not set",
 	"language.available":        "Available Languages",
 	"language.invalid":          "Invalid language code, please use 'en' or 'zh'",
+	"language.select.title":     "Select Interface Language",
+	"language.option.en":        "English",
+	"language.option.zh":        "简体中文",
 
 	// Common messages
 	"error.general":      "An error occurred:",

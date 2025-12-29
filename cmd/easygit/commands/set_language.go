@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
 	"github.com/spf13/cobra"
@@ -11,68 +10,54 @@ import (
 
 var SetLanguageCmd = &cobra.Command{
 	Use:   "set-language",
-	Short: "Set default language",
+	Short: i18n.T("language.set.short"),
 	Long:  "Set the default language for easyGit (en/zh)",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			// 显示当前语言设置
-			showCurrentLanguage()
-			return
-		}
-
-		lang := args[0]
-		if err := setLanguage(lang); err != nil {
-			logs.Error(i18n.T("language.set.error") + ": " + err.Error())
-			return
-		}
-
-		logs.Success(i18n.T("language.set.success"))
+		setLanguageInteractive()
 	},
 }
 
-func showCurrentLanguage() {
+func setLanguageInteractive() {
+	// 获取当前语言设置
 	currentLang := i18n.GetCurrentLanguage()
-
-	// 从数据库读取
-	dbLang, _ := config.GetLanguage()
-
-	fmt.Println(i18n.T("language.current.title"))
-	fmt.Printf("  %s: %s\n", i18n.T("language.current.active"), string(currentLang))
-
-	if dbLang != "" {
-		fmt.Printf("  %s: %s\n", i18n.T("language.current.database"), dbLang)
+	var preselected string
+	if currentLang == i18n.LangZH {
+		preselected = "zh"
 	} else {
-		fmt.Printf("  %s: %s\n", i18n.T("language.current.database"), i18n.T("language.current.not.set"))
+		preselected = "en"
 	}
 
-	fmt.Printf("\n%s:\n", i18n.T("language.available"))
-	fmt.Println("  - en (English)")
-	fmt.Println("  - zh (中文)")
-}
-
-func setLanguage(lang string) error {
-	// 标准化语言代码
-	var langCode string
-	switch lang {
-	case "zh", "chinese", "cn", "中文":
-		langCode = "zh"
-	case "en", "english", "英文":
-		langCode = "en"
-	default:
-		return fmt.Errorf("%s", i18n.T("language.invalid"))
+	// 创建语言选项
+	options := []config.Option{
+		{
+			Label: i18n.T("language.option.en"),
+			Value: "en",
+		},
+		{
+			Label: i18n.T("language.option.zh"),
+			Value: "zh",
+		},
 	}
 
-	// 保存到数据库
-	if err := config.SaveLanguage(langCode); err != nil {
-		return err
+	// 使用 TUI 选择语言
+	_, selectedLang, err := form.SelectForm(i18n.T("language.select.title"), options, preselected)
+	if err != nil {
+		logs.Error(i18n.T("language.set.error") + ": " + err.Error())
+		return
 	}
 
-	// 立即应用
-	if langCode == "zh" {
+	// 保存语言设置
+	if err := config.SaveLanguage(selectedLang); err != nil {
+		logs.Error(i18n.T("language.set.error") + ": " + err.Error())
+		return
+	}
+
+	// 立即应用语言设置
+	if selectedLang == "zh" {
 		i18n.SetLanguage(i18n.LangZH)
 	} else {
 		i18n.SetLanguage(i18n.LangEN)
 	}
 
-	return nil
+	logs.Success(i18n.T("language.set.success"))
 }

@@ -203,7 +203,7 @@ easyGit update
 | ----------------- | ----- | ------------------------------------------- | ------------------------------------ |
 | `init`            | -     | Initialize easyGit configuration            | First-time setup (usually automatic) |
 | `set-push-config` | -     | Configure default push remote(s) and branch | Save your preferred push settings    |
-| `set-language`    | -     | Set default language (en/zh)                | Change interface language            |
+| `set-language`    | -     | Set default language                        | Change interface language            |
 | `update`          | -     | Update easyGit to latest version            | Get new features and bug fixes       |
 | `version`         | `v`   | Show current version information            | Check installed version              |
 
