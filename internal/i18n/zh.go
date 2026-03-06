@@ -69,6 +69,9 @@ var zhTranslations = map[string]string{
 	"language.current.not.set":  "未设置",
 	"language.available":        "可用语言",
 	"language.invalid":          "无效的语言代码,请使用 'en' 或 'zh'",
+	"language.select.title":     "选择界面语言",
+	"language.option.en":        "English",
+	"language.option.zh":        "简体中文",
 
 	// Common messages
 	"error.general":      "发生错误：",
