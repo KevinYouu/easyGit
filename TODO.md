@@ -85,6 +85,7 @@
 
 - [ ] **复杂工作流整合**
 
+  - [x] 交互式提交合并 (Squash)
   - [ ] 交互式 rebase 引导
   - [ ] 冲突解决助手
   - [ ] 发布工作流自动化 (version bump + tag + push + changelog)

@@ -54,6 +54,7 @@
 | 创建并推送标签 | `git tag v1.0.0`<br>`git push origin v1.0.0`                   | `easyGit tc` (向导模式)     | **~70%** |
 | 合并功能分支   | `git checkout main`<br>`git merge feature`<br>`git push`       | `easyGit m` (交互式)        | **~65%** |
 | 拣选提交       | `git log` (查找哈希)<br>`git cherry-pick <hash>`<br>`git push` | `easyGit cp` (可视化选择器) | **~70%** |
+| 合并多个提交   | `git reset --soft <hash>`<br>`git commit -m "msg"`             | `easyGit sq` (交互式)       | **~65%** |
 
 **核心优势:**
 
@@ -162,6 +163,9 @@ easyGit cherry-pick  # 或: easyGit cp
 # 重置到选定提交
 easyGit reset  # 或: easyGit rs
 
+# 将多个提交合并为一个
+easyGit squash  # 或: easyGit sq
+
 # 配置推送设置（远程仓库和分支）
 easyGit set-push-config
 
@@ -196,6 +200,7 @@ easyGit update
 | ------------- | ---- | ------------------ | ---------------------- |
 | `cherry-pick` | `cp` | 从其他分支拣选提交 | 应用特定提交到当前分支 |
 | `reset`       | `rs` | 重置仓库到选定提交 | 撤销提交或回到之前状态 |
+| `squash`      | `sq` | 将多个提交合并为一个 | 清理本地提交历史       |
 
 ### 配置与工具
 
