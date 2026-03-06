@@ -25,6 +25,9 @@ var enTranslations = map[string]string{
 	// Reset command
 	"reset.short": "Reset git repository to a specific state",
 
+	// Squash command
+	"squash.short": "Squash multiple commits into one",
+
 	// Tag commands
 	"tag.short":        "Manage git tags",
 	"tag.delete.short": "Delete git tags",
@@ -151,6 +154,16 @@ var enTranslations = map[string]string{
 	"reset.hint.hard":           "💡 All uncommitted changes discarded",
 	"reset.cancelled.msg":       "Cancelled",
 	"reset.error.git.reset":     "Error executing git reset command:",
+
+	// Squash command
+	"squash.title":            "🔨 Git Squash",
+	"squash.select.base":      "Select the earliest commit to merge (this and all subsequent commits will be merged into one)",
+	"squash.input.message":    "Enter new commit message:",
+	"squash.success":          "✅ Successfully squashed commits!",
+	"squash.cancelled":        "🚫 Squash operation cancelled.",
+	"squash.error.select":     "Error selecting commit:",
+	"squash.error.git.reset":  "Error executing git reset:",
+	"squash.error.git.commit": "Error executing git commit:",
 
 	// Tag operations
 	"tag.create.title":     "🏷️  Create and Push Tag",

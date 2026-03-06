@@ -59,6 +59,7 @@ func init() {
 		commands.PushAllCommand(),
 		commands.PushSelectedCommand(),
 		commands.ResetCommand(),
+		commands.SquashCommand(),
 		commands.TagCommand(),
 		commands.TagDeleteCommand(),
 		commands.BranchDeleteCommand(),

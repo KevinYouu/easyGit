@@ -25,6 +25,9 @@ var zhTranslations = map[string]string{
 	// Reset command
 	"reset.short": "重置 git 仓库到特定状态",
 
+	// Squash command
+	"squash.short": "将多个提交合并为一个",
+
 	// Tag commands
 	"tag.short":        "管理 git 标签",
 	"tag.delete.short": "删除 git 标签",
@@ -151,6 +154,16 @@ var zhTranslations = map[string]string{
 	"reset.hint.hard":           "💡 所有未提交更改已丢弃",
 	"reset.cancelled.msg":       "已取消",
 	"reset.error.git.reset":     "执行git reset命令时出错：",
+
+	// Squash command
+	"squash.title":            "🔨 Git Squash",
+	"squash.select.base":      "选择要合并的最早提交 (该提交及其之后的所有提交将被合并为一个)",
+	"squash.input.message":    "输入新的提交信息：",
+	"squash.success":          "✅ 成功合并提交！",
+	"squash.cancelled":        "🚫 合并操作已取消。",
+	"squash.error.select":     "选择提交出错：",
+	"squash.error.git.reset":  "执行 git reset 出错：",
+	"squash.error.git.commit": "执行 git commit 出错：",
 
 	// Tag operations
 	"tag.create.title":     "🏷️  创建并推送标签",
