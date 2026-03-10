@@ -47,6 +47,8 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("language.set.short")
 		case "set-push-config":
 			cmd.Short = i18n.T("push.config.short")
+		case "rebase":
+			cmd.Short = i18n.T("rebase.short")
 		}
 	}
 }
@@ -70,5 +72,7 @@ func init() {
 		commands.InitCommand(),
 		commands.SetLanguageCmd,
 		commands.SetPushConfigCommand(),
+		commands.RebaseCommand(),
+		commands.InternalRebaseEditorCommand(),
 	)
 }
