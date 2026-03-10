@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/KevinYouu/easyGit/internal/command"
@@ -32,7 +31,6 @@ func RebaseIntoCurrent() error {
 	options := []config.Option{
 		{Label: i18n.T("rebase.menu.standard"), Value: "standard"},
 		{Label: i18n.T("rebase.menu.drop"), Value: "drop"},
-		{Label: i18n.T("rebase.menu.squash"), Value: "squash"},
 	}
 
 	_, selectedType, err := form.SelectForm("Rebase Type", options)
@@ -44,8 +42,6 @@ func RebaseIntoCurrent() error {
 		return handleStandardRebase()
 	} else if selectedType == "drop" {
 		return handleDropCommits()
-	} else if selectedType == "squash" {
-		return handleSquashCommits()
 	}
 
 	return nil
@@ -124,7 +120,7 @@ func handleStandardRebase() error {
 	return nil
 }
 
-func getRecentCommits() ([]config.Option, []string, error) {
+func GetRecentCommits() ([]config.Option, []string, error) {
 	cmd := exec.Command("git", "log", "-n", "50", "--pretty=format:%h|%s|%ad|%an", "--date=format:%m-%d %H:%M")
 	output, err := cmd.Output()
 	if err != nil {
@@ -166,7 +162,7 @@ func getRecentCommits() ([]config.Option, []string, error) {
 }
 
 func handleDropCommits() error {
-	options, hashes, err := getRecentCommits()
+	options, hashes, err := GetRecentCommits()
 	if err != nil {
 		return err
 	}
@@ -221,92 +217,10 @@ func handleDropCommits() error {
 		parentHash = "--root"
 	}
 
-	return runInternalRebase(parentHash, "drop", selectedHashes, "")
+	return RunInternalRebase(parentHash, "drop", selectedHashes, "")
 }
 
-func handleSquashCommits() error {
-	options, hashes, err := getRecentCommits()
-	if err != nil {
-		return err
-	}
-
-	var stringOpts []string
-	for _, opt := range options {
-		stringOpts = append(stringOpts, opt.Label)
-	}
-
-	selectedLabels, err := form.MultiSelectForm(i18n.T("rebase.select.squash_commits"), stringOpts)
-	if err != nil || len(selectedLabels) == 0 {
-		return nil
-	}
-
-	// Map labels back to hashes
-	var selectedHashes []string
-	for _, label := range selectedLabels {
-		for i, opt := range options {
-			if opt.Label == label {
-				selectedHashes = append(selectedHashes, hashes[i])
-				break
-			}
-		}
-	}
-
-	if len(selectedHashes) < 2 {
-		logs.Error("Please select at least 2 commits to squash.")
-		return nil
-	}
-
-	// Check if selected commits are contiguous
-	var indices []int
-	for _, sel := range selectedHashes {
-		for i, h := range hashes {
-			if sel == h {
-				indices = append(indices, i)
-				break
-			}
-		}
-	}
-	sort.Ints(indices)
-	
-	for i := 0; i < len(indices)-1; i++ {
-		if indices[i+1] - indices[i] != 1 {
-			logs.Error(i18n.T("rebase.squash.not_contiguous"))
-			return nil
-		}
-	}
-
-	// Get new message
-	defaultMessage := ""
-	// Try to get message from the oldest selected
-	oldestHash := hashes[indices[len(indices)-1]]
-	for _, opt := range options {
-		if opt.Value == oldestHash {
-			parts := strings.SplitN(opt.Label, "\n", 2)
-			if len(parts) > 0 {
-				msgParts := strings.SplitN(parts[0], " ", 2)
-				if len(msgParts) > 1 {
-					defaultMessage = msgParts[1]
-				}
-			}
-			break
-		}
-	}
-
-	newMessage, err := form.Input(i18n.T("rebase.input.squash_message"), defaultMessage)
-	if err != nil || newMessage == "" {
-		return nil
-	}
-
-	baseCommit := oldestHash
-	parentHash, err := getParentHash(baseCommit)
-	if err != nil || parentHash == "" {
-		parentHash = "--root"
-	}
-
-	return runInternalRebase(parentHash, "squash", selectedHashes, newMessage)
-}
-
-func runInternalRebase(baseCommit, mode string, targets []string, newMessage string) error {
+func RunInternalRebase(baseCommit, mode string, targets []string, newMessage string) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
@@ -382,4 +296,18 @@ func handleRebaseError(output string, err error) error {
 
 	logs.Error(i18n.T("rebase.failed") + ": " + outputStr)
 	return fmt.Errorf("git rebase failed: %s", outputStr)
+}
+
+// getParentHash gets the parent hash of a specific commit
+func getParentHash(hash string) (string, error) {
+	cmd := exec.Command("git", "log", "-1", "--format=%P", hash)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	parents := strings.Fields(string(output))
+	if len(parents) == 0 {
+		return "", nil // No parent (Root commit)
+	}
+	return parents[0], nil // Return first parent
 }

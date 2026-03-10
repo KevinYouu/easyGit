@@ -2,13 +2,12 @@ package gitcmd
 
 import (
 	"fmt"
-	"os/exec"
+	"sort"
 	"strings"
 
-	"github.com/KevinYouu/easyGit/internal/command"
-	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
 	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -22,144 +21,91 @@ func Squash() error {
 
 	fmt.Printf("%s\n", headerStyle.Render(i18n.T("squash.title")))
 
-	// 获取提交历史
-	cmd := exec.Command("git", "log", "--pretty=format:%h|%s|%ad|%an", "--date=format:%m-%d %H:%M")
-	output, err := cmd.Output()
+	options, hashes, err := GetRecentCommits()
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.git.log")+" %w", err)
+		return err
 	}
 
-	lines := strings.Split(string(output), "\n")
-	if len(lines) < 2 {
-		return fmt.Errorf("not enough commits to squash")
+	var stringOpts []string
+	for _, opt := range options {
+		stringOpts = append(stringOpts, opt.Label)
 	}
 
-	var options = []config.Option{}
-	var commits = []Commit{}
-
-	for i, line := range lines {
-		parts := strings.Split(line, "|")
-		if len(parts) >= 4 {
-			hash := parts[0]
-			message := parts[1]
-			date := parts[2]
-			author := parts[3]
-
-			commit := Commit{
-				Hash:    hash,
-				Message: message,
-				Date:    date,
-				Author:  author,
-				IsHead:  i == 0,
-			}
-			commits = append(commits, commit)
-
-			// 限制消息长度
-			shortMsg := message
-			if len(shortMsg) > 40 {
-				shortMsg = shortMsg[:37] + "..."
-			}
-
-			prefix := ""
-			if i == 0 {
-				prefix = "[HEAD] "
-			}
-
-			commitLabel := fmt.Sprintf(
-				"%s%s %s\n%s • %s",
-				prefix,
-				hash,
-				shortMsg,
-				date,
-				author,
-			)
-			options = append(options, config.Option{Label: commitLabel, Value: hash})
-		}
-	}
-
-	// 选择要合并的最早提交
-	fmt.Printf("\n%s\n", lipgloss.NewStyle().Foreground(theme.TextSecondary).Render(i18n.T("squash.select.base")))
-	_, choose, err := form.TableSelectForm(options)
-	if err != nil {
-		return fmt.Errorf(i18n.T("squash.error.select")+" %w", err)
-	}
-
-	// 如果没有选择 (例如用户取消了操作)
-	if choose == "" {
-		fmt.Printf("\n%s %s\n",
-			theme.InfoStyle.Render("ℹ️"),
-			theme.InfoStyle.Render(i18n.T("squash.cancelled")))
+	selectedLabels, err := form.MultiSelectForm(i18n.T("rebase.select.squash_commits"), stringOpts)
+	if err != nil || len(selectedLabels) == 0 {
 		return nil
 	}
 
-	// 获取默认合并信息 (使用被选中的最早提交的信息或 HEAD 信息)
-	headMsg := commits[0].Message
+	// Map labels back to hashes
+	var selectedHashes []string
+	for _, label := range selectedLabels {
+		for i, opt := range options {
+			if opt.Label == label {
+				selectedHashes = append(selectedHashes, hashes[i])
+				break
+			}
+		}
+	}
 
-	// 输入新的提交信息
-	newMsg, err := form.Input(i18n.T("squash.input.message"), headMsg)
-	if err != nil || newMsg == "" {
-		if err != nil {
+	if len(selectedHashes) < 2 {
+		logs.Error("Please select at least 2 commits to squash.")
+		return nil
+	}
+
+	// Check if selected commits are contiguous
+	var indices []int
+	for _, sel := range selectedHashes {
+		for i, h := range hashes {
+			if sel == h {
+				indices = append(indices, i)
+				break
+			}
+		}
+	}
+	sort.Ints(indices)
+
+	for i := 0; i < len(indices)-1; i++ {
+		if indices[i+1]-indices[i] != 1 {
+			logs.Error(i18n.T("rebase.squash.not_contiguous"))
 			return nil
 		}
 	}
 
-	// 获取父提交哈希
-	parentHash, err := getParentHash(choose)
-	if err != nil {
-		return fmt.Errorf("failed to get parent commit: %w", err)
-	}
-
-	if parentHash != "" {
-		// 正常合并: 重置到父提交
-		_, err = command.RunCmdWithSpinnerOptions("git", []string{"reset", "--soft", parentHash},
-			"Resetting to "+parentHash+"...", "Reset completed", true)
-		if err != nil {
-			return fmt.Errorf(i18n.T("squash.error.git.reset")+" %w", err)
-		}
-
-		// 执行提交
-		_, err = command.RunCmdWithSpinnerOptions("git", []string{"commit", "-m", newMsg},
-			"Creating squashed commit...", "Commit created", true)
-		if err != nil {
-			return fmt.Errorf(i18n.T("squash.error.git.commit")+" %w", err)
-		}
-	} else {
-		// 特殊处理: 选择了初始提交 (没有父提交)
-		// 1. 重置到该提交 (保留其后的变更在暂存区)
-		_, err = command.RunCmdWithSpinnerOptions("git", []string{"reset", "--soft", choose},
-			"Resetting to root "+choose+"...", "Reset completed", true)
-		if err != nil {
-			return fmt.Errorf(i18n.T("squash.error.git.reset")+" %w", err)
-		}
-
-		// 2. 使用 --amend 合并暂存区的变更到初始提交中
-		_, err = command.RunCmdWithSpinnerOptions("git", []string{"commit", "--amend", "-m", newMsg},
-			"Amending root commit...", "Root commit updated", true)
-		if err != nil {
-			return fmt.Errorf(i18n.T("squash.error.git.commit")+" %w", err)
+	// Get new message
+	defaultMessage := ""
+	// Try to get message from the oldest selected
+	oldestHash := hashes[indices[len(indices)-1]]
+	for _, opt := range options {
+		if opt.Value == oldestHash {
+			parts := strings.SplitN(opt.Label, "\n", 2)
+			if len(parts) > 0 {
+				msgParts := strings.SplitN(parts[0], " ", 2)
+				if len(msgParts) > 1 {
+					defaultMessage = msgParts[1]
+				}
+			}
+			break
 		}
 	}
 
-	// 输出成功信息
-	fmt.Printf("\n%s %s\n",
-		theme.SuccessStyle.Render("✓"),
-		lipgloss.NewStyle().
-			Foreground(theme.SuccessColor).
-			Render(i18n.T("squash.success")))
-
-	return nil
-}
-
-// 获取指定提交的父提交哈希
-func getParentHash(hash string) (string, error) {
-	cmd := exec.Command("git", "log", "-1", "--format=%P", hash)
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
+	newMessage, err := form.Input(i18n.T("squash.input.message"), defaultMessage)
+	if err != nil || newMessage == "" {
+		return nil
 	}
-	parents := strings.Fields(string(output))
-	if len(parents) == 0 {
-		return "", nil // 无父提交 (Root)
+
+	baseCommit := oldestHash
+	parentHash, err := getParentHash(baseCommit)
+	if err != nil || parentHash == "" {
+		parentHash = "--root"
 	}
-	return parents[0], nil // 返回第一个父提交
+
+	err = RunInternalRebase(parentHash, "squash", selectedHashes, newMessage)
+	if err == nil {
+		fmt.Printf("\n%s %s\n",
+			theme.SuccessStyle.Render("✓"),
+			lipgloss.NewStyle().
+				Foreground(theme.SuccessColor).
+				Render(i18n.T("squash.success")))
+	}
+	return err
 }
