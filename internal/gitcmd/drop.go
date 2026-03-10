@@ -23,25 +23,9 @@ func Drop() error {
 		return err
 	}
 
-	var stringOpts []string
-	for _, opt := range options {
-		stringOpts = append(stringOpts, opt.Label)
-	}
-
-	selectedLabels, err := form.MultiSelectForm(i18n.T("rebase.select.drop_commits"), stringOpts)
-	if err != nil || len(selectedLabels) == 0 {
+	selectedHashes, err := form.TableMultiSelectForm(i18n.T("rebase.select.drop_commits"), options)
+	if err != nil || len(selectedHashes) == 0 {
 		return nil
-	}
-
-	// Map labels back to hashes
-	var selectedHashes []string
-	for _, label := range selectedLabels {
-		for i, opt := range options {
-			if opt.Label == label {
-				selectedHashes = append(selectedHashes, hashes[i])
-				break
-			}
-		}
 	}
 
 	confirmed := form.Confirm(fmt.Sprintf(i18n.T("rebase.drop.confirm"), len(selectedHashes)))
