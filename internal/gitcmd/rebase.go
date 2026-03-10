@@ -27,24 +27,7 @@ func RebaseIntoCurrent() error {
 		return fmt.Errorf("working directory is not clean")
 	}
 
-	// Choose rebase type
-	options := []config.Option{
-		{Label: i18n.T("rebase.menu.standard"), Value: "standard"},
-		{Label: i18n.T("rebase.menu.drop"), Value: "drop"},
-	}
-
-	_, selectedType, err := form.SelectForm("Rebase Type", options)
-	if err != nil {
-		return fmt.Errorf("selection failed: %w", err)
-	}
-
-	if selectedType == "standard" {
-		return handleStandardRebase()
-	} else if selectedType == "drop" {
-		return handleDropCommits()
-	}
-
-	return nil
+	return handleStandardRebase()
 }
 
 func isRebaseInProgress() bool {
@@ -159,65 +142,6 @@ func GetRecentCommits() ([]config.Option, []string, error) {
 		}
 	}
 	return options, hashes, nil
-}
-
-func handleDropCommits() error {
-	options, hashes, err := GetRecentCommits()
-	if err != nil {
-		return err
-	}
-
-	var stringOpts []string
-	for _, opt := range options {
-		stringOpts = append(stringOpts, opt.Label)
-	}
-
-	selectedLabels, err := form.MultiSelectForm(i18n.T("rebase.select.drop_commits"), stringOpts)
-	if err != nil || len(selectedLabels) == 0 {
-		return nil
-	}
-
-	// Map labels back to hashes
-	var selectedHashes []string
-	for _, label := range selectedLabels {
-		for i, opt := range options {
-			if opt.Label == label {
-				selectedHashes = append(selectedHashes, hashes[i])
-				break
-			}
-		}
-	}
-
-	confirmed := form.Confirm(fmt.Sprintf(i18n.T("rebase.drop.confirm"), len(selectedHashes)))
-	if !confirmed {
-		return nil
-	}
-
-	// Find the oldest selected commit to determine base
-	oldestIndex := -1
-	for _, sel := range selectedHashes {
-		for i, h := range hashes {
-			if sel == h {
-				if i > oldestIndex {
-					oldestIndex = i
-				}
-				break
-			}
-		}
-	}
-
-	if oldestIndex == -1 {
-		return fmt.Errorf("could not find selected commits in history")
-	}
-
-	baseCommit := hashes[oldestIndex]
-	parentHash, err := getParentHash(baseCommit)
-	if err != nil || parentHash == "" {
-		// If no parent (root commit), fallback to the oldest commit itself as base
-		parentHash = "--root"
-	}
-
-	return RunInternalRebase(parentHash, "drop", selectedHashes, "")
 }
 
 func RunInternalRebase(baseCommit, mode string, targets []string, newMessage string) error {

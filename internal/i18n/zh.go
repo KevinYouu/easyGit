@@ -482,6 +482,11 @@ var zhTranslations = map[string]string{
 	"error.select.branch":      "选择分支失败",
 	"error.no.remote.selected": "未选择任何远程仓库",
 
+	// Drop operations
+	"drop.short":   "删除历史提交",
+	"drop.title":   "🗑️  Git Drop",
+	"drop.success": "提交删除成功!",
+
 	// Rebase operations
 	"rebase.short":                 "变基当前分支",
 	"rebase.menu.standard":         "标准变基 (变基到另一分支)",
@@ -495,7 +500,7 @@ var zhTranslations = map[string]string{
 	"rebase.select.drop_commits":   "选择要删除的提交:",
 	"rebase.select.squash_commits": "选择要合并的连续提交:",
 	"rebase.input.squash_message":  "请输入合并后的新提交信息:",
-	"rebase.success.message":       "✅ 变基成功完成!",
+	"rebase.success.message":       "变基成功完成!",
 	"rebase.failed":                "变基失败",
 	"rebase.starting":              "开始变基...",
 	"rebase.conflict.detected":     "🔀 检测到变基冲突!",

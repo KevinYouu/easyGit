@@ -482,6 +482,11 @@ var enTranslations = map[string]string{
 	"error.select.branch":      "Failed to select branch",
 	"error.no.remote.selected": "No remote selected",
 
+	// Drop operations
+	"drop.short":                   "Delete specific commits",
+	"drop.title":                   "🗑️  Git Drop",
+	"drop.success":                 "Commits dropped successfully!",
+
 	// Rebase operations
 	"rebase.short":                 "Rebase current branch onto another branch",
 	"rebase.menu.standard":         "Standard Rebase (onto another branch)",
