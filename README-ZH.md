@@ -53,8 +53,10 @@
 | 删除远程分支   | `git push origin --delete branch-name`                         | `easyGit bd` (交互式)       | **~60%** |
 | 创建并推送标签 | `git tag v1.0.0`<br>`git push origin v1.0.0`                   | `easyGit tc` (向导模式)     | **~70%** |
 | 合并功能分支   | `git checkout main`<br>`git merge feature`<br>`git push`       | `easyGit m` (交互式)        | **~65%** |
+| 变基分支       | `git branch` (查找名称)<br>`git rebase <branch>`               | `easyGit r` (可视化选择)    | **~60%** |
 | 拣选提交       | `git log` (查找哈希)<br>`git cherry-pick <hash>`<br>`git push` | `easyGit cp` (可视化选择器) | **~70%** |
-| 合并多个提交   | `git reset --soft <hash>`<br>`git commit -m "msg"`             | `easyGit sq` (交互式)       | **~65%** |
+| 合并多个提交   | `git rebase -i` (手动编辑)                                     | `easyGit sq` (可视化多选)   | **~70%** |
+| 删除提交       | `git rebase -i` (手动删除)                                     | `easyGit d` (可视化多选)    | **~75%** |
 
 **核心优势:**
 
@@ -157,14 +159,20 @@ easyGit branch-delete  # 或: easyGit bd
 # 将选定分支合并到当前分支
 easyGit merge  # 或: easyGit m
 
+# 变基当前分支到另一分支
+easyGit rebase  # 或: easyGit r
+
 # 拣选提交
 easyGit cherry-pick  # 或: easyGit cp
 
 # 重置到选定提交
 easyGit reset  # 或: easyGit rs
 
-# 将多个提交合并为一个
+# 将连续提交合并为一个
 easyGit squash  # 或: easyGit sq
+
+# 删除特定提交
+easyGit drop  # 或: easyGit d
 
 # 配置推送设置（远程仓库和分支）
 easyGit set-push-config
@@ -198,9 +206,11 @@ easyGit update
 
 | 命令          | 简写 | 描述               | 使用场景               |
 | ------------- | ---- | ------------------ | ---------------------- |
+| `rebase`      | `r`  | 变基当前分支到另一分支 | 保持线性的提交历史     |
 | `cherry-pick` | `cp` | 从其他分支拣选提交 | 应用特定提交到当前分支 |
 | `reset`       | `rs` | 重置仓库到选定提交 | 撤销提交或回到之前状态 |
-| `squash`      | `sq` | 将多个提交合并为一个 | 清理本地提交历史       |
+| `squash`      | `sq` | 将连续提交合并为一个 | 清理本地提交历史 (可视化) |
+| `drop`        | `d`  | 删除特定历史提交   | 从历史中移除不需要的提交 |
 
 ### 配置与工具
 

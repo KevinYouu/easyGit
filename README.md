@@ -53,8 +53,10 @@ See how much time you can save with easyGit:
 | Delete remote branch | `git push origin --delete branch-name`                          | `easyGit bd` (interactive)     | **~60%**   |
 | Create & push tag    | `git tag v1.0.0`<br>`git push origin v1.0.0`                    | `easyGit tc` (with wizard)     | **~70%**   |
 | Merge feature branch | `git checkout main`<br>`git merge feature`<br>`git push`        | `easyGit m` (interactive)      | **~65%**   |
+| Rebase branch        | `git branch` (find name)<br>`git rebase <branch>`               | `easyGit r` (visual selector)  | **~60%**   |
 | Cherry-pick commit   | `git log` (find hash)<br>`git cherry-pick <hash>`<br>`git push` | `easyGit cp` (visual selector) | **~70%**   |
-| Squash commits       | `git reset --soft <hash>`<br>`git commit -m "msg"`              | `easyGit sq` (interactive)     | **~65%**   |
+| Squash commits       | `git rebase -i` (manual edit)                                   | `easyGit sq` (visual multi-select) | **~70%**   |
+| Drop commits         | `git rebase -i` (manual delete)                                 | `easyGit d` (visual multi-select)  | **~75%**   |
 
 **Benefits:**
 
@@ -157,14 +159,20 @@ easyGit branch-delete  # or: easyGit bd
 # Merge selected branch into current branch
 easyGit merge  # or: easyGit m
 
+# Rebase current branch onto another
+easyGit rebase  # or: easyGit r
+
 # Cherry-pick commits
 easyGit cherry-pick  # or: easyGit cp
 
 # Reset to selected commit
 easyGit reset  # or: easyGit rs
 
-# Squash multiple commits into one
+# Squash contiguous commits into one
 easyGit squash  # or: easyGit sq
+
+# Drop/Delete specific commits
+easyGit drop  # or: easyGit d
 
 # Configure push settings (remote and branch)
 easyGit set-push-config
@@ -198,9 +206,11 @@ easyGit update
 
 | Command       | Alias | Description                             | Use Case                                 |
 | ------------- | ----- | --------------------------------------- | ---------------------------------------- |
+| `rebase`      | `r`   | Rebase current branch onto another      | Keep a linear history                    |
 | `cherry-pick` | `cp`  | Cherry-pick commits from other branches | Apply specific commits to current branch |
 | `reset`       | `rs`  | Reset repository to selected commit     | Undo commits or move to previous state   |
-| `squash`      | `sq`  | Squash multiple commits into one        | Clean up local commit history            |
+| `squash`      | `sq`  | Squash contiguous commits into one      | Clean up local commit history (visual)   |
+| `drop`        | `d`   | Delete specific commits                 | Remove unwanted commits from history     |
 
 ### Configuration & Utilities
 
