@@ -202,7 +202,7 @@ func (m AdvancedSpinnerModel) renderProgress() string {
 
 	return fmt.Sprintf("  %s %s",
 		theme.ProgressStyle.Render(progressBar.String()),
-		lipgloss.NewStyle().Foreground(theme.InfoColor).Bold(true).Render(fmt.Sprintf("%.1f%%", m.progress*100)))
+		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(fmt.Sprintf("%.1f%%", m.progress*100)))
 }
 
 // renderSteps 渲染步骤列表
@@ -214,10 +214,10 @@ func (m AdvancedSpinnerModel) renderSteps() string {
 		var icon string
 		var rendered string
 		if i < m.currentStep {
-			icon = theme.GetStatusIcon("success")
+			icon = theme.SuccessIconStyle.Render(theme.GetStatusIcon("success"))
 			rendered = theme.SuccessStyle.Render(step)
 		} else if i == m.currentStep {
-			icon = theme.GetStatusIcon("running")
+			icon = theme.InfoIconStyle.Render(theme.GetStatusIcon("running"))
 			rendered = theme.InfoStyle.Render(step)
 		} else {
 			icon = theme.GetStatusIcon("pending")
@@ -241,11 +241,11 @@ func (m AdvancedSpinnerModel) renderComplete() string {
 
 	if m.success {
 		content.WriteString(fmt.Sprintf("%s  %s",
-			theme.SuccessStyle.Render(theme.GetStatusIcon("success")),
+			theme.SuccessIconStyle.Render(theme.GetStatusIcon("success")),
 			theme.SuccessStyle.Render(i18n.T("spinner.operation.complete"))))
 	} else {
 		content.WriteString(fmt.Sprintf("%s  %s",
-			theme.ErrorStyle.Render(theme.GetStatusIcon("error")),
+			theme.ErrorIconStyle.Render(theme.GetStatusIcon("error")),
 			theme.ErrorStyle.Render(i18n.T("spinner.operation.failed"))))
 	}
 	content.WriteString("\n")

@@ -3,9 +3,10 @@ package version
 import (
 	"fmt"
 
-	"github.com/KevinYouu/easyGit/internal/colors"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/random"
+	"github.com/KevinYouu/easyGit/internal/theme"
+	"github.com/charmbracelet/lipgloss"
 )
 
 var Version = "untracked"
@@ -18,12 +19,15 @@ func GetVersion() {
 	}
 	random.ExecuteRandomly(funcProbs)
 
-	fmt.Println(i18n.T("version.version"), colors.RenderColor("blue", Version))
-	fmt.Println(i18n.T("version.github"), colors.RenderColor("blue", "https://github.com/KevinYouu/easyGit"))
-	fmt.Println(i18n.T("version.about"), colors.RenderColor("blue", "https://www.kevnu.com/about"))
+	primaryStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
+
+	fmt.Printf("%s %s\n", i18n.T("version.version"), primaryStyle.Render(Version))
+	fmt.Printf("%s %s\n", i18n.T("version.github"), primaryStyle.Render("https://github.com/KevinYouu/easyGit"))
+	fmt.Printf("%s %s\n", i18n.T("version.about"), primaryStyle.Render("https://www.kevnu.com/about"))
 }
 
 func GetLogo() {
+	logoStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor)
 	easyGit3D := `
  ██████████   █████████    █████████  █████ █████   █████████  █████ ███████████
 ░░███░░░░░█  ███░░░░░███  ███░░░░░███░░███ ░░███   ███░░░░░███░░███ ░█░░░███░░░█
@@ -34,10 +38,11 @@ func GetLogo() {
  ██████████ █████   █████░░█████████     █████    ░░█████████  █████    █████   
 ░░░░░░░░░░ ░░░░░   ░░░░░  ░░░░░░░░░     ░░░░░      ░░░░░░░░░  ░░░░░    ░░░░░                                                              
 `
-	fmt.Println(colors.RenderColor("cyan", easyGit3D))
+	fmt.Println(logoStyle.Render(easyGit3D))
 }
 
 func GetPenguin() {
+	penguinStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor)
 	Penguin := `
         .--.
        |o_o |
@@ -47,10 +52,11 @@ func GetPenguin() {
     /'\\_   _/'\\
     \\___)=(___/	
 `
-	fmt.Println(Penguin)
+	fmt.Println(penguinStyle.Render(Penguin))
 }
 
 func GetDivineBeast() {
+	beastStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor)
 	divineBeast := `
 	 ┏━┓   ┏━┓+ +
 	┏┛ ┗┻━━━┛ ┻┓ + +
@@ -74,5 +80,5 @@ func GetDivineBeast() {
 	   ┃┫┫  ┃┫┫
 	   ┗┻┛  ┗┻┛ + + + +
 `
-	fmt.Println(divineBeast)
+	fmt.Println(beastStyle.Render(divineBeast))
 }

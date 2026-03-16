@@ -32,19 +32,36 @@ var (
 
 // 语义样式 - 纯前景色，无背景（终端友好）
 var (
+	// 文本样式：统一使用 PrimaryColor
 	ErrorStyle = lipgloss.NewStyle().
-			Foreground(ErrorColor).
+			Foreground(PrimaryColor).
 			Bold(true)
 
 	SuccessStyle = lipgloss.NewStyle().
-			Foreground(SuccessColor).
+			Foreground(PrimaryColor).
 			Bold(true)
 
 	WarningStyle = lipgloss.NewStyle().
-			Foreground(WarningColor).
+			Foreground(PrimaryColor).
 			Bold(true)
 
 	InfoStyle = lipgloss.NewStyle().
+			Foreground(PrimaryColor)
+
+	// 图标样式：使用语义颜色
+	ErrorIconStyle = lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Bold(true)
+
+	SuccessIconStyle = lipgloss.NewStyle().
+			Foreground(SuccessColor).
+			Bold(true)
+
+	WarningIconStyle = lipgloss.NewStyle().
+			Foreground(WarningColor).
+			Bold(true)
+
+	InfoIconStyle = lipgloss.NewStyle().
 			Foreground(InfoColor)
 
 	MutedStyle = lipgloss.NewStyle().
@@ -76,19 +93,8 @@ func RenderMuted(text string) string {
 
 // RenderBadge 渲染标签，variant: "success" | "error" | "warning" | "info"
 func RenderBadge(text, variant string) string {
-	var color lipgloss.Color
-	switch variant {
-	case "success":
-		color = SuccessColor
-	case "error":
-		color = ErrorColor
-	case "warning":
-		color = WarningColor
-	default:
-		color = InfoColor
-	}
 	return lipgloss.NewStyle().
-		Foreground(color).
+		Foreground(PrimaryColor).
 		Bold(true).
 		Render(text)
 }
@@ -167,7 +173,7 @@ func GetCompactTheme() *huh.Theme {
 		Bold(true)
 
 	theme.Focused.ErrorMessage = lipgloss.NewStyle().
-		Foreground(ErrorColor).
+		Foreground(PrimaryColor).
 		Italic(true)
 
 	// 隐藏帮助信息
@@ -251,7 +257,7 @@ func GetCustomTheme() *huh.Theme {
 		Bold(true)
 
 	theme.Focused.ErrorMessage = lipgloss.NewStyle().
-		Foreground(ErrorColor).
+		Foreground(PrimaryColor).
 		Italic(true)
 
 	return theme

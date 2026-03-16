@@ -86,9 +86,9 @@ func Squash() error {
 	err = RunInternalRebase(parentHash, "squash", selectedHashes, newMessage)
 	if err == nil {
 		fmt.Printf("\n%s %s\n",
-			theme.SuccessStyle.Render("✓"),
+			theme.SuccessIconStyle.Render("✓"),
 			lipgloss.NewStyle().
-				Foreground(theme.SuccessColor).
+				Foreground(theme.PrimaryColor).
 				Render(i18n.T("squash.success")))
 	}
 	return err

@@ -3,22 +3,22 @@ package logs
 import (
 	"fmt"
 
-	"github.com/KevinYouu/easyGit/internal/colors"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 // Warning should be used to render warning text
 func Warning(text string) {
-	fmt.Println(colors.RenderColor("yellow", text))
+	fmt.Printf("%s %s\n", theme.WarningIconStyle.Render("⚠️"), theme.WarningStyle.Render(text))
 }
 
 func Info(text string) {
-	fmt.Println(colors.RenderColor("cyan", text))
+	fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ️"), theme.InfoStyle.Render(text))
 }
 
 func Success(text string) {
-	fmt.Println(colors.RenderColor("green", text))
+	fmt.Printf("%s %s\n", theme.SuccessIconStyle.Render("✓"), theme.SuccessStyle.Render(text))
 }
 
 func Error(text string) {
-	fmt.Println(colors.RenderColor("red", text))
+	fmt.Printf("%s %s\n", theme.ErrorIconStyle.Render("✗"), theme.ErrorStyle.Render(text))
 }

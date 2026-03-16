@@ -60,9 +60,9 @@ func Drop() error {
 	err = RunInternalRebase(parentHash, "drop", selectedHashes, "")
 	if err == nil {
 		fmt.Printf("\n%s %s\n",
-			theme.SuccessStyle.Render("✓"),
+			theme.SuccessIconStyle.Render("✓"),
 			lipgloss.NewStyle().
-				Foreground(theme.SuccessColor).
+				Foreground(theme.PrimaryColor).
 				Render(i18n.T("drop.success")))
 	}
 	return err

@@ -64,7 +64,7 @@ func (m SpinnerModel) View() string {
 	if m.done {
 		if m.success {
 			return fmt.Sprintf("%s %s\n",
-				theme.SuccessStyle.Render("✓"),
+				theme.SuccessIconStyle.Render("✓"),
 				theme.SuccessStyle.Render(m.resultMsg))
 		} else {
 			errorMsg := m.resultMsg
@@ -72,7 +72,7 @@ func (m SpinnerModel) View() string {
 				errorMsg = fmt.Sprintf("%s: %v", m.resultMsg, m.err)
 			}
 			return fmt.Sprintf("%s %s\n",
-				theme.ErrorStyle.Render("✗"),
+				theme.ErrorIconStyle.Render("✗"),
 				theme.ErrorStyle.Render(errorMsg))
 		}
 	}
@@ -102,7 +102,7 @@ func SimpleSpinner(message string, duration time.Duration) {
 		case <-done:
 			// 清除当前行并显示完成消息
 			fmt.Printf("\r%s %s\n",
-				theme.SuccessStyle.Render("✓"),
+				theme.SuccessIconStyle.Render("✓"),
 				theme.SuccessStyle.Render(message))
 			return
 		case <-ticker.C:

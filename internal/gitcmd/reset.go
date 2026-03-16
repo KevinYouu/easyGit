@@ -144,16 +144,8 @@ func Reset() error {
 	// 获取可读的重置模式名称
 	resetModeReadable := strings.TrimPrefix(resetMode, "--")
 
-	// 根据重置模式选择对应的颜色
-	var modeColor lipgloss.Style
-	switch resetMode {
-	case "--soft":
-		modeColor = lipgloss.NewStyle().Foreground(theme.InfoColor)
-	case "--mixed":
-		modeColor = lipgloss.NewStyle().Foreground(theme.WarningColor)
-	case "--hard":
-		modeColor = lipgloss.NewStyle().Foreground(theme.ErrorColor)
-	}
+	// 重置模式样式：统一使用 PrimaryColor + Bold
+	modeStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
 
 	// 构建更紧凑的确认信息
 	shortMsg := selectedCommit.Message
@@ -166,14 +158,14 @@ func Reset() error {
 		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(selectedCommit.Hash),
 		shortMsg,
 		i18n.T("reset.confirm.mode"),
-		modeColor.Render(resetModeReadable),
+		modeStyle.Render(resetModeReadable),
 		getModeDescription(resetMode),
 	)
 
-	// 针对 hard 模式添加警告，但更紧凑
+	// 针对 hard 模式添加警告，带黄色警告图标
 	if resetMode == "--hard" {
-		confirmDesc += "\n" + lipgloss.NewStyle().
-			Foreground(theme.ErrorColor).
+		confirmDesc += "\n" + theme.WarningIconStyle.Render("⚠️") + " " + lipgloss.NewStyle().
+			Foreground(theme.PrimaryColor).
 			Bold(true).
 			Render(i18n.T("reset.hard.warning"))
 	}
@@ -199,9 +191,9 @@ func Reset() error {
 
 		// 显示简洁的成功信息
 		fmt.Printf("\n%s %s\n",
-			theme.SuccessStyle.Render("✓"),
+			theme.SuccessIconStyle.Render("✓"),
 			lipgloss.NewStyle().
-				Foreground(theme.SuccessColor).
+				Foreground(theme.PrimaryColor).
 				Render(fmt.Sprintf(i18n.T("reset.success.prefix"), choose)))
 
 		// 简洁的操作提示
@@ -209,22 +201,22 @@ func Reset() error {
 		case "--soft":
 			fmt.Printf("%s\n",
 				lipgloss.NewStyle().
-					Foreground(theme.InfoColor).
+					Foreground(theme.MutedForeground).
 					Render(i18n.T("reset.hint.soft")))
 		case "--mixed":
 			fmt.Printf("%s\n",
 				lipgloss.NewStyle().
-					Foreground(theme.InfoColor).
+					Foreground(theme.MutedForeground).
 					Render(i18n.T("reset.hint.mixed")))
 		case "--hard":
 			fmt.Printf("%s\n",
 				lipgloss.NewStyle().
-					Foreground(theme.InfoColor).
+					Foreground(theme.MutedForeground).
 					Render(i18n.T("reset.hint.hard")))
 		}
 	} else {
 		fmt.Printf("\n%s %s\n",
-			theme.InfoStyle.Render("ℹ️"),
+			theme.InfoIconStyle.Render("ℹ️"),
 			theme.InfoStyle.Render(i18n.T("reset.cancelled.msg")))
 	}
 	return nil

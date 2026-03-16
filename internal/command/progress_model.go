@@ -229,10 +229,10 @@ func (m *ProgressModel) View() string {
 		}
 	}
 
-	s.WriteString(fmt.Sprintf("%s [%s] %.0f%% (%d/%d)\n",
+	s.WriteString(fmt.Sprintf("%s [%s] %s (%d/%d)\n",
 		theme.InfoStyle.Render(i18n.T("ui.progress")),
 		theme.ProgressStyle.Render(progressBar.String()),
-		progress*100,
+		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(fmt.Sprintf("%.0f%%", progress*100)),
 		m.currentStep,
 		m.total))
 
@@ -257,52 +257,61 @@ func (m *ProgressModel) View() string {
 	s.WriteString("\n")
 	for i, cmd := range m.commands {
 		var icon string
-		var style lipgloss.Style
+		var iconStyle lipgloss.Style
+		var textStyle lipgloss.Style
 
 		if len(m.stepStatus) > 0 {
 			// 使用详细的步骤状态
 			switch m.stepStatus[i] {
 			case 0: // 等待
 				icon = "○"
-				style = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+				iconStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+				textStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
 			case 1: // 运行中
 				if m.showSpinner {
 					icon = m.spinner.frames[m.frame]
 				} else {
 					icon = "▶"
 				}
-				style = lipgloss.NewStyle().Foreground(theme.PrimaryColor)
+				iconStyle = theme.InfoIconStyle
+				textStyle = lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
 			case 2: // 成功
 				icon = "✓"
-				style = lipgloss.NewStyle().Foreground(theme.SuccessColor)
+				iconStyle = theme.SuccessIconStyle
+				textStyle = lipgloss.NewStyle().Foreground(theme.PrimaryColor)
 			case 3: // 失败
 				icon = "✗"
-				style = lipgloss.NewStyle().Foreground(theme.ErrorColor)
+				iconStyle = theme.ErrorIconStyle
+				textStyle = lipgloss.NewStyle().Foreground(theme.PrimaryColor)
 			}
 		} else {
 			// 使用简单的步骤状态（向后兼容）
 			if i < m.currentStep {
 				icon = "✓"
-				style = theme.SuccessStyle
+				iconStyle = theme.SuccessIconStyle
+				textStyle = theme.SuccessStyle
 			} else if i == m.currentStep && m.executing {
 				if m.showSpinner {
 					icon = m.spinner.frames[m.frame]
 				} else {
 					icon = "▶"
 				}
-				style = theme.InfoStyle
+				iconStyle = theme.InfoIconStyle
+				textStyle = theme.InfoStyle
 			} else if i == m.currentStep && m.hasError {
 				icon = "✗"
-				style = theme.ErrorStyle
+				iconStyle = theme.ErrorIconStyle
+				textStyle = theme.ErrorStyle
 			} else {
 				icon = "○"
-				style = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+				iconStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+				textStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
 			}
 		}
 
 		s.WriteString(fmt.Sprintf("  %s %s\n",
-			style.Render(icon),
-			style.Render(fmt.Sprintf(i18n.T("ui.step"), i+1, cmd.Description))))
+			iconStyle.Render(icon),
+			textStyle.Render(fmt.Sprintf(i18n.T("ui.step"), i+1, cmd.Description))))
 	}
 
 	// 完成时的提示
@@ -419,7 +428,7 @@ func printExecutionSummary(model *ProgressModel) {
 			for line := range errorLines {
 				if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "Step ") && !strings.HasPrefix(line, "Command:") {
 					errorStyle := lipgloss.NewStyle().
-						Foreground(theme.ErrorColor).
+						Foreground(theme.PrimaryColor).
 						Render(strings.TrimSpace(line))
 					fmt.Println(errorStyle)
 				}
@@ -428,7 +437,7 @@ func printExecutionSummary(model *ProgressModel) {
 	} else {
 		// 成功时显示简单的成功信息
 		fmt.Println(lipgloss.NewStyle().
-			Foreground(theme.SuccessColor).
+			Foreground(theme.PrimaryColor).
 			Bold(true).
 			Render(i18n.T("success.operation.complete")))
 	}

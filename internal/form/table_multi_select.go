@@ -123,7 +123,7 @@ func (m *tableMultiModel) View() string {
 			count++
 		}
 	}
-	countView := lipgloss.NewStyle().Foreground(theme.SuccessColor).Render(fmt.Sprintf(" (%d selected)", count))
+	countView := lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(fmt.Sprintf(" (%d selected)", count))
 
 	tableView := m.table.View()
 	lines := strings.Split(tableView, "\n")

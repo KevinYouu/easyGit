@@ -61,7 +61,7 @@ func RunCmdWithSpinnerOptions(command string, args []string, loadingMsg, success
 
 	if err != nil {
 		fmt.Printf("%s %s\n",
-			theme.ErrorStyle.Render("✗"),
+			theme.ErrorIconStyle.Render("✗"),
 			theme.ErrorStyle.Render(fmt.Sprintf("Failed: %s", loadingMsg)))
 
 		// 显示详细的错误输出
@@ -69,7 +69,7 @@ func RunCmdWithSpinnerOptions(command string, args []string, loadingMsg, success
 		if trimmedOutput != "" {
 			fmt.Printf("%s\n",
 				lipgloss.NewStyle().
-					Foreground(theme.ErrorColor).
+					Foreground(theme.PrimaryColor).
 					Bold(true).
 					Render(i18n.T("ui.error.details")))
 			fmt.Printf("%s\n",
@@ -83,7 +83,7 @@ func RunCmdWithSpinnerOptions(command string, args []string, loadingMsg, success
 
 	// 显示成功信息
 	fmt.Printf("%s %s\n",
-		theme.SuccessStyle.Render("✓"),
+		theme.SuccessIconStyle.Render("✓"),
 		theme.SuccessStyle.Render(successMsg))
 
 	// 如果有输出内容且需要显示，显示它
