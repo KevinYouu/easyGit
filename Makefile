@@ -18,13 +18,13 @@ endif
 .PHONY: all build test vet fmt clean install help
 
 # Default target
-all: vet test build ## Run vet, test, and build (default)
+all: vet fmt test build ## Run vet, test, and build (default)
 
 dev: ## Run the application with go run (usage: make dev <args>)
-	go run $(LDFLAGS) $(MAIN_PACKAGE) $(RUN_ARGS)
+	@go run $(LDFLAGS) $(MAIN_PACKAGE) $(RUN_ARGS)
 
 run: build ## Build and run the binary (usage: make run <args>)
-	./$(BINARY_NAME) $(RUN_ARGS)
+	@./$(BINARY_NAME) $(RUN_ARGS)
 
 build: ## Build the binary
 	@echo "Building $(BINARY_NAME) version: $(VERSION)"
@@ -41,7 +41,8 @@ vet: ## Run go vet
 
 fmt: ## Run go fmt
 	@echo "Running go fmt..."
-	go fmt ./...
+	go fmt ./... \
+	go fix ./...
 
 clean: ## Remove build artifacts
 	@echo "Cleaning up..."
