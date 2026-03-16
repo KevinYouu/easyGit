@@ -29,16 +29,7 @@ func MultiSelectForm(title string, options []string, preselected ...[]string) (V
 
 	// 计算合适的高度，确保多选项可见
 	availableHeight := height - 6
-	compactHeight := len(options) + 1
-	if compactHeight > availableHeight {
-		compactHeight = availableHeight
-	}
-	if compactHeight < 3 {
-		compactHeight = 3
-	}
-	if compactHeight > 8 {
-		compactHeight = 8 // 限制最大高度
-	}
+	compactHeight := min(max(min(len(options)+1, availableHeight), 3), 8)
 
 	form := huh.NewForm(
 		huh.NewGroup(

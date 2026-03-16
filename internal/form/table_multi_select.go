@@ -79,10 +79,7 @@ func (m *tableMultiModel) updateLayout() {
 			{Title: "", Width: m.width - checkboxWidth - 4},
 		}
 	} else {
-		m.messageWidth = calculateMessageWidth(m.width) - checkboxWidth
-		if m.messageWidth < 10 {
-			m.messageWidth = 10
-		}
+		m.messageWidth = max(calculateMessageWidth(m.width)-checkboxWidth, 10)
 		columns = []table.Column{
 			{Title: "", Width: checkboxWidth},
 			{Title: "", Width: 8},

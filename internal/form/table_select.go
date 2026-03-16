@@ -203,17 +203,7 @@ func calculateMessageWidth(terminalWidth int) int {
 	// 根据终端宽度动态计算消息列的宽度
 	// 固定列：hash(8) + date(12) + author(10) + 间距(5) = 35
 	fixedWidth := 35
-	messageWidth := terminalWidth - fixedWidth
-
-	// 确保消息列有最小宽度
-	if messageWidth < 20 {
-		messageWidth = 20
-	}
-
-	// 确保消息列有最大宽度（避免太宽）
-	if messageWidth > 100 {
-		messageWidth = 100
-	}
+	messageWidth := min(max(terminalWidth-fixedWidth, 20), 100)
 
 	return messageWidth
 }
@@ -221,17 +211,11 @@ func calculateMessageWidth(terminalWidth int) int {
 func calculateTableHeight(terminalHeight int, compact bool) int {
 	if compact {
 		// 紧凑模式：减少高度，移除额外空间
-		height := terminalHeight - 2
-		if height < 3 {
-			height = 3
-		}
+		height := max(terminalHeight-2, 3)
 		return height
 	} else {
 		// 普通模式：也减少高度
-		height := terminalHeight - 4
-		if height < 5 {
-			height = 5
-		}
+		height := max(terminalHeight-4, 5)
 		return height
 	}
 }
