@@ -74,7 +74,7 @@ func RunCmdWithSpinnerOptions(command string, args []string, loadingMsg, success
 					Render(i18n.T("ui.error.details")))
 			fmt.Printf("%s\n",
 				lipgloss.NewStyle().
-					Foreground(theme.TextSecondary).
+					Foreground(theme.MutedForeground).
 					Render(trimmedOutput))
 		}
 
@@ -89,7 +89,7 @@ func RunCmdWithSpinnerOptions(command string, args []string, loadingMsg, success
 	// 如果有输出内容且需要显示，显示它
 	trimmedOutput := strings.TrimSpace(output)
 	if showOutput && trimmedOutput != "" {
-		fmt.Println(lipgloss.NewStyle().Foreground(theme.TextSecondary).Render(trimmedOutput))
+		fmt.Println(lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(trimmedOutput))
 	}
 
 	return output, nil

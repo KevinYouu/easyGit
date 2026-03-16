@@ -70,9 +70,9 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *tableMultiModel) updateLayout() {
 	var columns []table.Column
-	
+
 	checkboxWidth := 4
-	
+
 	if m.compact {
 		columns = []table.Column{
 			{Title: "", Width: checkboxWidth},
@@ -118,7 +118,7 @@ func (m *tableMultiModel) View() string {
 	}
 
 	titleView := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(m.title)
-	
+
 	// Count selected
 	count := 0
 	for _, sel := range m.selected {
@@ -134,7 +134,7 @@ func (m *tableMultiModel) View() string {
 		lines = lines[1:]
 	}
 
-	footer := lipgloss.NewStyle().Foreground(theme.TextSecondary).Render("Space: toggle • Enter: confirm • Esc/q: cancel • ↑/↓: move")
+	footer := theme.RenderMuted(i18n.T("table.multi.help"))
 
 	return fmt.Sprintf("%s%s\n\n%s\n%s\n", titleView, countView, strings.Join(lines, "\n"), footer)
 }
@@ -161,7 +161,7 @@ func TableMultiSelectForm(title string, options []config.Option) ([]string, erro
 
 	s := table.DefaultStyles()
 	s.Header = lipgloss.NewStyle().Height(0).MaxHeight(0).Border(lipgloss.HiddenBorder())
-	s.Selected = s.Selected.Foreground(theme.TextColor).Background(theme.BackgroundActive).Bold(true)
+	s.Selected = s.Selected.Foreground(theme.SelectionFg).Background(theme.SelectionBg).Bold(true)
 	m.table.SetStyles(s)
 
 	m.updateLayout()

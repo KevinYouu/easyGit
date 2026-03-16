@@ -359,6 +359,7 @@ var enTranslations = map[string]string{
 	// Table operations
 	"table.user.aborted": "user aborted",
 	"table.no.selection": "no selection made",
+	"table.multi.help":   "Space: toggle • Enter: confirm • Esc/q: cancel • ↑/↓: move",
 
 	// Git command operations - pushAll
 	"git.add.all.description": "Adding all files to staging area",
@@ -376,6 +377,7 @@ var enTranslations = map[string]string{
 	// Git command operations - pushSelected
 	"push.selected.no.files":       "No files to push.",
 	"push.selected.no.selection":   "No files selected.",
+	"push.no.remote.commit.only":   "No remote configured, committing locally only.",
 	"git.add.selected.description": "Adding selected files to staging area",
 	"git.add.selected.loading":     "Adding selected files...",
 	"git.add.selected.success":     "Selected files added successfully",
@@ -483,9 +485,9 @@ var enTranslations = map[string]string{
 	"error.no.remote.selected": "No remote selected",
 
 	// Drop operations
-	"drop.short":                   "Delete specific commits",
-	"drop.title":                   "🗑️  Git Drop",
-	"drop.success":                 "Commits dropped successfully!",
+	"drop.short":   "Delete specific commits",
+	"drop.title":   "🗑️  Git Drop",
+	"drop.success": "Commits dropped successfully!",
 
 	// Rebase operations
 	"rebase.short":                 "Rebase current branch onto another branch",

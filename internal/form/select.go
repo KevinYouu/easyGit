@@ -6,20 +6,6 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func SelectForm(title string, options []config.Option, preselected ...string) (label, value string, err error) {
 	// 使用统一的紧凑布局
 	var selectedValue string

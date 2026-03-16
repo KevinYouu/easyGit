@@ -45,7 +45,7 @@ func TestExecuteRandomlyMultipleFunctions(t *testing.T) {
 
 	// 执行多次看是否有函数被调用
 	iterations := 100
-	for i := 0; i < iterations; i++ {
+	for range iterations {
 		ExecuteRandomly(funcs)
 	}
 

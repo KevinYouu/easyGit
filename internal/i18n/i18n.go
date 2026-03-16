@@ -15,11 +15,11 @@ const (
 )
 
 var (
-	currentLang     Language
-	runtimeLang     Language // 运行时临时设置的语言
-	hasRuntimeLang  bool     // 是否设置了运行时语言
-	once            sync.Once
-	mu              sync.RWMutex
+	currentLang    Language
+	runtimeLang    Language // 运行时临时设置的语言
+	hasRuntimeLang bool     // 是否设置了运行时语言
+	once           sync.Once
+	mu             sync.RWMutex
 )
 
 // T translates a given key to the current language

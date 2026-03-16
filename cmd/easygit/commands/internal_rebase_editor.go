@@ -33,7 +33,7 @@ func InternalRebaseEditorCommand() *cobra.Command {
 				os.Exit(0)
 			}
 
-			var config map[string]interface{}
+			var config map[string]any
 			err = json.Unmarshal([]byte(configStr), &config)
 			if err != nil {
 				fmt.Println("Error parsing config:", err)
@@ -41,7 +41,7 @@ func InternalRebaseEditorCommand() *cobra.Command {
 			}
 
 			mode := config["mode"].(string)
-			targetsIf := config["targets"].([]interface{})
+			targetsIf := config["targets"].([]any)
 			targets := make([]string, len(targetsIf))
 			for i, v := range targetsIf {
 				targets[i] = v.(string)

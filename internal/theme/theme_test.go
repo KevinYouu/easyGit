@@ -12,7 +12,6 @@ func TestGetSpinnerFrames(t *testing.T) {
 		t.Error("GetSpinnerFrames should return non-empty slice")
 	}
 
-	// 验证每个帧都不为空
 	for i, frame := range frames {
 		if frame == "" {
 			t.Errorf("frame %d should not be empty", i)
@@ -63,13 +62,16 @@ func TestGetArrowSpinnerFrames(t *testing.T) {
 }
 
 func TestColors(t *testing.T) {
-	// 测试颜色常量是否定义
+	// 验证 Zinc Dark 颜色令牌已定义
 	colors := []struct {
 		name string
-		val  interface{}
+		val  any
 	}{
 		{"PrimaryColor", PrimaryColor},
-		{"SecondaryColor", SecondaryColor},
+		{"MutedForeground", MutedForeground},
+		{"BorderColor", BorderColor},
+		{"SelectionBg", SelectionBg},
+		{"SelectionFg", SelectionFg},
 		{"SuccessColor", SuccessColor},
 		{"ErrorColor", ErrorColor},
 		{"WarningColor", WarningColor},
@@ -99,22 +101,22 @@ func TestGetStatusIcon(t *testing.T) {
 		{
 			name:     "success status",
 			status:   "success",
-			expected: "✅",
+			expected: "✓",
 		},
 		{
 			name:     "error status",
 			status:   "error",
-			expected: "❌",
+			expected: "✗",
 		},
 		{
 			name:     "warning status",
 			status:   "warning",
-			expected: "⚠️",
+			expected: "⚠",
 		},
 		{
 			name:     "info status",
 			status:   "info",
-			expected: "ℹ️",
+			expected: "ℹ",
 		},
 		{
 			name:     "loading status",
@@ -124,12 +126,17 @@ func TestGetStatusIcon(t *testing.T) {
 		{
 			name:     "pending status",
 			status:   "pending",
-			expected: "⏸️",
+			expected: "○",
 		},
 		{
 			name:     "complete status",
 			status:   "complete",
-			expected: "✨",
+			expected: "✓",
+		},
+		{
+			name:     "running status",
+			status:   "running",
+			expected: "▶",
 		},
 		{
 			name:     "unknown status",
@@ -191,4 +198,31 @@ func TestGetProgressBarStyle(t *testing.T) {
 
 	// 验证调用不会 panic
 	_ = style.Render("test")
+}
+
+func TestRenderSelection(t *testing.T) {
+	result := RenderSelection("test item")
+	if result == "" {
+		t.Error("RenderSelection should not return empty string")
+	}
+	if !strings.Contains(result, "test item") {
+		t.Error("RenderSelection should contain the input text")
+	}
+}
+
+func TestRenderMuted(t *testing.T) {
+	result := RenderMuted("muted text")
+	if result == "" {
+		t.Error("RenderMuted should not return empty string")
+	}
+}
+
+func TestRenderBadge(t *testing.T) {
+	variants := []string{"success", "error", "warning", "info", "unknown"}
+	for _, v := range variants {
+		result := RenderBadge("label", v)
+		if result == "" {
+			t.Errorf("RenderBadge(%q) should not return empty string", v)
+		}
+	}
 }

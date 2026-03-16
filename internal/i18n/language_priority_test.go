@@ -133,14 +133,14 @@ func TestGetCurrentLanguage_Concurrent(t *testing.T) {
 	// 并发测试
 	done := make(chan bool)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			_ = GetCurrentLanguage()
 			done <- true
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 }
@@ -149,7 +149,7 @@ func TestSetLanguage_Concurrent(t *testing.T) {
 	// 并发设置测试
 	done := make(chan bool)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		go func() {
 			SetLanguage(LangZH)
 			done <- true
@@ -161,7 +161,7 @@ func TestSetLanguage_Concurrent(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 

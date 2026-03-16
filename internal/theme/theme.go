@@ -7,354 +7,154 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// 定义主题颜色 - 采用现代渐变配色方案
+// 设计令牌 - Shadcn / Zinc Dark 色系
+// 参考: docs/ui-shadcn-tui-refactor.md
 var (
-	// 主色调 - 使用更鲜艳的渐变色
-	PrimaryColor   = lipgloss.Color("#00D9FF") // 青蓝色
-	SecondaryColor = lipgloss.Color("#7C3AED") // 紫色
-	AccentColor    = lipgloss.Color("#F59E0B") // 金黄色
+	// 核心文本颜色
+	PrimaryColor    = lipgloss.Color("#fafafa") // foreground / primary (Zinc 50)
+	MutedForeground = lipgloss.Color("#a1a1aa") // muted text (Zinc 400)
 
-	// 渐变辅助色
-	GradientStart  = lipgloss.Color("#667EEA") // 渐变起始色
-	GradientEnd    = lipgloss.Color("#764BA2") // 渐变结束色
-	HighlightColor = lipgloss.Color("#FF6B6B") // 高亮色
+	// 边框 / 输入 / 选中背景
+	BorderColor = lipgloss.Color("#3f3f46") // border / input (Zinc 700)
+	SelectionBg = lipgloss.Color("#3f3f46") // selection background (Zinc 700)
+	SelectionFg = lipgloss.Color("#fafafa") // selection foreground (Zinc 50)
 
-	// 状态颜色 - 更鲜明的状态指示
-	SuccessColor = lipgloss.Color("#00F5A0") // 亮绿色
-	ErrorColor   = lipgloss.Color("#FF5E5B") // 亮红色
-	WarningColor = lipgloss.Color("#FFD23F") // 亮黄色
-	InfoColor    = lipgloss.Color("#4ECDC4") // 青绿色
+	// 语义颜色
+	SuccessColor = lipgloss.Color("#10b981") // Emerald 500
+	ErrorColor   = lipgloss.Color("#ef4444") // Shadcn Red
+	WarningColor = lipgloss.Color("#f59e0b") // Amber 500
+	InfoColor    = lipgloss.Color("#3b82f6") // Blue 500
 
-	// 中性颜色 - 更好的对比度
-	TextColor     = lipgloss.Color("#FFFFFF") // 纯白文字
-	TextSecondary = lipgloss.Color("#E2E8F0") // 浅灰文字
-	TextMuted     = lipgloss.Color("#A0AEC0") // 静音文字
-	TextDark      = lipgloss.Color("#4A5568") // 深色文字
-	BorderColor   = lipgloss.Color("#718096") // 边框色
-	BorderActive  = lipgloss.Color("#00D9FF") // 激活边框色
-
-	// 背景颜色 - 更深的层次感
-	BackgroundColor     = lipgloss.Color("#0F172A") // 深蓝背景
-	BackgroundLighter   = lipgloss.Color("#1E293B") // 浅一级背景
-	BackgroundHighlight = lipgloss.Color("#334155") // 高亮背景
-	BackgroundActive    = lipgloss.Color("#475569") // 激活背景
+	// Diff 颜色
+	DiffAddedBg   = lipgloss.Color("#1a3a1a") // 暗绿色背景
+	DiffRemovedBg = lipgloss.Color("#4a1515") // 暗红色背景
 )
 
-// 样式定义 - 增强视觉效果
+// 语义样式 - 纯前景色，无背景（终端友好）
 var (
-	// 基础样式 - 添加阴影和圆角
-	BaseStyle = lipgloss.NewStyle().
-			Padding(1, 2).
-			Margin(1, 0).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(BorderColor).
-			Background(BackgroundLighter)
-
-	// 标题样式 - 增加渐变效果
-	TitleStyle = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true).
-			Padding(1, 2).
-			MarginBottom(1).
-			BorderStyle(lipgloss.DoubleBorder()).
-			BorderForeground(PrimaryColor).
-			Background(BackgroundHighlight).
-			Align(lipgloss.Center)
-
-	// 子标题样式
-	SubtitleStyle = lipgloss.NewStyle().
-			Foreground(AccentColor).
-			Bold(true).
-			Padding(0, 1).
-			Italic(true)
-
-	// 描述样式 - 更好的可读性
-	DescriptionStyle = lipgloss.NewStyle().
-				Foreground(TextSecondary).
-				Italic(true).
-				Padding(0, 1).
-				MarginBottom(1)
-
-	// 状态样式组 - 带图标和背景
 	ErrorStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(ErrorColor).
-			Bold(true).
-			Padding(0, 2)
+			Foreground(ErrorColor).
+			Bold(true)
 
 	SuccessStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(SuccessColor).
-			Bold(true).
-			Padding(0, 2)
+			Foreground(SuccessColor).
+			Bold(true)
 
 	WarningStyle = lipgloss.NewStyle().
-			Foreground(TextDark).
-			Background(WarningColor).
-			Bold(true).
-			Padding(0, 2)
+			Foreground(WarningColor).
+			Bold(true)
 
 	InfoStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(InfoColor).
-			Bold(true).
-			Padding(0, 2)
+			Foreground(InfoColor)
 
-	// 输入框样式 - 增强交互反馈
-	InputStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(BackgroundLighter).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(BorderColor).
-			Padding(1, 2).
-			MarginBottom(1)
+	MutedStyle = lipgloss.NewStyle().
+			Foreground(MutedForeground)
 
-	// 焦点输入框样式 - 添加发光效果
-	FocusedInputStyle = lipgloss.NewStyle().
-				Foreground(TextColor).
-				Background(BackgroundHighlight).
-				BorderStyle(lipgloss.ThickBorder()).
-				BorderForeground(PrimaryColor).
-				Padding(1, 2).
-				MarginBottom(1)
-
-	// 选择器容器样式
-	SelectStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(BackgroundLighter).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(BorderColor).
-			Padding(1, 2).
-			MarginBottom(1)
-
-	// 选中项样式 - 更显眼的选中效果
-	SelectedStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(PrimaryColor).
-			Bold(true).
-			Padding(0, 2).
-			MarginLeft(2)
-
-	// 未选中项样式
-	UnselectedStyle = lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Background(BackgroundLighter).
-			Padding(0, 2).
-			MarginLeft(2)
-
-	// 悬停项样式
-	HoverStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(BackgroundActive).
-			Padding(0, 2).
-			MarginLeft(2)
-
-	// 加载动画样式 - 更炫酷的动画
 	SpinnerStyle = lipgloss.NewStyle().
 			Foreground(PrimaryColor).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 
-	// 进度条样式 - 渐变进度条
 	ProgressStyle = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Background(BackgroundLighter).
-			Padding(0, 1)
-
-	// 卡片样式 - 用于包装内容
-	CardStyle = lipgloss.NewStyle().
-			Background(BackgroundLighter).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(BorderColor).
-			Padding(2, 3).
-			Margin(1, 0)
-
-	// 按钮样式
-	ButtonStyle = lipgloss.NewStyle().
-			Foreground(TextColor).
-			Background(PrimaryColor).
-			Bold(true).
-			Padding(1, 3).
-			MarginRight(2)
-
-	// 次要按钮样式
-	SecondaryButtonStyle = lipgloss.NewStyle().
-				Foreground(TextColor).
-				Background(SecondaryColor).
-				Bold(true).
-				Padding(1, 3).
-				MarginRight(2)
+			Foreground(PrimaryColor)
 )
 
-// GetCustomTheme 返回优化的自定义huh主题
-func GetCustomTheme() *huh.Theme {
-	theme := huh.ThemeBase()
+// ─── 原子渲染函数 ────────────────────────────────────────────────────────────
 
-	// 设置表单基础样式 - 更现代的设计
-	theme.Focused.Base = lipgloss.NewStyle().
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(PrimaryColor).
-		Background(BackgroundLighter).
-		Padding(2, 3).
-		MarginBottom(1)
-
-	theme.Blurred.Base = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(BorderColor).
-		Background(BackgroundColor).
-		Padding(2, 3).
-		MarginBottom(1)
-
-	// 设置标题样式 - 更醒目的标题
-	theme.Focused.Title = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
+// RenderSelection 渲染选中态文本（背景高亮 + 白色前景 + ❯ 指示符）
+func RenderSelection(text string) string {
+	return lipgloss.NewStyle().
+		Background(SelectionBg).
+		Foreground(SelectionFg).
 		Bold(true).
-		Padding(0, 0, 1, 0).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderBottom(true).
-		BorderForeground(PrimaryColor).
-		Width(50).
-		Align(lipgloss.Center)
-
-	theme.Blurred.Title = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Padding(0, 0, 1, 0).
-		Width(50).
-		Align(lipgloss.Center)
-
-	// 设置描述样式 - 更好的可读性
-	theme.Focused.Description = lipgloss.NewStyle().
-		Foreground(TextSecondary).
-		Italic(true).
-		Padding(0, 0, 1, 0).
-		Width(50).
-		Align(lipgloss.Center)
-
-	theme.Blurred.Description = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Italic(true).
-		Padding(0, 0, 1, 0).
-		Width(50).
-		Align(lipgloss.Center)
-
-	// 设置选择器样式 - 更好的视觉层次
-	theme.Focused.SelectedOption = lipgloss.NewStyle().
-		Foreground(TextColor).
-		Background(PrimaryColor).
-		Bold(true).
-		Padding(0, 2).
-		MarginRight(1)
-
-	theme.Focused.UnselectedOption = lipgloss.NewStyle().
-		Foreground(TextSecondary).
-		Background(BackgroundHighlight).
-		Padding(0, 2).
-		MarginRight(1)
-
-	theme.Blurred.SelectedOption = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Background(BackgroundColor).
-		Padding(0, 2).
-		MarginRight(1)
-
-	theme.Blurred.UnselectedOption = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Padding(0, 2).
-		MarginRight(1)
-
-	// 设置输入框样式 - 现代输入框设计
-	theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
-		Foreground(AccentColor).
-		Bold(true)
-
-	theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Italic(true)
-
-	theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Background(BackgroundHighlight).
-		Padding(0, 1)
-
-	theme.Focused.TextInput.Text = lipgloss.NewStyle().
-		Foreground(TextColor).
-		Background(BackgroundLighter).
-		Padding(0, 1)
-
-	// 设置错误样式
-	theme.Focused.ErrorIndicator = lipgloss.NewStyle().
-		Foreground(ErrorColor).
-		Bold(true)
-
-	theme.Focused.ErrorMessage = lipgloss.NewStyle().
-		Foreground(ErrorColor).
-		Italic(true).
-		Padding(0, 1)
-
-	return theme
+		Render("❯ " + text)
 }
 
-// GetCompactTheme 返回紧凑主题（为了兼容性，忽略 isCompact 参数，总是返回紧凑主题）
+// RenderMuted 渲染弱化文本
+func RenderMuted(text string) string {
+	return MutedStyle.Render(text)
+}
+
+// RenderBadge 渲染标签，variant: "success" | "error" | "warning" | "info"
+func RenderBadge(text, variant string) string {
+	var color lipgloss.Color
+	switch variant {
+	case "success":
+		color = SuccessColor
+	case "error":
+		color = ErrorColor
+	case "warning":
+		color = WarningColor
+	default:
+		color = InfoColor
+	}
+	return lipgloss.NewStyle().
+		Foreground(color).
+		Bold(true).
+		Render(text)
+}
+
+// ─── huh 表单主题 ────────────────────────────────────────────────────────────
+
+// GetCompactTheme 返回紧凑主题（主要使用场景）
 func GetCompactTheme() *huh.Theme {
 	theme := huh.ThemeBase()
 
-	// 紧凑模式：最小化边距和内边距
+	// 基础容器 - 最小化
 	theme.Focused.Base = lipgloss.NewStyle().
-		MarginTop(0) // 明确设置顶部边距为0
+		MarginTop(0)
 
 	theme.Blurred.Base = lipgloss.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(BorderColor).
-		MarginTop(0) // 明确设置顶部边距为0
+		MarginTop(0)
 
-	// 紧凑标题样式 - 完全无边距
+	// 标题样式
 	theme.Focused.Title = lipgloss.NewStyle().
 		Foreground(PrimaryColor).
 		Bold(true).
-		Margin(0).    // 无边距
-		MarginTop(0). // 明确设置顶部边距为0
-		PaddingTop(0) // 明确设置顶部内边距为0
+		Margin(0).
+		MarginTop(0).
+		PaddingTop(0)
 
 	theme.Blurred.Title = lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Margin(0).    // 无边距
-		MarginTop(0). // 明确设置顶部边距为0
-		PaddingTop(0) // 明确设置顶部内边距为0
+		Foreground(MutedForeground).
+		Margin(0).
+		MarginTop(0).
+		PaddingTop(0)
 
-	// 紧凑描述样式
+	// 描述样式
 	theme.Focused.Description = lipgloss.NewStyle().
-		Foreground(TextSecondary)
+		Foreground(MutedForeground)
 
 	theme.Blurred.Description = lipgloss.NewStyle().
-		Foreground(TextMuted)
+		Foreground(MutedForeground)
 
-	// 选择器样式
+	// 选择器样式 - Zinc Dark 选中态
 	theme.Focused.SelectedOption = lipgloss.NewStyle().
-		Foreground(TextColor).
-		Background(PrimaryColor).
+		Background(SelectionBg).
+		Foreground(SelectionFg).
 		Bold(true).
 		Padding(0, 1)
 
 	theme.Focused.UnselectedOption = lipgloss.NewStyle().
-		Foreground(TextSecondary).
+		Foreground(MutedForeground).
 		Padding(0, 1)
 
 	theme.Blurred.SelectedOption = lipgloss.NewStyle().
-		Foreground(TextMuted).
+		Foreground(MutedForeground).
 		Padding(0, 1)
 
 	theme.Blurred.UnselectedOption = lipgloss.NewStyle().
-		Foreground(TextMuted).
+		Foreground(MutedForeground).
 		Padding(0, 1)
 
 	// 输入框样式
 	theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
-		Foreground(AccentColor).
+		Foreground(PrimaryColor).
 		Bold(true)
 
 	theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-		Foreground(TextMuted).
+		Foreground(MutedForeground).
 		Italic(true)
 
 	theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
@@ -371,55 +171,95 @@ func GetCompactTheme() *huh.Theme {
 		Italic(true)
 
 	// 隐藏帮助信息
-	theme.Help.Ellipsis = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明或与背景同色
-		Width(0).
-		Height(0)
-
-	theme.Help.ShortKey = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
-
-	theme.Help.ShortDesc = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
-
-	theme.Help.ShortSeparator = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
-
-	theme.Help.FullKey = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
-
-	theme.Help.FullDesc = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
-
-	theme.Help.FullSeparator = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")). // 设置为透明
-		Width(0).
-		Height(0)
+	hidden := lipgloss.NewStyle().Width(0).Height(0)
+	theme.Help.Ellipsis = hidden
+	theme.Help.ShortKey = hidden
+	theme.Help.ShortDesc = hidden
+	theme.Help.ShortSeparator = hidden
+	theme.Help.FullKey = hidden
+	theme.Help.FullDesc = hidden
+	theme.Help.FullSeparator = hidden
 
 	return theme
 }
 
-// GetProgressBarStyle 获取现代化进度条样式
-func GetProgressBarStyle() lipgloss.Style {
-	return lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Background(BackgroundLighter).
+// GetCustomTheme 返回标准主题（较大场景使用）
+func GetCustomTheme() *huh.Theme {
+	theme := huh.ThemeBase()
+
+	theme.Focused.Base = lipgloss.NewStyle().
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(BorderColor).
 		Padding(1, 2).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor)
+		MarginBottom(1)
+
+	theme.Blurred.Base = lipgloss.NewStyle().
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(BorderColor).
+		Padding(1, 2).
+		MarginBottom(1)
+
+	theme.Focused.Title = lipgloss.NewStyle().
+		Foreground(PrimaryColor).
+		Bold(true).
+		Padding(0, 0, 1, 0)
+
+	theme.Blurred.Title = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Padding(0, 0, 1, 0)
+
+	theme.Focused.Description = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Italic(true)
+
+	theme.Blurred.Description = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Italic(true)
+
+	theme.Focused.SelectedOption = lipgloss.NewStyle().
+		Background(SelectionBg).
+		Foreground(SelectionFg).
+		Bold(true).
+		Padding(0, 1)
+
+	theme.Focused.UnselectedOption = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Padding(0, 1)
+
+	theme.Blurred.SelectedOption = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Padding(0, 1)
+
+	theme.Blurred.UnselectedOption = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Padding(0, 1)
+
+	theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
+		Foreground(PrimaryColor).
+		Bold(true)
+
+	theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
+		Foreground(MutedForeground).
+		Italic(true)
+
+	theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
+		Foreground(PrimaryColor).
+		Bold(true)
+
+	theme.Focused.ErrorIndicator = lipgloss.NewStyle().
+		Foreground(ErrorColor).
+		Bold(true)
+
+	theme.Focused.ErrorMessage = lipgloss.NewStyle().
+		Foreground(ErrorColor).
+		Italic(true)
+
+	return theme
 }
 
-// GetSpinnerFrames 获取多样化的加载动画帧
+// ─── Spinner 帧 ──────────────────────────────────────────────────────────────
+
+// GetSpinnerFrames 获取默认加载动画帧
 func GetSpinnerFrames() []string {
 	return []string{
 		"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
@@ -452,30 +292,36 @@ func GetSpinnerStyle() lipgloss.Style {
 	return SpinnerStyle
 }
 
-// GetHorizontalRule 获取分隔线样式
+// ─── 工具函数 ─────────────────────────────────────────────────────────────────
+
+// GetHorizontalRule 获取分隔线
 func GetHorizontalRule(width int) string {
-	rule := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Foreground(BorderColor).
 		Width(width).
-		Align(lipgloss.Center).
 		Render(strings.Repeat("─", width))
-	return rule
 }
 
 // GetStatusIcon 根据状态获取图标
 func GetStatusIcon(status string) string {
 	icons := map[string]string{
-		"success":  "✅",
-		"error":    "❌",
-		"warning":  "⚠️",
-		"info":     "ℹ️",
+		"success":  "✓",
+		"error":    "✗",
+		"warning":  "⚠",
+		"info":     "ℹ",
 		"loading":  "⏳",
-		"pending":  "⏸️",
-		"complete": "✨",
+		"pending":  "○",
+		"complete": "✓",
+		"running":  "▶",
 	}
 
 	if icon, exists := icons[status]; exists {
 		return icon
 	}
 	return "•"
+}
+
+// GetProgressBarStyle 获取进度条样式
+func GetProgressBarStyle() lipgloss.Style {
+	return ProgressStyle
 }

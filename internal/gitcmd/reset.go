@@ -235,15 +235,15 @@ func getModeDescription(mode string) string {
 	switch mode {
 	case "--soft":
 		return lipgloss.NewStyle().
-			Foreground(theme.TextSecondary).
+			Foreground(theme.MutedForeground).
 			Render(i18n.T("reset.mode.soft.desc"))
 	case "--mixed":
 		return lipgloss.NewStyle().
-			Foreground(theme.TextSecondary).
+			Foreground(theme.MutedForeground).
 			Render(i18n.T("reset.mode.mixed.desc"))
 	case "--hard":
 		return lipgloss.NewStyle().
-			Foreground(theme.TextSecondary).
+			Foreground(theme.MutedForeground).
 			Render(i18n.T("reset.mode.hard.desc"))
 	default:
 		return ""

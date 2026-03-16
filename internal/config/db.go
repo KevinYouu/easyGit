@@ -95,15 +95,15 @@ func SaveRecords[T any](
 }
 
 // extractValues is a helper function to extract values from a struct
-func extractValues[T any](record T, columns []string) []interface{} {
+func extractValues[T any](record T, columns []string) []any {
 	v := reflect.ValueOf(record)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
 	caser := cases.Title(language.Und)
 
-	values := make([]interface{}, len(columns))
+	values := make([]any, len(columns))
 	for i, col := range columns {
 		field := v.FieldByName(caser.String(col))
 		if field.IsValid() {

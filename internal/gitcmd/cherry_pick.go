@@ -112,7 +112,7 @@ func getAllCommitsForCherryPick() ([]Commit, error) {
 
 	// Create a set of commit hashes that are already reachable from current branch
 	reachableCommits := make(map[string]bool)
-	for _, hash := range strings.Split(strings.TrimSpace(string(reachableOutput)), "\n") {
+	for hash := range strings.SplitSeq(strings.TrimSpace(string(reachableOutput)), "\n") {
 		if hash != "" {
 			reachableCommits[hash] = true
 		}
@@ -149,8 +149,8 @@ func getAllCommitsForCherryPick() ([]Commit, error) {
 			continue // Skip if branch doesn't exist or has no unique commits
 		}
 
-		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(strings.TrimSpace(string(output)), "\n")
+		for line := range lines {
 			if line == "" {
 				continue
 			}
@@ -203,8 +203,8 @@ func getAllCommitsForCherryPick() ([]Commit, error) {
 	localBranchesCmd := exec.Command("git", "branch", "--format=%(refname:short)")
 	localBranchesOutput, err := localBranchesCmd.Output()
 	if err == nil {
-		localBranches := strings.Fields(string(localBranchesOutput))
-		for _, branch := range localBranches {
+		localBranches := strings.FieldsSeq(string(localBranchesOutput))
+		for branch := range localBranches {
 			// Skip current branch
 			if branch == currentBranch {
 				continue
@@ -217,8 +217,8 @@ func getAllCommitsForCherryPick() ([]Commit, error) {
 				continue
 			}
 
-			lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-			for _, line := range lines {
+			lines := strings.SplitSeq(strings.TrimSpace(string(output)), "\n")
+			for line := range lines {
 				if line == "" {
 					continue
 				}

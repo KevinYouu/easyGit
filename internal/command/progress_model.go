@@ -220,18 +220,18 @@ func (m *ProgressModel) View() string {
 	width := 40
 	filled := int(progress * float64(width))
 
-	progressBar := ""
-	for i := 0; i < width; i++ {
+	var progressBar strings.Builder
+	for i := range width {
 		if i < filled {
-			progressBar += "█"
+			progressBar.WriteString("█")
 		} else {
-			progressBar += "░"
+			progressBar.WriteString("░")
 		}
 	}
 
 	s.WriteString(fmt.Sprintf("%s [%s] %.0f%% (%d/%d)\n",
 		theme.InfoStyle.Render(i18n.T("ui.progress")),
-		theme.ProgressStyle.Render(progressBar),
+		theme.ProgressStyle.Render(progressBar.String()),
 		progress*100,
 		m.currentStep,
 		m.total))
@@ -251,7 +251,7 @@ func (m *ProgressModel) View() string {
 	s.WriteString(fmt.Sprintf("%s %s %s\n",
 		theme.InfoStyle.Render(i18n.T("ui.status")),
 		statusIcon,
-		lipgloss.NewStyle().Foreground(theme.TextSecondary).Render(m.status)))
+		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(m.status)))
 
 	// 显示当前执行的步骤列表
 	s.WriteString("\n")
@@ -264,7 +264,7 @@ func (m *ProgressModel) View() string {
 			switch m.stepStatus[i] {
 			case 0: // 等待
 				icon = "○"
-				style = lipgloss.NewStyle().Foreground(theme.TextSecondary)
+				style = lipgloss.NewStyle().Foreground(theme.MutedForeground)
 			case 1: // 运行中
 				if m.showSpinner {
 					icon = m.spinner.frames[m.frame]
@@ -296,7 +296,7 @@ func (m *ProgressModel) View() string {
 				style = theme.ErrorStyle
 			} else {
 				icon = "○"
-				style = lipgloss.NewStyle().Foreground(theme.TextSecondary)
+				style = lipgloss.NewStyle().Foreground(theme.MutedForeground)
 			}
 		}
 
@@ -309,7 +309,7 @@ func (m *ProgressModel) View() string {
 	if m.isCompleted {
 		s.WriteString("\n")
 		hintStyle := lipgloss.NewStyle().
-			Foreground(theme.TextSecondary).
+			Foreground(theme.MutedForeground).
 			Italic(true)
 
 		if m.hasError {
@@ -415,8 +415,8 @@ func printExecutionSummary(model *ProgressModel) {
 		// 显示详细的错误信息
 		if model.errorMessage != "" {
 			fmt.Println()
-			errorLines := strings.Split(model.errorMessage, "\n")
-			for _, line := range errorLines {
+			errorLines := strings.SplitSeq(model.errorMessage, "\n")
+			for line := range errorLines {
 				if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "Step ") && !strings.HasPrefix(line, "Command:") {
 					errorStyle := lipgloss.NewStyle().
 						Foreground(theme.ErrorColor).

@@ -78,4 +78,3 @@ func TestCommandInfo(t *testing.T) {
 		t.Errorf("expected args [status], got %v", cmd.Args)
 	}
 }
-

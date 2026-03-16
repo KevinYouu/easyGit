@@ -167,9 +167,9 @@ func GetRemoteBranches(remote string) ([]string, error) {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, prefix) {
+		if after, ok := strings.CutPrefix(line, prefix); ok {
 			// 移除 "origin/" 前缀
-			branch := strings.TrimPrefix(line, prefix)
+			branch := after
 			// 跳过 HEAD
 			if !strings.Contains(branch, "HEAD") {
 				branches = append(branches, branch)

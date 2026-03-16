@@ -16,7 +16,7 @@ import (
 
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("240"))
+	BorderForeground(theme.BorderColor)
 
 type tableModel struct {
 	table        table.Model
@@ -183,8 +183,8 @@ func NewTableSelectModel(options []config.Option) *tableModel {
 		MaxHeight(0).
 		Border(lipgloss.HiddenBorder())
 	s.Selected = s.Selected.
-		Foreground(theme.TextColor).
-		Background(theme.BackgroundActive).
+		Foreground(theme.SelectionFg).
+		Background(theme.SelectionBg).
 		Bold(true)
 
 	t.SetStyles(s)

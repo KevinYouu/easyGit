@@ -142,27 +142,27 @@ func (m AdvancedSpinnerModel) View() string {
 
 	var content strings.Builder
 
-	// 渲染标题区域
+	// 标题：简洁的主色标题行
 	content.WriteString(m.renderHeader())
 	content.WriteString("\n")
 
-	// 渲染主消息区域
+	// 主消息
 	content.WriteString(m.renderMainMessage())
 	content.WriteString("\n")
 
-	// 渲染进度条（如果启用）
+	// 进度条（如果启用）
 	if m.showProgress {
 		content.WriteString(m.renderProgress())
 		content.WriteString("\n")
 	}
 
-	// 渲染步骤列表（如果启用）
+	// 步骤列表（如果启用）
 	if m.showSteps {
 		content.WriteString(m.renderSteps())
 		content.WriteString("\n")
 	}
 
-	// 渲染子消息
+	// 子消息
 	if m.submessage != "" {
 		content.WriteString(m.renderSubmessage())
 		content.WriteString("\n")
@@ -171,35 +171,19 @@ func (m AdvancedSpinnerModel) View() string {
 	return content.String()
 }
 
-// renderHeader 渲染标题
+// renderHeader 渲染标题 - 简洁单行，无背景块
 func (m AdvancedSpinnerModel) renderHeader() string {
-	headerStyle := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Foreground(theme.PrimaryColor).
-		Background(theme.BackgroundHighlight).
 		Bold(true).
-		Padding(1, 2).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(theme.PrimaryColor).
-		Width(60).
-		Align(lipgloss.Center)
-
-	return headerStyle.Render(i18n.T("spinner.easygit.operation"))
+		Render(i18n.T("spinner.easygit.operation"))
 }
 
 // renderMainMessage 渲染主消息
 func (m AdvancedSpinnerModel) renderMainMessage() string {
-	iconStyle := lipgloss.NewStyle().
-		Foreground(theme.PrimaryColor).
-		Bold(true)
-
-	messageStyle := lipgloss.NewStyle().
-		Foreground(theme.TextColor).
-		Bold(true).
-		MarginLeft(2)
-
-	return fmt.Sprintf("%s %s",
-		iconStyle.Render(m.spinner.View()),
-		messageStyle.Render(m.message))
+	return fmt.Sprintf("%s  %s",
+		theme.SpinnerStyle.Render(m.spinner.View()),
+		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(m.message))
 }
 
 // renderProgress 渲染进度条
@@ -208,7 +192,7 @@ func (m AdvancedSpinnerModel) renderProgress() string {
 	filled := int(m.progress * float64(width))
 
 	var progressBar strings.Builder
-	for i := 0; i < width; i++ {
+	for i := range width {
 		if i < filled {
 			progressBar.WriteString("█")
 		} else {
@@ -216,40 +200,31 @@ func (m AdvancedSpinnerModel) renderProgress() string {
 		}
 	}
 
-	progressStyle := lipgloss.NewStyle().
-		Foreground(theme.PrimaryColor).
-		Background(theme.BackgroundLighter).
-		Padding(0, 1)
-
-	percentStyle := lipgloss.NewStyle().
-		Foreground(theme.AccentColor).
-		Bold(true).
-		MarginLeft(2)
-
 	return fmt.Sprintf("  %s %s",
-		progressStyle.Render(progressBar.String()),
-		percentStyle.Render(fmt.Sprintf("%.1f%%", m.progress*100)))
+		theme.ProgressStyle.Render(progressBar.String()),
+		lipgloss.NewStyle().Foreground(theme.InfoColor).Bold(true).Render(fmt.Sprintf("%.1f%%", m.progress*100)))
 }
 
 // renderSteps 渲染步骤列表
 func (m AdvancedSpinnerModel) renderSteps() string {
 	var steps strings.Builder
-	steps.WriteString(fmt.Sprintf("  %s\n", i18n.T("spinner.step.progress")))
+	steps.WriteString(fmt.Sprintf("  %s\n", theme.RenderMuted(i18n.T("spinner.step.progress"))))
 
 	for i, step := range m.steps {
-		var icon, style string
+		var icon string
+		var rendered string
 		if i < m.currentStep {
-			icon = theme.GetStatusIcon(i18n.T("spinner.success"))
-			style = theme.SuccessStyle.Render(step)
+			icon = theme.GetStatusIcon("success")
+			rendered = theme.SuccessStyle.Render(step)
 		} else if i == m.currentStep {
-			icon = theme.GetStatusIcon(i18n.T("spinner.loading"))
-			style = theme.InfoStyle.Render(step)
+			icon = theme.GetStatusIcon("running")
+			rendered = theme.InfoStyle.Render(step)
 		} else {
-			icon = theme.GetStatusIcon(i18n.T("spinner.pending"))
-			style = theme.UnselectedStyle.Render(step)
+			icon = theme.GetStatusIcon("pending")
+			rendered = theme.RenderMuted(step)
 		}
 
-		steps.WriteString(fmt.Sprintf("    %s %s\n", icon, style))
+		steps.WriteString(fmt.Sprintf("    %s %s\n", icon, rendered))
 	}
 
 	return steps.String()
@@ -257,74 +232,40 @@ func (m AdvancedSpinnerModel) renderSteps() string {
 
 // renderSubmessage 渲染子消息
 func (m AdvancedSpinnerModel) renderSubmessage() string {
-	submessageStyle := lipgloss.NewStyle().
-		Foreground(theme.TextSecondary).
-		Italic(true).
-		MarginLeft(4)
-
-	return submessageStyle.Render(fmt.Sprintf("💡 %s", m.submessage))
+	return theme.RenderMuted(fmt.Sprintf("  %s", m.submessage))
 }
 
-// renderComplete 渲染完成状态
+// renderComplete 渲染完成状态 - 纯前景色，无大块背景
 func (m AdvancedSpinnerModel) renderComplete() string {
 	var content strings.Builder
 
-	// 渲染完成标题
-	var headerStyle lipgloss.Style
-	var icon string
-	var title string
-
 	if m.success {
-		headerStyle = lipgloss.NewStyle().
-			Foreground(theme.TextColor).
-			Background(theme.SuccessColor).
-			Bold(true).
-			Padding(1, 2).
-			Width(60).
-			Align(lipgloss.Center)
-		icon = "✨"
-		title = i18n.T("spinner.operation.complete")
+		content.WriteString(fmt.Sprintf("%s  %s",
+			theme.SuccessStyle.Render(theme.GetStatusIcon("success")),
+			theme.SuccessStyle.Render(i18n.T("spinner.operation.complete"))))
 	} else {
-		headerStyle = lipgloss.NewStyle().
-			Foreground(theme.TextColor).
-			Background(theme.ErrorColor).
-			Bold(true).
-			Padding(1, 2).
-			Width(60).
-			Align(lipgloss.Center)
-		icon = "❌"
-		title = i18n.T("spinner.operation.failed")
+		content.WriteString(fmt.Sprintf("%s  %s",
+			theme.ErrorStyle.Render(theme.GetStatusIcon("error")),
+			theme.ErrorStyle.Render(i18n.T("spinner.operation.failed"))))
 	}
-
-	content.WriteString(headerStyle.Render(fmt.Sprintf("%s %s", icon, title)))
-	content.WriteString("\n\n")
-
-	// 渲染结果消息
-	resultStyle := lipgloss.NewStyle().
-		Foreground(theme.TextColor).
-		Bold(true).
-		Padding(1, 2).
-		Background(theme.BackgroundHighlight)
-
-	content.WriteString(resultStyle.Render(m.resultMsg))
-
-	// 如果有错误，显示错误信息
-	if m.err != nil {
-		content.WriteString("\n")
-		errorStyle := lipgloss.NewStyle().
-			Foreground(theme.ErrorColor).
-			Italic(true).
-			Padding(0, 2)
-		content.WriteString(errorStyle.Render(fmt.Sprintf(i18n.T("spinner.error.details"), m.err)))
-	}
-
-	// 显示耗时
 	content.WriteString("\n")
-	timeStyle := lipgloss.NewStyle().
-		Foreground(theme.TextMuted).
-		Italic(true).
-		Padding(0, 2)
-	content.WriteString(timeStyle.Render(fmt.Sprintf(i18n.T("spinner.elapsed.time"), m.elapsedTime.Round(time.Millisecond))))
+
+	// 结果消息
+	if m.resultMsg != "" {
+		content.WriteString(fmt.Sprintf("   %s\n",
+			lipgloss.NewStyle().Foreground(theme.PrimaryColor).Render(m.resultMsg)))
+	}
+
+	// 错误详情
+	if m.err != nil {
+		content.WriteString(theme.ErrorStyle.Render(
+			fmt.Sprintf("   "+i18n.T("spinner.error.details"), m.err)))
+		content.WriteString("\n")
+	}
+
+	// 耗时
+	content.WriteString(theme.RenderMuted(
+		fmt.Sprintf("   "+i18n.T("spinner.elapsed.time"), m.elapsedTime.Round(time.Millisecond))))
 
 	return content.String()
 }

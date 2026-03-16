@@ -359,6 +359,7 @@ var zhTranslations = map[string]string{
 	// Table operations
 	"table.user.aborted": "用户中止操作",
 	"table.no.selection": "未进行选择",
+	"table.multi.help":   "空格: 切换选择 • 回车: 确认 • Esc/q: 取消 • ↑/↓: 移动",
 
 	// Git command operations - pushAll
 	"git.add.all.description": "将所有文件添加到暂存区",
@@ -376,6 +377,7 @@ var zhTranslations = map[string]string{
 	// Git command operations - pushSelected
 	"push.selected.no.files":       "没有文件需要推送。",
 	"push.selected.no.selection":   "未选择文件。",
+	"push.no.remote.commit.only":   "未配置远程仓库，仅提交到本地。",
 	"git.add.selected.description": "将选定文件添加到暂存区",
 	"git.add.selected.loading":     "正在添加选定文件...",
 	"git.add.selected.success":     "选定文件添加成功",

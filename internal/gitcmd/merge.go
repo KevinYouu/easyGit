@@ -143,9 +143,9 @@ func getLocalBranches(currentBranch string) ([]config.Option, error) {
 	}
 
 	var branches []config.Option
-	lines := strings.Split(string(output), "\n")
+	lines := strings.SplitSeq(string(output), "\n")
 
-	for _, line := range lines {
+	for line := range lines {
 		branch := strings.TrimSpace(strings.TrimPrefix(line, "* "))
 		if branch != "" && branch != "(no branch)" && branch != currentBranch {
 			branches = append(branches, config.Option{
@@ -167,9 +167,9 @@ func getRemoteBranches(currentBranch string) ([]config.Option, error) {
 	}
 
 	var branches []config.Option
-	lines := strings.Split(string(output), "\n")
+	lines := strings.SplitSeq(string(output), "\n")
 
-	for _, line := range lines {
+	for line := range lines {
 		branch := strings.TrimSpace(line)
 		if branch != "" && !strings.Contains(branch, "HEAD ->") {
 			// Extract branch name from origin/branch-name format

@@ -41,8 +41,7 @@ vet: ## Run go vet
 
 fmt: ## Run go fmt
 	@echo "Running go fmt..."
-	go fmt ./... \
-	go fix ./...
+	go fmt ./... && go fix ./...
 
 clean: ## Remove build artifacts
 	@echo "Cleaning up..."

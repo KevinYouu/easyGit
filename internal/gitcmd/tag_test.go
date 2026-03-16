@@ -82,9 +82,9 @@ func TestIncrementVersion(t *testing.T) {
 
 func TestVersionRegexParsing(t *testing.T) {
 	tests := []struct {
-		input      string
-		prefix     string
-		expected   string
+		input    string
+		prefix   string
+		expected string
 	}{
 		{"v1.2.3", "v", "v1.2.4"},
 		{"1.2.3", "", "1.2.4"},

@@ -35,10 +35,10 @@ func isRebaseInProgress() bool {
 	if err != nil {
 		return false
 	}
-	
+
 	rebaseMerge := filepath.Join(gitDir, "rebase-merge")
 	rebaseApply := filepath.Join(gitDir, "rebase-apply")
-	
+
 	if _, err := os.Stat(rebaseMerge); !os.IsNotExist(err) {
 		return true
 	}
@@ -98,7 +98,7 @@ func handleStandardRebase() error {
 	if err != nil {
 		return handleRebaseError(output, err)
 	}
-	
+
 	logs.Info(i18n.T("rebase.success.message"))
 	return nil
 }
@@ -151,7 +151,7 @@ func RunInternalRebase(baseCommit, mode string, targets []string, newMessage str
 	}
 
 	// Pass config via env var as JSON
-	configData := map[string]interface{}{
+	configData := map[string]any{
 		"mode":    mode,
 		"targets": targets,
 		"message": newMessage,
@@ -169,7 +169,7 @@ func RunInternalRebase(baseCommit, mode string, targets []string, newMessage str
 		// The script echoes the message into the file passed as $1
 		scriptContent := fmt.Sprintf("#!/bin/sh\necho \"%s\" > $1\n", newMessage)
 		os.WriteFile(scriptPath, []byte(scriptContent), 0755)
-		
+
 		env = append(env, fmt.Sprintf("GIT_EDITOR=%s", scriptPath))
 	} else if mode == "squash" {
 		// If no message provided, allow default editor to pop up, or just use 'true' to accept default?

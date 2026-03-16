@@ -28,8 +28,8 @@ func main() {
 				i18n.SetLanguage(i18n.LangEN)
 			}
 			break
-		} else if strings.HasPrefix(arg, "--language=") {
-			lang := strings.ToLower(strings.TrimPrefix(arg, "--language="))
+		} else if after, ok := strings.CutPrefix(arg, "--language="); ok {
+			lang := strings.ToLower(after)
 			switch lang {
 			case "zh", "chinese", "cn":
 				i18n.SetLanguage(i18n.LangZH)

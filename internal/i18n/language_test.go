@@ -143,7 +143,7 @@ func TestConcurrentAccess(t *testing.T) {
 	// 测试并发访问的安全性
 	done := make(chan bool, 100)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		go func() {
 			defer func() { done <- true }()
 
@@ -158,7 +158,7 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 
 	// 等待所有goroutine完成
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		<-done
 	}
 }
