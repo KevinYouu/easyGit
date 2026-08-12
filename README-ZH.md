@@ -346,10 +346,10 @@ Built with Go 1.21+
 
 - [Go](https://github.com/golang/go) - Go 编程语言
 - [Cobra](https://github.com/spf13/cobra) - 强大的 CLI 框架
-- [Bubbletea](https://github.com/charmbracelet/bubbletea) - 强大的 TUI 框架
-- [Bubbles](https://github.com/charmbracelet/bubbles) - Bubbletea 的 TUI 组件
-- [Huh](https://github.com/charmbracelet/huh) - 交互式终端表单
-- [Lipgloss](https://github.com/charmbracelet/lipgloss) - 终端 UI 样式定义
+- [Bubbletea v2](https://charm.land/bubbletea) - 强大的 TUI 框架
+- [Bubbles v2](https://charm.land/bubbles) - Bubbletea 的 TUI 组件
+- [Huh v2](https://charm.land/huh) - 交互式终端表单
+- [Lipgloss v2](https://charm.land/lipgloss) - 终端 UI 样式定义
 - [SQLite](https://gitlab.com/cznic/sqlite) - 纯 Go 实现的 SQLite，用于配置存储
 - [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) - 终端工具
 - [golang.org/x/text](https://pkg.go.dev/golang.org/x/text) - 文本处理和国际化支持

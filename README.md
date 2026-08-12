@@ -346,10 +346,10 @@ Built with these amazing open source projects:
 
 - [Go](https://github.com/golang/go) - The Go programming language
 - [Cobra](https://github.com/spf13/cobra) - Powerful CLI framework
-- [Bubbletea](https://github.com/charmbracelet/bubbletea) - Powerful TUI framework
-- [Bubbles](https://github.com/charmbracelet/bubbles) - TUI components for Bubbletea
-- [Huh](https://github.com/charmbracelet/huh) - Interactive terminal forms
-- [Lipgloss](https://github.com/charmbracelet/lipgloss) - Style definitions for terminal UI
+- [Bubbletea v2](https://charm.land/bubbletea) - Powerful TUI framework
+- [Bubbles v2](https://charm.land/bubbles) - TUI components for Bubbletea
+- [Huh v2](https://charm.land/huh) - Interactive terminal forms
+- [Lipgloss v2](https://charm.land/lipgloss) - Style definitions for terminal UI
 - [SQLite](https://gitlab.com/cznic/sqlite) - Pure Go SQLite implementation for configuration storage
 - [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) - Terminal utilities
 - [golang.org/x/text](https://pkg.go.dev/golang.org/x/text) - Text processing and i18n support

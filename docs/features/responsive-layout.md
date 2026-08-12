@@ -47,8 +47,14 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 
 ### 表单高度
 
-- `SelectForm`: `Height(min(max(len(options), 3), height-8))`
-- `MultiSelectForm`: 移除 8 行硬上限,改 `min(max(len(options)+1, 3), height-8)`
+huh v2 字段的 `Height` 语义为 **viewport 高度 + 标题行**,紧凑主题(无边框、无帮助)下预留高度收紧为 3(标题一行 + 光标行 + 安全余量):
+
+```
+viewport = min(选项数, 终端高度 - 3)   // 至少 3
+Height   = viewport + 1                // 补回标题行
+```
+
+`SelectForm` / `MultiSelectForm` 共用此公式,矮屏(10 行终端)也能显示 7 个选项,高屏(40 行)可显示全部 20 个选项,不再固定 8/10 行。
 
 ### 进度条宽度
 
@@ -72,7 +78,27 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 
 ### 统一 AltScreen
 
-`TableSelectForm` / `TableMultiSelectForm` 统一使用 `tea.WithAltScreen()`,紧凑模式只影响列布局,不再由初始高度决定是否全屏(resize 跨阈值也不会模式错位)。
+`TableSelectForm` / `TableMultiSelectForm` 统一全屏:bubbletea v2 中全屏模式改为**声明式**——在 `View()` 返回的 `tea.View` 上设置 `AltScreen = true`,不再使用 `tea.WithAltScreen()` 选项。紧凑模式只影响列布局,不决定是否全屏(resize 跨阈值也不会模式错位)。
+
+### 依赖升级(2026-08)
+
+全部 TUI 依赖升级至 v2 并适配破坏性变更:
+
+| 依赖 | 旧版 | 新版(模块路径) |
+| ---- | ---- | --------------- |
+| bubbletea | v1.3.10 | [v2.0.8](https://charm.land/bubbletea) `charm.land/bubbletea/v2` |
+| bubbles | v1.0.0 | [v2.1.1](https://charm.land/bubbles) `charm.land/bubbles/v2` |
+| huh | v1.0.0 | [v2.0.3](https://charm.land/huh) `charm.land/huh/v2` |
+| lipgloss | v1.1.0 | [v2.0.6](https://charm.land/lipgloss) `charm.land/lipgloss/v2` |
+
+适配要点:
+
+- `View()` 返回 `tea.View` 结构体(内容经 `tea.NewView(s)` 构造)
+- 全屏/AltScreen 改为 View 声明式字段
+- `tea.KeyMsg` 更名为 `tea.KeyPressMsg`
+- huh v2 字段直接 `View()` 时 viewport 未初始化(渲染为空),必须经 `Form.Update(WindowSizeMsg)` 驱动
+- 表格模型显式 `SetWidth`(v2 viewport 宽度为 0 时渲染为空)
+- huh v2 修复了 v1 的滚动 bug(光标跟随可见区),高屏展示更多选项
 
 ## 测试
 
@@ -81,5 +107,10 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 - `LayoutMode` 判定:40x10 / 40x40 / 200x10 / 120x30 / 300x60
 - `CalculateMessageWidth` 边界:20 / 35 / 60 / 80 / 120 / 200
 - `SafeTruncate` / `parseCommitInfo` / `formatCompactCommit`:中文、emoji、ASCII 混合,断言 `utf8.ValidString` 且 `lipgloss.Width ≤ 列宽`;极窄宽度(20)不 panic
+
+`internal/form/render_test.go` 渲染级测试(真实构造 huh 表单/表格模型,按终端尺寸矩阵渲染断言):
+
+- `Select` / `MultiSelect`:各终端高度下可见选项数符合公式(高屏全显示、矮屏不溢出)
+- `TableSelect` / `TableMultiSelect`:窄屏三列、宽屏四列、紧凑单列与居中均无 ANSI 泄漏/越界
 
 验证方式:`make all`。
