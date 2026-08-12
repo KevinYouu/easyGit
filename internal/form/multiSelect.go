@@ -12,7 +12,7 @@ func MultiSelectForm(title string, options []string, preselected ...[]string) (V
 	// 检测终端高度用于高度计算
 	_, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		height = 24 // 默认值
+		height = defaultTermHeight
 	}
 
 	// 使用统一的紧凑布局
@@ -27,15 +27,12 @@ func MultiSelectForm(title string, options []string, preselected ...[]string) (V
 		selectOpts[i] = huh.NewOption(opt, opt)
 	}
 
-	// 计算合适的高度，确保多选项可见
-	availableHeight := height - 6
-	compactHeight := min(max(min(len(options)+1, availableHeight), 3), 8)
-
+	// 按终端高度与选项数动态计算选择框高度,确保多选项可见
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title(title).
-				Height(compactHeight).
+				Height(CalculateMultiSelectHeight(len(options), height)).
 				Options(selectOpts...).
 				Value(&selectedValues),
 		),

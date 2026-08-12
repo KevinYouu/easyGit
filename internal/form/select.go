@@ -1,9 +1,12 @@
 package form
 
 import (
+	"os"
+
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/huh"
+	"golang.org/x/term"
 )
 
 func SelectForm(title string, options []config.Option, preselected ...string) (label, value string, err error) {
@@ -19,11 +22,18 @@ func SelectForm(title string, options []config.Option, preselected ...string) (l
 		selectOpts[i] = huh.NewOption(opt.Label, opt.Value)
 	}
 
+	// 检测终端高度,动态计算选择框高度
+	_, termHeight, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		termHeight = defaultTermHeight
+	}
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title(title).
 				Options(selectOpts...).
+				Height(CalculateSelectHeight(len(options), termHeight)).
 				Value(&selectedValue).
 				Filtering(false),
 		),
