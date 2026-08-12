@@ -24,6 +24,9 @@ type Commit struct {
 	Timestamp time.Time
 }
 
+// resetMessageMaxWidth 重置模式选择时提交消息的最大显示宽度
+const resetMessageMaxWidth = 40
+
 func Reset() error {
 	// 显示开始信息 - 简洁的标题
 	headerStyle := lipgloss.NewStyle().
@@ -73,11 +76,8 @@ func Reset() error {
 			// 存储提交信息
 			commits = append(commits, commit)
 
-			// 限制消息长度，避免过长
-			shortMsg := message
-			if len(shortMsg) > 40 {
-				shortMsg = shortMsg[:37] + "..."
-			}
+			// 限制消息长度，避免过长(按显示宽度截断,正确处理中文/emoji)
+			shortMsg := form.SafeTruncate(message, resetMessageMaxWidth)
 
 			// 添加到选择列表，使用纯文本格式以允许背景色正确覆盖
 			commitLabel := ""
@@ -148,10 +148,7 @@ func Reset() error {
 	modeStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
 
 	// 构建更紧凑的确认信息
-	shortMsg := selectedCommit.Message
-	if len(shortMsg) > 40 {
-		shortMsg = shortMsg[:37] + "..."
-	}
+	shortMsg := form.SafeTruncate(selectedCommit.Message, resetMessageMaxWidth)
 
 	confirmDesc := fmt.Sprintf("%s %s  %s %s %s%s",
 		i18n.T("reset.confirm.to"),

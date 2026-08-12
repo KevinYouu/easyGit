@@ -15,6 +15,9 @@ import (
 	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
+// rebaseMessageMaxWidth 最近提交列表中提交消息的最大显示宽度
+const rebaseMessageMaxWidth = 50
+
 func RebaseIntoCurrent() error {
 	// Check if rebase is in progress
 	if isRebaseInProgress() {
@@ -125,10 +128,8 @@ func GetRecentCommits() ([]config.Option, []string, error) {
 			date := parts[2]
 			author := parts[3]
 
-			shortMsg := message
-			if len(shortMsg) > 50 {
-				shortMsg = shortMsg[:47] + "..."
-			}
+			// 限制消息长度,避免过长(按显示宽度截断,正确处理中文/emoji)
+			shortMsg := form.SafeTruncate(message, rebaseMessageMaxWidth)
 
 			commitLabel := fmt.Sprintf(
 				"%s %s\n%s • %s",
