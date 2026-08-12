@@ -88,7 +88,7 @@ func TestSetDone(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Run("spinner not done", func(t *testing.T) {
 		spinner := NewSpinner("loading...")
-		view := spinner.View()
+		view := spinner.View().Content
 
 		if !strings.Contains(view, "loading...") {
 			t.Errorf("view should contain loading message, got: %q", view)
@@ -98,7 +98,7 @@ func TestView(t *testing.T) {
 	t.Run("spinner done with success", func(t *testing.T) {
 		spinner := NewSpinner("loading...")
 		spinner.SetDone(true, "完成", nil)
-		view := spinner.View()
+		view := spinner.View().Content
 
 		if !strings.Contains(view, "完成") {
 			t.Errorf("view should contain success message, got: %q", view)
@@ -112,7 +112,7 @@ func TestView(t *testing.T) {
 	t.Run("spinner done with failure", func(t *testing.T) {
 		spinner := NewSpinner("loading...")
 		spinner.SetDone(false, "失败", fmt.Errorf("test error"))
-		view := spinner.View()
+		view := spinner.View().Content
 
 		if !strings.Contains(view, "失败") {
 			t.Errorf("view should contain failure message, got: %q", view)

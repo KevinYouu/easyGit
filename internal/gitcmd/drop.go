@@ -3,10 +3,10 @@ package gitcmd
 import (
 	"fmt"
 
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func Drop() error {

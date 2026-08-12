@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // SpinnerModel 加载动画模型
@@ -49,7 +49,10 @@ func (m *SpinnerModel) SetDone(success bool, resultMsg string, err error) {
 
 // Init 初始化
 func (m SpinnerModel) Init() tea.Cmd {
-	return m.spinner.Tick
+	// bubbles v2 中 Tick 返回 Msg,包装为 Cmd 发送首帧,后续帧由 Update 自动续期
+	return func() tea.Msg {
+		return m.spinner.Tick()
+	}
 }
 
 // Update 更新
@@ -60,26 +63,25 @@ func (m SpinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View 渲染
-func (m SpinnerModel) View() string {
+func (m SpinnerModel) View() tea.View {
 	if m.done {
 		if m.success {
-			return fmt.Sprintf("%s %s\n",
+			return tea.NewView(fmt.Sprintf("%s %s\n",
 				theme.SuccessIconStyle.Render("✓"),
-				theme.SuccessStyle.Render(m.resultMsg))
-		} else {
-			errorMsg := m.resultMsg
-			if m.err != nil {
-				errorMsg = fmt.Sprintf("%s: %v", m.resultMsg, m.err)
-			}
-			return fmt.Sprintf("%s %s\n",
-				theme.ErrorIconStyle.Render("✗"),
-				theme.ErrorStyle.Render(errorMsg))
+				theme.SuccessStyle.Render(m.resultMsg)))
 		}
+		errorMsg := m.resultMsg
+		if m.err != nil {
+			errorMsg = fmt.Sprintf("%s: %v", m.resultMsg, m.err)
+		}
+		return tea.NewView(fmt.Sprintf("%s %s\n",
+			theme.ErrorIconStyle.Render("✗"),
+			theme.ErrorStyle.Render(errorMsg)))
 	}
 
-	return fmt.Sprintf("%s %s",
+	return tea.NewView(fmt.Sprintf("%s %s",
 		m.spinner.View(),
-		theme.InfoStyle.Render(m.message))
+		theme.InfoStyle.Render(m.message)))
 }
 
 // SimpleSpinner 简单的加载动画函数

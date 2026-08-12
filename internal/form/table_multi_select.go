@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
 
@@ -38,7 +38,7 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateLayout()
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":
 			m.quitting = true
@@ -83,6 +83,8 @@ func (m *tableMultiModel) updateLayout() {
 		table.WithFocused(true),
 		table.WithHeight(height),
 	)
+	// 显式设置表格宽度:viewport 宽度为 0 时渲染为空(v2 行为)
+	t.SetWidth(TotalTableWidth(columns))
 	t.SetStyles(m.styles)
 	m.table = t
 	m.rebuildRows()
@@ -118,9 +120,9 @@ func (m *tableMultiModel) optionRow(i int, opt config.Option) table.Row {
 	}
 }
 
-func (m *tableMultiModel) View() string {
+func (m *tableMultiModel) View() tea.View {
 	if m.confirmed || m.quitting {
-		return ""
+		return tea.NewView("")
 	}
 
 	titleView := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(m.title)
@@ -149,7 +151,10 @@ func (m *tableMultiModel) View() string {
 	if ShouldCenterTable(m.width, m.table.Columns()) {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
 	}
-	return content
+	v := tea.NewView(content)
+	// bubbletea v2 全屏模式改为声明式:View 中设置 AltScreen
+	v.AltScreen = true
+	return v
 }
 
 // TableMultiSelectForm creates a table-based multi-select form suitable for commits
@@ -173,7 +178,7 @@ func TableMultiSelectForm(title string, options []config.Option) ([]string, erro
 	m.updateLayout()
 
 	// 统一使用全屏模式(紧凑仅影响列布局,不决定 AltScreen)
-	p := tea.NewProgram(&m, tea.WithAltScreen())
+	p := tea.NewProgram(&m)
 
 	finalModel, err := p.Run()
 	if err != nil {

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -129,7 +129,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// 如果已经完成（成功或失败），任何按键都退出
 		if m.isCompleted {
 			return m, tea.Quit
@@ -220,7 +220,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View 渲染视图
-func (m *ProgressModel) View() string {
+func (m *ProgressModel) View() tea.View {
 	var s strings.Builder
 
 	// 标题 - 去掉多余的边距和空行
@@ -351,7 +351,7 @@ func (m *ProgressModel) View() string {
 		}
 	}
 
-	return s.String()
+	return tea.NewView(s.String())
 }
 
 // executeNextCommand 执行下一个命令

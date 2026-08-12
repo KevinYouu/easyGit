@@ -3,18 +3,12 @@ package form
 import (
 	"os"
 
+	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/huh"
 	"golang.org/x/term"
 )
 
 func MultiSelectForm(title string, options []string, preselected ...[]string) (Values []string, err error) {
-	// 检测终端高度用于高度计算
-	_, height, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		height = defaultTermHeight
-	}
-
 	// 使用统一的紧凑布局
 	var selectedValues []string
 	// 如果提供了预选值，使用预选值初始化
@@ -27,14 +21,20 @@ func MultiSelectForm(title string, options []string, preselected ...[]string) (V
 		selectOpts[i] = huh.NewOption(opt, opt)
 	}
 
-	// 按终端高度与选项数动态计算选择框高度,确保多选项可见
+	// 按终端高度动态设置 Height:huh v2 已修复 v1 滚动 bug(光标跟随可见区),
+	// 高屏展示更多选项,不再固定默认 8 行
+	_, height, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		height = defaultTermHeight
+	}
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title(title).
-				Height(CalculateMultiSelectHeight(len(options), height)).
 				Options(selectOpts...).
-				Value(&selectedValues),
+				Value(&selectedValues).
+				Height(CalculateMultiSelectHeight(len(options), height)),
 		),
 	).WithTheme(theme.GetCompactTheme()).
 		WithShowHelp(false)

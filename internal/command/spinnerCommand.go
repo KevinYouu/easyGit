@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // RunCmdWithSpinnerOptions 带加载动画的命令执行（带选项）

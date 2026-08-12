@@ -3,10 +3,10 @@ package version
 import (
 	"fmt"
 
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/random"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/lipgloss"
 )
 
 var Version = "untracked"

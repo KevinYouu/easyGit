@@ -3,9 +3,9 @@ package form
 import (
 	"errors"
 
+	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/huh"
 )
 
 func Input(title string, defaultValue string) (string, error) {

@@ -3,8 +3,8 @@ package theme
 import (
 	"strings"
 
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // 设计令牌 - Shadcn / Zinc Dark 色系
@@ -102,165 +102,170 @@ func RenderBadge(text, variant string) string {
 // ─── huh 表单主题 ────────────────────────────────────────────────────────────
 
 // GetCompactTheme 返回紧凑主题（主要使用场景）
-func GetCompactTheme() *huh.Theme {
-	theme := huh.ThemeBase()
+// huh v2 主题为 Theme 接口，isDark 参数用于暗色/亮色适配（本项目固定暗色）
+func GetCompactTheme() huh.Theme {
+	return huh.ThemeFunc(func(_ bool) *huh.Styles {
+		theme := huh.ThemeBase(true)
 
-	// 基础容器 - 最小化
-	theme.Focused.Base = lipgloss.NewStyle().
-		MarginTop(0)
+		// 基础容器 - 最小化
+		theme.Focused.Base = lipgloss.NewStyle().
+			MarginTop(0)
 
-	theme.Blurred.Base = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(BorderColor).
-		MarginTop(0)
+		theme.Blurred.Base = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(BorderColor).
+			MarginTop(0)
 
-	// 标题样式
-	theme.Focused.Title = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Margin(0).
-		MarginTop(0).
-		PaddingTop(0)
+		// 标题样式
+		theme.Focused.Title = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true).
+			Margin(0).
+			MarginTop(0).
+			PaddingTop(0)
 
-	theme.Blurred.Title = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Margin(0).
-		MarginTop(0).
-		PaddingTop(0)
+		theme.Blurred.Title = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Margin(0).
+			MarginTop(0).
+			PaddingTop(0)
 
-	// 描述样式
-	theme.Focused.Description = lipgloss.NewStyle().
-		Foreground(MutedForeground)
+		// 描述样式
+		theme.Focused.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground)
 
-	theme.Blurred.Description = lipgloss.NewStyle().
-		Foreground(MutedForeground)
+		theme.Blurred.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground)
 
-	// 选择器样式 - Zinc Dark 选中态
-	theme.Focused.SelectedOption = lipgloss.NewStyle().
-		Background(SelectionBg).
-		Foreground(SelectionFg).
-		Bold(true).
-		Padding(0, 1)
+		// 选择器样式 - Zinc Dark 选中态
+		theme.Focused.SelectedOption = lipgloss.NewStyle().
+			Background(SelectionBg).
+			Foreground(SelectionFg).
+			Bold(true).
+			Padding(0, 1)
 
-	theme.Focused.UnselectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Focused.UnselectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	theme.Blurred.SelectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Blurred.SelectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	theme.Blurred.UnselectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Blurred.UnselectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	// 输入框样式
-	theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true)
+		// 输入框样式
+		theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
 
-	theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Italic(true)
+		theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
 
-	theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true)
+		theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
 
-	// 错误样式
-	theme.Focused.ErrorIndicator = lipgloss.NewStyle().
-		Foreground(ErrorColor).
-		Bold(true)
+		// 错误样式
+		theme.Focused.ErrorIndicator = lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Bold(true)
 
-	theme.Focused.ErrorMessage = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Italic(true)
+		theme.Focused.ErrorMessage = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Italic(true)
 
-	// 隐藏帮助信息
-	hidden := lipgloss.NewStyle().Width(0).Height(0)
-	theme.Help.Ellipsis = hidden
-	theme.Help.ShortKey = hidden
-	theme.Help.ShortDesc = hidden
-	theme.Help.ShortSeparator = hidden
-	theme.Help.FullKey = hidden
-	theme.Help.FullDesc = hidden
-	theme.Help.FullSeparator = hidden
+		// 隐藏帮助信息
+		hidden := lipgloss.NewStyle().Width(0).Height(0)
+		theme.Help.Ellipsis = hidden
+		theme.Help.ShortKey = hidden
+		theme.Help.ShortDesc = hidden
+		theme.Help.ShortSeparator = hidden
+		theme.Help.FullKey = hidden
+		theme.Help.FullDesc = hidden
+		theme.Help.FullSeparator = hidden
 
-	return theme
+		return theme
+	})
 }
 
 // GetCustomTheme 返回标准主题（较大场景使用）
-func GetCustomTheme() *huh.Theme {
-	theme := huh.ThemeBase()
+func GetCustomTheme() huh.Theme {
+	return huh.ThemeFunc(func(_ bool) *huh.Styles {
+		theme := huh.ThemeBase(true)
 
-	theme.Focused.Base = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(BorderColor).
-		Padding(1, 2).
-		MarginBottom(1)
+		theme.Focused.Base = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(BorderColor).
+			Padding(1, 2).
+			MarginBottom(1)
 
-	theme.Blurred.Base = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(BorderColor).
-		Padding(1, 2).
-		MarginBottom(1)
+		theme.Blurred.Base = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(BorderColor).
+			Padding(1, 2).
+			MarginBottom(1)
 
-	theme.Focused.Title = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Padding(0, 0, 1, 0)
+		theme.Focused.Title = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true).
+			Padding(0, 0, 1, 0)
 
-	theme.Blurred.Title = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 0, 1, 0)
+		theme.Blurred.Title = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 0, 1, 0)
 
-	theme.Focused.Description = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Italic(true)
+		theme.Focused.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
 
-	theme.Blurred.Description = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Italic(true)
+		theme.Blurred.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
 
-	theme.Focused.SelectedOption = lipgloss.NewStyle().
-		Background(SelectionBg).
-		Foreground(SelectionFg).
-		Bold(true).
-		Padding(0, 1)
+		theme.Focused.SelectedOption = lipgloss.NewStyle().
+			Background(SelectionBg).
+			Foreground(SelectionFg).
+			Bold(true).
+			Padding(0, 1)
 
-	theme.Focused.UnselectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Focused.UnselectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	theme.Blurred.SelectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Blurred.SelectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	theme.Blurred.UnselectedOption = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Padding(0, 1)
+		theme.Blurred.UnselectedOption = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Padding(0, 1)
 
-	theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true)
+		theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
 
-	theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-		Foreground(MutedForeground).
-		Italic(true)
+		theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
 
-	theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true)
+		theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
 
-	theme.Focused.ErrorIndicator = lipgloss.NewStyle().
-		Foreground(ErrorColor).
-		Bold(true)
+		theme.Focused.ErrorIndicator = lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Bold(true)
 
-	theme.Focused.ErrorMessage = lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Italic(true)
+		theme.Focused.ErrorMessage = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Italic(true)
 
-	return theme
+		return theme
+	})
 }
 
 // ─── Spinner 帧 ──────────────────────────────────────────────────────────────

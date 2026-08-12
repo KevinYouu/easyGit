@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
 
@@ -42,7 +42,7 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			m.quitting = true
@@ -68,9 +68,9 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m tableModel) View() string {
+func (m tableModel) View() tea.View {
 	if m.selected || m.quitting {
-		return ""
+		return tea.NewView("")
 	}
 
 	// 表格 View 自带空 header 行,移除避免渲染空行
@@ -85,7 +85,10 @@ func (m tableModel) View() string {
 	if ShouldCenterTable(m.width, m.table.Columns()) {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
 	}
-	return content
+	v := tea.NewView(content)
+	// bubbletea v2 全屏模式改为声明式:View 中设置 AltScreen
+	v.AltScreen = true
+	return v
 }
 
 // applyLayout 按当前终端尺寸重建表格:列与行在同一代码路径构建,
@@ -104,6 +107,8 @@ func (m *tableModel) applyLayout() {
 		table.WithFocused(true),
 		table.WithHeight(height),
 	)
+	// 显式设置表格宽度:viewport 宽度为 0 时渲染为空(v2 行为)
+	t.SetWidth(TotalTableWidth(columns))
 	t.SetStyles(m.styles)
 	m.table = t
 	m.rebuildRows()
@@ -225,7 +230,7 @@ func TableSelectForm(options []config.Option) (label, value string, err error) {
 	m := NewTableSelectModel(options)
 
 	// 统一使用全屏模式(紧凑仅影响列布局,不决定 AltScreen)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m)
 
 	finalModel, err := p.Run()
 	if err != nil {

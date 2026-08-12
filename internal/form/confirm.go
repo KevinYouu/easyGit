@@ -1,8 +1,8 @@
 package form
 
 import (
+	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/huh"
 )
 
 func Confirm(title string) bool {

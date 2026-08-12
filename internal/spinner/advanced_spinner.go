@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // AdvancedSpinnerType 高级加载动画类型
@@ -120,7 +120,10 @@ func (m *AdvancedSpinnerModel) SetDone(success bool, resultMsg string, err error
 
 // Init 初始化
 func (m AdvancedSpinnerModel) Init() tea.Cmd {
-	return m.spinner.Tick
+	// bubbles v2 中 Tick 返回 Msg,包装为 Cmd 发送首帧,后续帧由 Update 自动续期
+	return func() tea.Msg {
+		return m.spinner.Tick()
+	}
 }
 
 // Update 更新
@@ -135,9 +138,9 @@ func (m AdvancedSpinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View 渲染
-func (m AdvancedSpinnerModel) View() string {
+func (m AdvancedSpinnerModel) View() tea.View {
 	if m.done {
-		return m.renderComplete()
+		return tea.NewView(m.renderComplete())
 	}
 
 	var content strings.Builder
@@ -168,7 +171,7 @@ func (m AdvancedSpinnerModel) View() string {
 		content.WriteString("\n")
 	}
 
-	return content.String()
+	return tea.NewView(content.String())
 }
 
 // renderHeader 渲染标题 - 简洁单行，无背景块
