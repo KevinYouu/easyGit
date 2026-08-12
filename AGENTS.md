@@ -7,6 +7,7 @@
 - i18n: 严禁硬编码。文本统一使用 `i18n.T("key")`，键名点分层级
 - TUI/UI: 必须使用 `internal/form` (表单)、`internal/spinner` (进度)、`internal/theme` (样式)
 - 错误处理: 立即检查 `err`；Git 失败用 `logs.Error`；输入验证在表单层完成
+- UI 风格参考 docs/ui-shadcn-tui-refactor.md
 
 ## 2. 质量要求
 

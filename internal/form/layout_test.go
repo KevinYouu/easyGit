@@ -273,11 +273,11 @@ func TestCalculateFormHeight(t *testing.T) {
 		multi  bool
 	}{
 		{name: "多选项高屏", count: 20, height: 50, want: 21, multi: true},
-		{name: "多选项常规屏", count: 20, height: 24, want: 16, multi: true},
-		{name: "单选高屏", count: 20, height: 50, want: 20},
-		{name: "单选常规屏", count: 20, height: 24, want: 16},
+		{name: "多选项常规屏", count: 20, height: 24, want: 21, multi: true},
+		{name: "单选高屏", count: 20, height: 50, want: 21},
+		{name: "单选常规屏", count: 20, height: 24, want: 21},
 		{name: "少量选项触底", count: 2, height: 24, want: 3},
-		{name: "矮屏触底", count: 10, height: 10, want: 3},
+		{name: "矮屏触底", count: 10, height: 10, want: 8},
 	}
 
 	for _, tt := range tests {

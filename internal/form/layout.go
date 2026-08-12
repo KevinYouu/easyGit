@@ -39,12 +39,14 @@ const (
 	tableHeightReserved     = 4 // 表格预留高度(边框等)
 	tableHeightReservedMore = 2 // 多选模式额外预留(标题/底部帮助)
 	tableHeightMin          = 3 // 表格最小高度
+	tableHeaderLines        = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
 )
 
 // huh 表单高度计算常量
 const (
-	formHeightMin      = 3 // 选择框最小高度
-	formHeightReserved = 8 // 表单预留高度(标题/说明等)
+	formHeightMin    = 1 // 选择框最小可见行数
+	formBorderLines  = 2 // huh 字段上下边框行数
+	selectTitleLines = 1 // huh 字段标题占用行数(计入 Height 参数)
 )
 
 // 默认终端尺寸(检测失败时回退)
@@ -55,6 +57,9 @@ const (
 
 // 截断省略号
 const ellipsis = "..."
+
+// 多选表格底部帮助行最小宽度
+const footerMinWidth = 10
 
 // 各模式消息列固定占位 = 固定列宽之和 + 全部列单元格内边距
 const (
@@ -171,14 +176,15 @@ func SafeTruncate(s string, maxWidth int) string {
 	return ansi.Truncate(s, maxWidth, ellipsis)
 }
 
-// CalculateSelectHeight 计算单选表单高度,随终端高度与选项数伸缩
+// CalculateSelectHeight 计算单选表单 Height 参数。
+// huh 的 Height 语义为"标题 1 行 + 选项视口",整体另加上下边框 2 行。
 func CalculateSelectHeight(optionCount, terminalHeight int) int {
-	available := max(terminalHeight-formHeightReserved, formHeightMin)
-	return min(max(optionCount, formHeightMin), available)
+	visible := min(max(optionCount, formHeightMin), max(terminalHeight-formBorderLines-selectTitleLines, formHeightMin))
+	return visible + selectTitleLines
 }
 
-// CalculateMultiSelectHeight 计算多选表单高度,随终端高度与选项数伸缩
+// CalculateMultiSelectHeight 计算多选表单 Height 参数(语义同上)
 func CalculateMultiSelectHeight(optionCount, terminalHeight int) int {
-	available := max(terminalHeight-formHeightReserved, formHeightMin)
-	return min(max(optionCount+1, formHeightMin), available)
+	visible := min(max(optionCount, formHeightMin), max(terminalHeight-formBorderLines-selectTitleLines, formHeightMin))
+	return visible + selectTitleLines
 }

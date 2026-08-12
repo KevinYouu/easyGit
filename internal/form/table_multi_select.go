@@ -73,12 +73,15 @@ func (m *tableMultiModel) updateLayout() {
 	columns := CalculateColumns(m.width, true)
 	m.messageWidth = CalculateMessageWidth(m.width, true)
 	cursor := m.table.Cursor()
+	// 表格高度不超过内容行数,避免小列表底部大片空白
+	height := min(CalculateTableHeight(m.height, true), max(len(m.choices), 1))
+	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
+	height += tableHeaderLines
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
-		// 多选模式预留标题/底部帮助行
-		table.WithHeight(CalculateTableHeight(m.height, true)),
+		table.WithHeight(height),
 	)
 	t.SetStyles(m.styles)
 	m.table = t
@@ -138,6 +141,8 @@ func (m *tableMultiModel) View() string {
 	}
 
 	footer := theme.RenderMuted(i18n.T("table.multi.help"))
+	// 窄屏下帮助文本可能溢出,按终端宽度截断
+	footer = SafeTruncate(footer, max(m.width-cellPaddingWidth, footerMinWidth))
 
 	content := fmt.Sprintf("%s%s\n\n%s\n%s\n", titleView, countView, strings.Join(lines, "\n"), footer)
 	// 宽屏富余时水平居中

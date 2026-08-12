@@ -73,11 +73,9 @@ func (m tableModel) View() string {
 		return ""
 	}
 
-	// 获取表格视图并移除开头的空白行
+	// 表格 View 自带空 header 行,移除避免渲染空行
 	tableView := m.table.View()
 	lines := strings.Split(tableView, "\n")
-
-	// 移除开头的空白行
 	for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
 		lines = lines[1:]
 	}
@@ -96,11 +94,15 @@ func (m *tableModel) applyLayout() {
 	columns := CalculateColumns(m.width, false)
 	m.messageWidth = CalculateMessageWidth(m.width, false)
 	cursor := m.table.Cursor()
+	// 表格高度不超过内容行数,避免小列表底部大片空白
+	height := min(CalculateTableHeight(m.height, false), max(len(m.choices), 1))
+	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
+	height += tableHeaderLines
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
-		table.WithHeight(CalculateTableHeight(m.height, false)),
+		table.WithHeight(height),
 	)
 	t.SetStyles(m.styles)
 	m.table = t
