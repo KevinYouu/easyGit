@@ -24,6 +24,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 - 🔧 **Smart Configuration** - Save your push preferences (remote/branch) and language settings
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components
+- 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
 - 💻 **Cross-Platform** - Works seamlessly on Linux, macOS, and Windows
 
 ## 📖 Design Philosophy
