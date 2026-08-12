@@ -20,10 +20,10 @@ var baseStyle = lipgloss.NewStyle().
 
 type tableModel struct {
 	table        table.Model
+	styles       table.Styles
 	choices      []config.Option
 	selected     bool
 	quitting     bool
-	compact      bool
 	width        int
 	height       int
 	messageWidth int
@@ -38,41 +38,7 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 终端尺寸变化时重新计算布局
 		m.width = msg.Width
 		m.height = msg.Height
-		m.compact = msg.Height < 15
-
-		// 重新计算列宽
-		var columns []table.Column
-		if m.compact {
-			columns = []table.Column{
-				{Title: "", Width: m.width - 4},
-			}
-		} else {
-			m.messageWidth = calculateMessageWidth(m.width)
-			columns = []table.Column{
-				{Title: "", Width: 8},
-				{Title: "", Width: m.messageWidth},
-				{Title: "", Width: 12},
-				{Title: "", Width: 10},
-			}
-		}
-		m.table.SetColumns(columns)
-
-		// 重新计算表格高度
-		tableHeight := calculateTableHeight(m.height, m.compact)
-		m.table.SetHeight(tableHeight)
-
-		// 重新生成行数据（使用新的列宽）
-		var rows []table.Row
-		for _, opt := range m.choices {
-			if m.compact {
-				compactInfo := formatCompactCommit(opt.Label, m.width-6)
-				rows = append(rows, table.Row{compactInfo})
-			} else {
-				hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
-				rows = append(rows, table.Row{hash, message, date, author})
-			}
-		}
-		m.table.SetRows(rows)
+		m.applyLayout()
 
 		return m, nil
 
@@ -116,68 +82,77 @@ func (m tableModel) View() string {
 		lines = lines[1:]
 	}
 
-	return strings.Join(lines, "\n")
+	content := strings.Join(lines, "\n")
+	// 宽屏富余时水平居中
+	if ShouldCenterTable(m.width, m.table.Columns()) {
+		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
+	}
+	return content
+}
+
+// applyLayout 按当前终端尺寸重建表格:列与行在同一代码路径构建,
+// 避免 bubbles/table 在行列数量不一致时渲染越界(renderRow 按下标取列)
+func (m *tableModel) applyLayout() {
+	columns := CalculateColumns(m.width, false)
+	m.messageWidth = CalculateMessageWidth(m.width, false)
+	cursor := m.table.Cursor()
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		table.WithHeight(CalculateTableHeight(m.height, false)),
+	)
+	t.SetStyles(m.styles)
+	m.table = t
+	m.rebuildRows()
+	// 重建后恢复光标位置
+	m.table.SetCursor(cursor)
+}
+
+// rebuildRows 按当前布局模式重新生成行数据
+func (m *tableModel) rebuildRows() {
+	rows := make([]table.Row, 0, len(m.choices))
+	for _, opt := range m.choices {
+		rows = append(rows, m.optionRow(opt))
+	}
+	m.table.SetRows(rows)
+}
+
+// optionRow 将单个选项按当前布局模式格式化为表格行
+func (m *tableModel) optionRow(opt config.Option) table.Row {
+	switch LayoutMode(m.width) {
+	case LayoutCompact:
+		return table.Row{formatCompactCommit(opt.Label, m.width-tableInsetWidth-cellPaddingWidth)}
+	case LayoutThreeCol:
+		hash, message, date, _ := parseCommitInfo(opt.Label, m.messageWidth)
+		return table.Row{hash, message, date}
+	default:
+		hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
+		return table.Row{hash, message, date, author}
+	}
 }
 
 func NewTableSelectModel(options []config.Option) *tableModel {
 	// 检测终端尺寸
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		width = 80
-		height = 24
+		width = defaultTermWidth
+		height = defaultTermHeight
 	}
 
-	// 根据终端高度决定是否使用紧凑模式
-	compact := height < 15
-
-	// 动态计算消息列宽度
-	messageWidth := calculateMessageWidth(width)
-
-	// 创建表格列
-	var columns []table.Column
-	if compact {
-		// 紧凑模式：单列显示，无标题
-		columns = []table.Column{
-			{Title: "", Width: width - 4},
-		}
-	} else {
-		// 普通模式：多列显示，使用动态列宽
-		columns = []table.Column{
-			{Title: "", Width: 8},
-			{Title: "", Width: messageWidth},
-			{Title: "", Width: 12},
-			{Title: "", Width: 10},
-		}
+	m := &tableModel{
+		choices: options,
+		width:   width,
+		height:  height,
+		styles:  defaultTableStyles(),
 	}
+	m.applyLayout()
+	return m
+}
 
-	// 创建表格行
-	var rows []table.Row
-	for _, opt := range options {
-		if compact {
-			// 紧凑模式：将所有信息合并到一行
-			compactInfo := formatCompactCommit(opt.Label, width-6)
-			rows = append(rows, table.Row{compactInfo})
-		} else {
-			// 普通模式：解析提交信息到多列，使用动态消息宽度
-			hash, message, date, author := parseCommitInfo(opt.Label, messageWidth)
-			rows = append(rows, table.Row{hash, message, date, author})
-		}
-	}
-
-	// 计算表格高度
-	tableHeight := calculateTableHeight(height, compact)
-
-	// 创建表格
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
-		table.WithFocused(true),
-		table.WithHeight(tableHeight),
-	)
-
-	// 设置表格样式
+// defaultTableStyles 表格统一样式:完全隐藏表头,选中行高亮
+func defaultTableStyles() table.Styles {
 	s := table.DefaultStyles()
-	// 完全隐藏表头，不占用任何高度
 	s.Header = lipgloss.NewStyle().
 		Height(0).
 		MaxHeight(0).
@@ -186,38 +161,7 @@ func NewTableSelectModel(options []config.Option) *tableModel {
 		Foreground(theme.SelectionFg).
 		Background(theme.SelectionBg).
 		Bold(true)
-
-	t.SetStyles(s)
-
-	return &tableModel{
-		table:        t,
-		choices:      options,
-		compact:      compact,
-		width:        width,
-		height:       height,
-		messageWidth: messageWidth,
-	}
-}
-
-func calculateMessageWidth(terminalWidth int) int {
-	// 根据终端宽度动态计算消息列的宽度
-	// 固定列：hash(8) + date(12) + author(10) + 间距(5) = 35
-	fixedWidth := 35
-	messageWidth := min(max(terminalWidth-fixedWidth, 20), 100)
-
-	return messageWidth
-}
-
-func calculateTableHeight(terminalHeight int, compact bool) int {
-	if compact {
-		// 紧凑模式：减少高度，移除额外空间
-		height := max(terminalHeight-2, 3)
-		return height
-	} else {
-		// 普通模式：也减少高度
-		height := max(terminalHeight-4, 5)
-		return height
-	}
+	return s
 }
 
 func formatCompactCommit(commitInfo string, maxWidth int) string {
@@ -241,20 +185,14 @@ func formatCompactCommit(commitInfo string, maxWidth int) string {
 				date = strings.TrimSpace(dateParts[0])
 			}
 
-			// 格式化并截断
+			// 格式化并按显示宽度截断
 			result := fmt.Sprintf("%s %s (%s)", hash, message, date)
-			if len(result) > maxWidth {
-				return result[:maxWidth-3] + "..."
-			}
-			return result
+			return SafeTruncate(result, maxWidth)
 		}
 	}
 
 	// 如果解析失败，返回截断的原始文本
-	if len(commitInfo) > maxWidth {
-		return commitInfo[:maxWidth-3] + "..."
-	}
-	return commitInfo
+	return SafeTruncate(commitInfo, maxWidth)
 }
 
 func parseCommitInfo(commitInfo string, messageWidth int) (hash, message, date, author string) {
@@ -265,21 +203,15 @@ func parseCommitInfo(commitInfo string, messageWidth int) (hash, message, date, 
 		parts := strings.SplitN(firstLine, " ", 2)
 		if len(parts) >= 2 {
 			hash = parts[0]
-			message = parts[1]
-			if len(message) > messageWidth {
-				message = message[:messageWidth-3] + "..."
-			}
+			message = SafeTruncate(parts[1], messageWidth)
 		}
 
 		// 解析第二行：date + author
 		secondLine := lines[1]
 		dateParts := strings.Split(secondLine, " • ")
 		if len(dateParts) >= 2 {
-			date = strings.TrimSpace(dateParts[0])
-			author = strings.TrimSpace(dateParts[1])
-			if len(author) > 10 {
-				author = author[:7] + "..."
-			}
+			date = SafeTruncate(strings.TrimSpace(dateParts[0]), dateColWidth)
+			author = SafeTruncate(strings.TrimSpace(dateParts[1]), authorColWidth)
 		}
 	}
 
@@ -290,13 +222,8 @@ func parseCommitInfo(commitInfo string, messageWidth int) (hash, message, date, 
 func TableSelectForm(options []config.Option) (label, value string, err error) {
 	m := NewTableSelectModel(options)
 
-	// 根据模式选择是否使用全屏
-	var p *tea.Program
-	if m.compact {
-		p = tea.NewProgram(m)
-	} else {
-		p = tea.NewProgram(m, tea.WithAltScreen())
-	}
+	// 统一使用全屏模式(紧凑仅影响列布局,不决定 AltScreen)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	finalModel, err := p.Run()
 	if err != nil {

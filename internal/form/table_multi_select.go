@@ -16,11 +16,11 @@ import (
 
 type tableMultiModel struct {
 	table        table.Model
+	styles       table.Styles
 	choices      []config.Option
 	selected     map[int]bool
 	confirmed    bool
 	quitting     bool
-	compact      bool
 	width        int
 	height       int
 	messageWidth int
@@ -35,7 +35,6 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.compact = msg.Height < 15
 		m.updateLayout()
 		return m, nil
 
@@ -50,7 +49,7 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ", "space":
 			cursor := m.table.Cursor()
 			m.selected[cursor] = !m.selected[cursor]
-			m.updateLayout() // re-render rows to show checkbox changes
+			m.rebuildRows() // 仅重绘行以显示多选框变化,避免重建表格
 			return m, nil
 		case "up", "k":
 			if m.table.Cursor() > 0 {
@@ -69,44 +68,51 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *tableMultiModel) updateLayout() {
-	var columns []table.Column
+	// 尺寸变化时重建表格:列与行在同一代码路径构建,
+	// 避免 bubbles/table 在行列数量不一致时渲染越界(renderRow 按下标取列)
+	columns := CalculateColumns(m.width, true)
+	m.messageWidth = CalculateMessageWidth(m.width, true)
+	cursor := m.table.Cursor()
 
-	checkboxWidth := 4
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		// 多选模式预留标题/底部帮助行
+		table.WithHeight(CalculateTableHeight(m.height, true)),
+	)
+	t.SetStyles(m.styles)
+	m.table = t
+	m.rebuildRows()
+	// 重建后恢复光标位置
+	m.table.SetCursor(cursor)
+}
 
-	if m.compact {
-		columns = []table.Column{
-			{Title: "", Width: checkboxWidth},
-			{Title: "", Width: m.width - checkboxWidth - 4},
-		}
-	} else {
-		m.messageWidth = max(calculateMessageWidth(m.width)-checkboxWidth, 10)
-		columns = []table.Column{
-			{Title: "", Width: checkboxWidth},
-			{Title: "", Width: 8},
-			{Title: "", Width: m.messageWidth},
-			{Title: "", Width: 12},
-			{Title: "", Width: 10},
-		}
-	}
-	m.table.SetColumns(columns)
-	m.table.SetHeight(calculateTableHeight(m.height, m.compact) - 2) // reserve space for title and footer
-
+// rebuildRows 按当前布局重新生成行数据(含多选框)
+func (m *tableMultiModel) rebuildRows() {
 	var rows []table.Row
 	for i, opt := range m.choices {
-		checkbox := "[ ]"
-		if m.selected[i] {
-			checkbox = "[x]"
-		}
-
-		if m.compact {
-			compactInfo := formatCompactCommit(opt.Label, m.width-checkboxWidth-6)
-			rows = append(rows, table.Row{checkbox, compactInfo})
-		} else {
-			hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
-			rows = append(rows, table.Row{checkbox, hash, message, date, author})
-		}
+		rows = append(rows, m.optionRow(i, opt))
 	}
 	m.table.SetRows(rows)
+}
+
+// optionRow 将单个选项按当前布局模式格式化为表格行(含多选框)
+func (m *tableMultiModel) optionRow(i int, opt config.Option) table.Row {
+	checkbox := "[ ]"
+	if m.selected[i] {
+		checkbox = "[x]"
+	}
+
+	switch LayoutMode(m.width) {
+	case LayoutCompact:
+		return table.Row{checkbox, formatCompactCommit(opt.Label, m.width-checkboxColWidth-tableInsetWidth-cellPaddingWidth)}
+	case LayoutThreeCol:
+		hash, message, date, _ := parseCommitInfo(opt.Label, m.messageWidth)
+		return table.Row{checkbox, hash, message, date}
+	default:
+		hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
+		return table.Row{checkbox, hash, message, date, author}
+	}
 }
 
 func (m *tableMultiModel) View() string {
@@ -133,42 +139,36 @@ func (m *tableMultiModel) View() string {
 
 	footer := theme.RenderMuted(i18n.T("table.multi.help"))
 
-	return fmt.Sprintf("%s%s\n\n%s\n%s\n", titleView, countView, strings.Join(lines, "\n"), footer)
+	content := fmt.Sprintf("%s%s\n\n%s\n%s\n", titleView, countView, strings.Join(lines, "\n"), footer)
+	// 宽屏富余时水平居中
+	if ShouldCenterTable(m.width, m.table.Columns()) {
+		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
+	}
+	return content
 }
 
 // TableMultiSelectForm creates a table-based multi-select form suitable for commits
 func TableMultiSelectForm(title string, options []config.Option) ([]string, error) {
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		width = 80
-		height = 24
+		width = defaultTermWidth
+		height = defaultTermHeight
 	}
-
-	compact := height < 15
 
 	m := tableMultiModel{
 		choices:  options,
 		selected: make(map[int]bool),
-		compact:  compact,
 		width:    width,
 		height:   height,
 		title:    title,
+		styles:   defaultTableStyles(),
 		table:    table.New(table.WithFocused(true)),
 	}
 
-	s := table.DefaultStyles()
-	s.Header = lipgloss.NewStyle().Height(0).MaxHeight(0).Border(lipgloss.HiddenBorder())
-	s.Selected = s.Selected.Foreground(theme.SelectionFg).Background(theme.SelectionBg).Bold(true)
-	m.table.SetStyles(s)
-
 	m.updateLayout()
 
-	var p *tea.Program
-	if m.compact {
-		p = tea.NewProgram(&m)
-	} else {
-		p = tea.NewProgram(&m, tea.WithAltScreen())
-	}
+	// 统一使用全屏模式(紧凑仅影响列布局,不决定 AltScreen)
+	p := tea.NewProgram(&m, tea.WithAltScreen())
 
 	finalModel, err := p.Run()
 	if err != nil {
