@@ -6,54 +6,65 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"charm.land/bubbles/v2/table"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/theme"
-	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // 渲染级测试:直接构造真实 huh 字段/表格模型,按终端尺寸矩阵渲染并断言,
 // 覆盖 SelectForm/MultiSelectForm 高度利用与 TableSelect/TableMultiSelect 溢出问题。
 
-// renderSelectField 构造与 SelectForm 完全一致的 huh 单选字段
+// renderSelectField 构造与 SelectForm 完全一致的 huh 单选表单
 func renderSelectField(title string, labels []string, termHeight int) string {
 	opts := make([]huh.Option[string], len(labels))
 	for i, l := range labels {
 		opts[i] = huh.NewOption(l, l)
 	}
-	f := huh.NewSelect[string]().
-		Title(title).
-		Options(opts...).
-		Height(CalculateSelectHeight(len(labels), termHeight)).
-		Filtering(false)
-	f.WithTheme(theme.GetCompactTheme())
-	return f.View()
+	var selected string
+	form := huh.NewForm(huh.NewGroup(
+		huh.NewSelect[string]().
+			Title(title).
+			Options(opts...).
+			Value(&selected).
+			Height(CalculateSelectHeight(len(labels), termHeight)).
+			Filtering(false),
+	)).WithTheme(theme.GetCompactTheme()).WithShowHelp(false)
+	form.Init()
+	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
+	return m.(*huh.Form).View()
 }
 
-// renderMultiSelectField 构造与 MultiSelectForm 完全一致的 huh 多选字段
+// renderMultiSelectField 构造与 MultiSelectForm 完全一致的 huh 多选表单
 func renderMultiSelectField(title string, labels []string, termHeight int) string {
 	opts := make([]huh.Option[string], len(labels))
 	for i, l := range labels {
 		opts[i] = huh.NewOption(l, l)
 	}
 	var selected []string
-	f := huh.NewMultiSelect[string]().
-		Title(title).
-		Options(opts...).
-		Height(CalculateMultiSelectHeight(len(labels), termHeight)).
-		Value(&selected)
-	f.WithTheme(theme.GetCompactTheme())
-	return f.View()
+	form := huh.NewForm(huh.NewGroup(
+		huh.NewMultiSelect[string]().
+			Title(title).
+			Options(opts...).
+			Value(&selected).
+			Height(CalculateMultiSelectHeight(len(labels), termHeight)),
+	)).WithTheme(theme.GetCompactTheme()).WithShowHelp(false)
+	form.Init()
+	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
+	return m.(*huh.Form).View()
 }
 
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
-// huh 选项行形如 "│>  fix  │",按"两空格+标签"行内匹配以避开边框字符。
+// 选项行形如 "> fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配。
 func visibleLabels(view string, labels []string) []string {
 	var got []string
 	for line := range strings.SplitSeq(view, "\n") {
+		plain := ansi.Strip(line)
 		for _, l := range labels {
-			if strings.Contains(line, "  "+l) {
+			if strings.Contains(plain, l) {
 				got = append(got, l)
 				break
 			}
@@ -218,7 +229,7 @@ func TestTableSelectRender(t *testing.T) {
 			m := NewTableSelectModel(options)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
-			assertTableView(t, m.View(), sz.w, sz.h, options, false)
+			assertTableView(t, m.View().Content, sz.w, sz.h, options, false)
 		})
 	}
 }
@@ -237,7 +248,7 @@ func TestTableMultiSelectRender(t *testing.T) {
 				table:    table.New(table.WithFocused(true)),
 			}
 			m.updateLayout()
-			assertTableView(t, m.View(), sz.w, sz.h, options, true)
+			assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
 		})
 	}
 }

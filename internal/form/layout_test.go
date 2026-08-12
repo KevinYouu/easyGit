@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // TestLayoutMode 布局模式判定:列数只由宽度决定,高度不影响
@@ -260,37 +260,5 @@ func TestShouldCenterTable(t *testing.T) {
 	}
 	if ShouldCenterTable(200, CalculateColumns(200, false)) {
 		t.Error("200 列终端富余不足不应居中")
-	}
-}
-
-// TestCalculateFormHeight 单选/多选表单高度:随终端高度与选项数伸缩
-func TestCalculateFormHeight(t *testing.T) {
-	tests := []struct {
-		name   string
-		count  int
-		height int
-		want   int
-		multi  bool
-	}{
-		{name: "多选项高屏", count: 20, height: 50, want: 21, multi: true},
-		{name: "多选项常规屏", count: 20, height: 24, want: 21, multi: true},
-		{name: "单选高屏", count: 20, height: 50, want: 21},
-		{name: "单选常规屏", count: 20, height: 24, want: 21},
-		{name: "少量选项触底", count: 2, height: 24, want: 3},
-		{name: "矮屏触底", count: 10, height: 10, want: 8},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var got int
-			if tt.multi {
-				got = CalculateMultiSelectHeight(tt.count, tt.height)
-			} else {
-				got = CalculateSelectHeight(tt.count, tt.height)
-			}
-			if got != tt.want {
-				t.Errorf("高度 = %d, want %d", got, tt.want)
-			}
-		})
 	}
 }

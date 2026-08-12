@@ -1,7 +1,7 @@
 package form
 
 import (
-	"github.com/charmbracelet/bubbles/table"
+	"charm.land/bubbles/v2/table"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -44,9 +44,9 @@ const (
 
 // huh 表单高度计算常量
 const (
-	formHeightMin    = 1 // 选择框最小可见行数
-	formBorderLines  = 2 // huh 字段上下边框行数
-	selectTitleLines = 1 // huh 字段标题占用行数(计入 Height 参数)
+	// formHeightReserved:标题一行 + 光标行 + 安全余量
+	formHeightReserved = 3
+	formHeightMin      = 3
 )
 
 // 默认终端尺寸(检测失败时回退)
@@ -153,6 +153,21 @@ func CalculateTableHeight(height int, multi bool) int {
 	return max(height-reserved, tableHeightMin)
 }
 
+// CalculateSelectHeight 计算 huh Select 表单高度:按选项数自适应,上限为终端高度预留
+// CalculateSelectHeight 计算 huh Select 表单高度。
+// huh 字段高度 = viewport 高度 + 标题行,viewport 高度 = min(选项数, 终端高度 - 预留),
+// 保证矮屏下尽可能显示更多选项且不溢出。
+func CalculateSelectHeight(optionCount, termHeight int) int {
+	viewport := min(optionCount, max(termHeight-formHeightReserved, formHeightMin))
+	return viewport + 1
+}
+
+// CalculateMultiSelectHeight 计算 huh MultiSelect 表单高度,规则同单选
+func CalculateMultiSelectHeight(optionCount, termHeight int) int {
+	viewport := min(optionCount, max(termHeight-formHeightReserved, formHeightMin))
+	return viewport + 1
+}
+
 // TotalTableWidth 计算表格渲染总宽(列宽之和 + 单元格内边距)
 func TotalTableWidth(columns []table.Column) int {
 	total := 0
@@ -174,17 +189,4 @@ func SafeTruncate(s string, maxWidth int) string {
 		return ansi.Truncate(s, maxWidth, "")
 	}
 	return ansi.Truncate(s, maxWidth, ellipsis)
-}
-
-// CalculateSelectHeight 计算单选表单 Height 参数。
-// huh 的 Height 语义为"标题 1 行 + 选项视口",整体另加上下边框 2 行。
-func CalculateSelectHeight(optionCount, terminalHeight int) int {
-	visible := min(max(optionCount, formHeightMin), max(terminalHeight-formBorderLines-selectTitleLines, formHeightMin))
-	return visible + selectTitleLines
-}
-
-// CalculateMultiSelectHeight 计算多选表单 Height 参数(语义同上)
-func CalculateMultiSelectHeight(optionCount, terminalHeight int) int {
-	visible := min(max(optionCount, formHeightMin), max(terminalHeight-formBorderLines-selectTitleLines, formHeightMin))
-	return visible + selectTitleLines
 }
