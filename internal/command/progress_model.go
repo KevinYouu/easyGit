@@ -10,6 +10,17 @@ import (
 	"github.com/KevinYouu/easyGit/internal/theme"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+)
+
+// 进度条宽度常量
+const (
+	progressBarMaxWidth    = 40 // 进度条最大宽度
+	progressBarMinWidth    = 10 // 进度条最小宽度
+	progressBarInset       = 8  // 进度条两侧预留
+	progressStatusInset    = 12 // 状态文本前侧预留(标签+图标)
+	progressStatusMinWidth = 10 // 状态文本最小宽度
+	progressDefaultWidth   = 80 // 默认终端宽度(未收到尺寸消息前)
 )
 
 // ProgressModel 多步骤进度显示模型 - 统一的进度条组件
@@ -23,6 +34,7 @@ type ProgressModel struct {
 	errorMessage string
 	results      []string
 	executing    bool
+	width        int
 
 	// Spinner 相关字段
 	showSpinner bool
@@ -77,6 +89,7 @@ func NewProgressModel(commands []CommandInfo) *ProgressModel {
 		showSpinner: true,
 		spinner:     defaultSpinnerAnimation,
 		stepStatus:  make([]int, len(commands)),
+		width:       progressDefaultWidth,
 	}
 }
 
@@ -111,6 +124,11 @@ func (m *ProgressModel) tickCmd() tea.Cmd {
 // Update 更新状态
 func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		// 终端尺寸变化时更新宽度,进度条按宽度自适应
+		m.width = msg.Width
+		return m, nil
+
 	case tea.KeyMsg:
 		// 如果已经完成（成功或失败），任何按键都退出
 		if m.isCompleted {
@@ -217,11 +235,12 @@ func (m *ProgressModel) View() string {
 	if m.isCompleted {
 		progress = 1.0
 	}
-	width := 40
-	filled := int(progress * float64(width))
+	// 进度条宽度自适应:min(40, max(终端宽度-8, 10)),窄屏不折行
+	barWidth := min(progressBarMaxWidth, max(m.width-progressBarInset, progressBarMinWidth))
+	filled := int(progress * float64(barWidth))
 
 	var progressBar strings.Builder
-	for i := range width {
+	for i := range barWidth {
 		if i < filled {
 			progressBar.WriteString("█")
 		} else {
@@ -248,10 +267,14 @@ func (m *ProgressModel) View() string {
 		statusIcon = "⚡"
 	}
 
+	// 状态文本超宽时按显示宽度截断,避免窄屏折行
+	statusMaxWidth := max(m.width-progressStatusInset, progressStatusMinWidth)
+	statusText := ansi.Truncate(m.status, statusMaxWidth, "...")
+
 	s.WriteString(fmt.Sprintf("%s %s %s\n",
 		theme.InfoStyle.Render(i18n.T("ui.status")),
 		statusIcon,
-		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(m.status)))
+		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(statusText)))
 
 	// 显示当前执行的步骤列表
 	s.WriteString("\n")
