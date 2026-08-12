@@ -54,12 +54,12 @@ var (
 			Bold(true)
 
 	SuccessIconStyle = lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Bold(true)
+				Foreground(SuccessColor).
+				Bold(true)
 
 	WarningIconStyle = lipgloss.NewStyle().
-			Foreground(WarningColor).
-			Bold(true)
+				Foreground(WarningColor).
+				Bold(true)
 
 	InfoIconStyle = lipgloss.NewStyle().
 			Foreground(InfoColor)
