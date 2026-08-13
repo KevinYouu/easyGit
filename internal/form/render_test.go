@@ -405,7 +405,8 @@ func TestCommandTableRender(t *testing.T) {
 }
 
 // TestTableListLongMessageSingleLine 列表超长省略:
-// 每条提交只占一行,消息超列宽时以省略号截断,完整长文本不泄漏到视图
+// 每条提交只占一行,消息超列宽时以省略号截断,完整长文本不泄漏到视图。
+// 覆盖两种表格模型:单选(reset 提交列表)与多选(drop/squash)。
 func TestTableListLongMessageSingleLine(t *testing.T) {
 	// 超过 160 显示宽度(消息列上限),确保所有布局下都必须截断
 	longMsg := strings.Repeat("这个提交消息非常长用于测试省略行为", 6) + "TAILMARKER987654"
@@ -413,29 +414,64 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 	options := []config.Option{
 		{Label: fmt.Sprintf("a1b2c3d %s\n07-12 10:00 • 张三丰", full), Value: "v"},
 	}
-	for _, sz := range tableSizes {
-		m := &tableMultiModel{choices: options, selected: map[int]bool{}, width: sz.w, height: sz.h,
-			title: "选择提交", styles: defaultTableStyles(), table: table.New(table.WithFocused(true))}
-		m.updateLayout()
-		view := ansi.Strip(m.View().Content)
 
-		// 恰好 3 行:标题 + 一行提交 + 底部帮助行(提交不得折行)
-		lines := 0
-		for line := range strings.SplitSeq(view, "\n") {
-			if strings.TrimSpace(line) != "" {
-				lines++
-			}
-		}
-		if lines != 3 {
-			t.Errorf("%dx%d: 非空行数 = %d, want 3(提交折行为多行)", sz.w, sz.h, lines)
-		}
+	// 单选无标题/帮助行,多选含标题+底部帮助行
+	renderCases := []struct {
+		name         string
+		view         func(w, h int) string
+		wantNonEmpty int
+	}{
+		{
+			name: "单选",
+			view: func(w, h int) string {
+				m := NewTableSelectModel(options)
+				m.width, m.height = w, h
+				m.applyLayout()
+				return ansi.Strip(m.View().Content)
+			},
+			wantNonEmpty: 1, // 仅一行提交
+		},
+		{
+			name: "多选",
+			view: func(w, h int) string {
+				m := &tableMultiModel{choices: options, selected: map[int]bool{}, width: w, height: h,
+					title: "选择提交", styles: defaultTableStyles(), table: table.New(table.WithFocused(true))}
+				m.updateLayout()
+				return ansi.Strip(m.View().Content)
+			},
+			wantNonEmpty: 3, // 标题 + 提交行 + 帮助行
+		},
+	}
 
-		// 超长消息必须以省略号截断,完整尾巴不得出现
-		if !strings.Contains(view, "...") {
-			t.Errorf("%dx%d: 超长消息未省略", sz.w, sz.h)
-		}
-		if strings.Contains(view, "完整尾巴") {
-			t.Errorf("%dx%d: 完整长文本泄漏到列表中", sz.w, sz.h)
+	for _, rc := range renderCases {
+		for _, sz := range tableSizes {
+			t.Run(fmt.Sprintf("%s %dx%d", rc.name, sz.w, sz.h), func(t *testing.T) {
+				view := rc.view(sz.w, sz.h)
+
+				// 非空行数固定:提交不得折行
+				lines := 0
+				for line := range strings.SplitSeq(view, "\n") {
+					if strings.TrimSpace(line) != "" {
+						lines++
+					}
+				}
+				if lines != rc.wantNonEmpty {
+					t.Errorf("非空行数 = %d, want %d(提交折行为多行)", lines, rc.wantNonEmpty)
+				}
+
+				// 省略必须来自仓库层 SafeTruncate 的 "..."(与 layout.go 的
+				// ellipsis 常量耦合是有意的):若出现 bubbles 单元格兜底截断
+				// 的 "…"(U+2026),说明仓库层截断失效、测试被上游兜底掩盖
+				if !strings.Contains(view, "...") {
+					t.Errorf("超长消息未省略")
+				}
+				if strings.Contains(view, "…") {
+					t.Errorf("省略来自 bubbles 兜底(…),仓库层 SafeTruncate 未生效")
+				}
+				if strings.Contains(view, "完整尾巴") {
+					t.Errorf("完整长文本泄漏到列表中")
+				}
+			})
 		}
 	}
 }
