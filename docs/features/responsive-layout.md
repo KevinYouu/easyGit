@@ -20,7 +20,7 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 - 表格选择器: `internal/form/table_select.go` / `table_multi_select.go`
 - huh 表单高度: `internal/form/select.go` / `multiSelect.go`
 - 进度条自适应: `internal/command/progress_model.go`
-- 截断修复: `internal/gitcmd/reset.go`、`internal/gitcmd/rebase.go`
+- 截断修复: `internal/gitcmd/reset.go`
 - 单元测试: `internal/form/layout_test.go`(表驱动)
 
 ## 布局规则
@@ -77,7 +77,7 @@ Height = clamp(min(选项数 + 1, 终端高度), 最小3, 终端高度)   // +1 
 
 - `table_select.go`:`formatCompactCommit` / `parseCommitInfo`(message、date、author 均截断,hash 不截)
 - `gitcmd/reset.go:126`:`shortMsg[:37]` 字节截断 → `form.SafeTruncate(msg, resetMessageMaxWidth)`
-- `gitcmd/rebase.go:130`:同类字节截断第二处实例 → `form.SafeTruncate(message, rebaseMessageMaxWidth)`
+- `gitcmd/rebase.go`:`GetRecentCommits` 的标签**不截断**提交消息(完整保留供 squash 等命令提取默认消息),表格展示层按列宽自行截断
 
 ### 表格原子重建(防止渲染越界 panic)
 
