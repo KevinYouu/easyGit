@@ -8,15 +8,17 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/x/ansi"
 )
 
-// 进度条宽度常量
+// 进度显示默认尺寸常量
 const (
-	progressBarMaxWidth  = 40 // 进度条最大宽度
-	progressDefaultWidth = 80 // 默认终端宽度(未收到尺寸消息前)
+	progressBarMaxWidth   = 40 // 进度条最大宽度
+	progressDefaultWidth  = 80 // 默认终端宽度(未收到尺寸消息前)
+	progressDefaultHeight = 24 // 默认终端高度(未收到尺寸消息前)
 )
 
 // ProgressModel 多步骤进度显示模型 - 统一的进度条组件
@@ -31,6 +33,7 @@ type ProgressModel struct {
 	results      []string
 	executing    bool
 	width        int
+	height       int
 
 	// Spinner 相关字段
 	showSpinner bool
@@ -78,7 +81,7 @@ func NewProgressModel(commands []CommandInfo) *ProgressModel {
 		commands:    commands,
 		currentStep: 0,
 		total:       len(commands),
-		status:      "Preparing...",
+		status:      i18n.T("progress.preparing"),
 		isCompleted: false,
 		results:     make([]string, len(commands)),
 		executing:   false,
@@ -86,6 +89,7 @@ func NewProgressModel(commands []CommandInfo) *ProgressModel {
 		spinner:     defaultSpinnerAnimation,
 		stepStatus:  make([]int, len(commands)),
 		width:       progressDefaultWidth,
+		height:      progressDefaultHeight,
 	}
 }
 
@@ -121,8 +125,9 @@ func (m *ProgressModel) tickCmd() tea.Cmd {
 func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// 终端尺寸变化时更新宽度,进度条按宽度自适应
+		// 终端尺寸变化时更新尺寸,进度条按宽度自适应,帮助栏按高度判定
 		m.width = msg.Width
+		m.height = msg.Height
 		return m, nil
 
 	case tea.KeyPressMsg:
@@ -151,7 +156,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case StepStartMsg:
 		m.currentStep = msg.Step
-		m.status = fmt.Sprintf("Executing: %s", msg.Description)
+		m.status = fmt.Sprintf(i18n.T("progress.executing"), msg.Description)
 		m.executing = true
 		if len(m.stepStatus) > msg.Step {
 			m.stepStatus[msg.Step] = 1 // 标记为运行中
@@ -162,7 +167,7 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StepCompleteMsg:
 		m.results[msg.Step] = msg.Output
 		if msg.Success {
-			m.status = fmt.Sprintf("Completed: %s", m.commands[msg.Step].Description)
+			m.status = fmt.Sprintf(i18n.T("progress.completed"), m.commands[msg.Step].Description)
 			if len(m.stepStatus) > msg.Step {
 				m.stepStatus[msg.Step] = 2 // 标记为成功
 			}
@@ -179,21 +184,21 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.hasError = true
 
 			// 构建详细的错误消息
-			errorMsg := fmt.Sprintf("Step %d failed: %s", msg.Step+1, msg.Error.Error())
+			errorMsg := fmt.Sprintf(i18n.T("progress.step.failed"), msg.Step+1, msg.Error.Error())
 
 			// 如果有命令输出，添加到错误信息中
 			if strings.TrimSpace(msg.Output) != "" {
-				errorMsg += fmt.Sprintf("\nOutput: %s", strings.TrimSpace(msg.Output))
+				errorMsg += "\n" + fmt.Sprintf(i18n.T("progress.output"), strings.TrimSpace(msg.Output))
 			}
 
 			// 添加命令信息
 			if msg.Step < len(m.commands) {
 				cmd := m.commands[msg.Step]
-				errorMsg += fmt.Sprintf("\nCommand: %s %s", cmd.Command, strings.Join(cmd.Args, " "))
+				errorMsg += "\n" + fmt.Sprintf(i18n.T("progress.command"), cmd.Command, strings.Join(cmd.Args, " "))
 			}
 
 			m.errorMessage = errorMsg
-			m.status = fmt.Sprintf("Failed: %s", m.commands[msg.Step].Description)
+			m.status = fmt.Sprintf(i18n.T("progress.failed"), m.commands[msg.Step].Description)
 			if len(m.stepStatus) > msg.Step {
 				m.stepStatus[msg.Step] = 3 // 标记为失败
 			}
@@ -339,6 +344,11 @@ func (m *ProgressModel) View() tea.View {
 			textStyle.Render(stepText)))
 	}
 
+	// 执行中底部帮助栏单行(q 退出);完成时保留上方 ui.exiting.* 提示
+	if !m.isCompleted && m.height >= form.HelpBarMinTermHeight {
+		s.WriteString(form.RenderHelpBar(form.ProgressHelpKeys(), m.width))
+	}
+
 	// 完成时的提示,超宽截断避免窄屏折行
 	if m.isCompleted {
 		s.WriteString("\n")
@@ -449,14 +459,22 @@ func printExecutionSummary(model *ProgressModel) {
 		// 显示详细的错误信息
 		if model.errorMessage != "" {
 			fmt.Println()
-			errorLines := strings.SplitSeq(model.errorMessage, "\n")
-			for line := range errorLines {
-				if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, "Step ") && !strings.HasPrefix(line, "Command:") {
-					errorStyle := lipgloss.NewStyle().
-						Foreground(theme.PrimaryColor).
-						Render(strings.TrimSpace(line))
-					fmt.Println(errorStyle)
+			// 过滤重复行:首行为「步骤失败」行、末行为「命令」行,均已在上方错误摘要展示。
+			// 按结构跳过首末非空行,不依赖翻译模板前缀,避免本地化差异误伤命令输出。
+			lines := make([]string, 0, 8)
+			for line := range strings.SplitSeq(model.errorMessage, "\n") {
+				if trimmed := strings.TrimSpace(line); trimmed != "" {
+					lines = append(lines, trimmed)
 				}
+			}
+			for i, line := range lines {
+				if i == 0 || i == len(lines)-1 {
+					continue
+				}
+				errorStyle := lipgloss.NewStyle().
+					Foreground(theme.PrimaryColor).
+					Render(line)
+				fmt.Println(errorStyle)
 			}
 		}
 	} else {

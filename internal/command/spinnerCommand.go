@@ -87,7 +87,7 @@ func runWithSpinner(loadingMsg, successMsg string, showOutput, printErrorHeader 
 		if printErrorHeader {
 			fmt.Printf("%s %s\n",
 				theme.ErrorIconStyle.Render("✗"),
-				theme.ErrorStyle.Render(fmt.Sprintf("Failed: %s", loadingMsg)))
+				theme.ErrorStyle.Render(fmt.Sprintf(i18n.T("progress.failed"), loadingMsg)))
 		}
 
 		// 显示详细的错误输出

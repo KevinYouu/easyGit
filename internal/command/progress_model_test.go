@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -185,4 +186,55 @@ func TestProgressView(t *testing.T) {
 			t.Errorf("失败状态图标错误: %q", view)
 		}
 	})
+}
+
+// TestProgressHelpBar 执行中底部帮助栏:≥6 行终端渲染 q 徽章,<6 行隐藏,完成时切换为退出提示
+func TestProgressHelpBar(t *testing.T) {
+	commands := []CommandInfo{
+		{Command: "git", Args: []string{"add", "."}, Description: "暂存更改", SuccessMsg: "暂存完成"},
+	}
+
+	t.Run("执行中渲染帮助栏", func(t *testing.T) {
+		m := NewProgressModelWithoutSpinner(commands)
+		m.width, m.height = 80, 24
+		m.executing = true
+		view := ansi.Strip(m.View().Content)
+		if !strings.Contains(view, " q ") {
+			t.Errorf("执行中应渲染 q 退出徽章: %q", view)
+		}
+		if !strings.Contains(view, i18n.T("form.help.quit")) {
+			t.Errorf("执行中应含退出动作文本: %q", view)
+		}
+	})
+
+	t.Run("极小终端隐藏帮助栏", func(t *testing.T) {
+		m := NewProgressModelWithoutSpinner(commands)
+		m.width, m.height = 80, 4
+		m.executing = true
+		view := ansi.Strip(m.View().Content)
+		if strings.Contains(view, " q ") {
+			t.Errorf("4 行终端不应渲染帮助栏: %q", view)
+		}
+	})
+
+	t.Run("完成时保留退出提示", func(t *testing.T) {
+		m := NewProgressModelWithoutSpinner(commands)
+		m.width, m.height = 80, 24
+		m.isCompleted = true
+		view := ansi.Strip(m.View().Content)
+		if !strings.Contains(view, i18n.T("ui.exiting.success")) {
+			t.Errorf("完成时应显示退出提示: %q", view)
+		}
+		if strings.Contains(view, " q ") {
+			t.Errorf("完成时不应渲染帮助栏: %q", view)
+		}
+	})
+}
+
+// TestProgressI18nStatus 进度状态文案走 i18n,与当前语言一致
+func TestProgressI18nStatus(t *testing.T) {
+	m := NewProgressModel(nil)
+	if m.status != i18n.T("progress.preparing") {
+		t.Errorf("初始状态应为 i18n 文案 %q, got %q", i18n.T("progress.preparing"), m.status)
+	}
 }
