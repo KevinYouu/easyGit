@@ -72,10 +72,10 @@ func TestCalculateTableHeight(t *testing.T) {
 		multi  bool
 		want   int
 	}{
-		{name: "常规 24 行单选", height: 24, multi: false, want: 20},
-		{name: "常规 24 行多选预留标题", height: 24, multi: true, want: 18},
-		{name: "高屏 50 行多选", height: 50, multi: true, want: 44},
-		{name: "矮屏 10 行", height: 10, multi: false, want: 6},
+		{name: "常规 24 行单选占满", height: 24, multi: false, want: 24},
+		{name: "常规 24 行多选预留标题", height: 24, multi: true, want: 21},
+		{name: "高屏 50 行多选", height: 50, multi: true, want: 47},
+		{name: "矮屏 10 行单选占满", height: 10, multi: false, want: 10},
 		{name: "极矮屏 6 行多选触底", height: 6, multi: true, want: 3},
 		{name: "极矮屏 3 行触底", height: 3, multi: false, want: 3},
 	}
@@ -84,6 +84,37 @@ func TestCalculateTableHeight(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := CalculateTableHeight(tt.height, tt.multi); got != tt.want {
 				t.Errorf("CalculateTableHeight(%d, %v) = %d, want %d", tt.height, tt.multi, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度):
+// 内容不足一屏按内容显示,超出一屏占满终端滚动
+func TestCalculateSelectHeight(t *testing.T) {
+	tests := []struct {
+		name       string
+		optionNum  int
+		termHeight int
+		want       int
+	}{
+		{name: "大屏内容不足按内容显示", optionNum: 9, termHeight: 24, want: 10},
+		{name: "大屏少量选项", optionNum: 4, termHeight: 40, want: 5},
+		{name: "大屏海量选项占满", optionNum: 50, termHeight: 24, want: 24},
+		{name: "恰好一屏", optionNum: 9, termHeight: 10, want: 10},
+		{name: "矮屏滚动", optionNum: 9, termHeight: 8, want: 8},
+		{name: "极矮屏触底", optionNum: 50, termHeight: 3, want: 3},
+		{name: "极端 1 行保底", optionNum: 50, termHeight: 1, want: 3},
+		{name: "单选项保底", optionNum: 1, termHeight: 24, want: 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CalculateSelectHeight(tt.optionNum, tt.termHeight); got != tt.want {
+				t.Errorf("CalculateSelectHeight(%d, %d) = %d, want %d", tt.optionNum, tt.termHeight, got, tt.want)
+			}
+			if got := CalculateMultiSelectHeight(tt.optionNum, tt.termHeight); got != tt.want {
+				t.Errorf("CalculateMultiSelectHeight(%d, %d) = %d, want %d", tt.optionNum, tt.termHeight, got, tt.want)
 			}
 		})
 	}
@@ -164,6 +195,18 @@ func TestParseCommitInfo(t *testing.T) {
 	_, _, _, longAuthor := parseCommitInfo("a1b2c3d fix\n07-12 10:00 • Kevin Zhang Wei", 16)
 	if longAuthor != "Kevin Z..." {
 		t.Errorf("长作者截断 = %q, want %q", longAuthor, "Kevin Z...")
+	}
+
+	// 单行标签(如 reset 模式):首词作 hash 列,消息列保留,日期作者为空
+	singleHash, singleMsg, singleDate, singleAuthor := parseCommitInfo("Soft - 保留工作目录和暂存区", 20)
+	if singleHash != "Soft" {
+		t.Errorf("单行标签 hash = %q, want Soft", singleHash)
+	}
+	if !strings.Contains(singleMsg, "保留工作目录") {
+		t.Errorf("单行标签 message = %q, 应包含描述", singleMsg)
+	}
+	if singleDate != "" || singleAuthor != "" {
+		t.Errorf("单行标签日期作者应为空: date=%q author=%q", singleDate, singleAuthor)
 	}
 }
 

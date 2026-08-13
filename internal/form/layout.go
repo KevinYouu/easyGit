@@ -36,17 +36,14 @@ const (
 
 // 表格高度计算常量
 const (
-	tableHeightReserved     = 4 // 表格预留高度(边框等)
-	tableHeightReservedMore = 2 // 多选模式额外预留(标题/底部帮助)
-	tableHeightMin          = 3 // 表格最小高度
-	tableHeaderLines        = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
+	multiTableExtraLines = 3 // 多选模式额外固定行数:标题 + 空行 + 底部帮助行
+	tableHeightMin       = 3 // 表格最小高度
+	tableHeaderLines     = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
 )
 
 // huh 表单高度计算常量
 const (
-	// formHeightReserved:标题一行 + 光标行 + 安全余量
-	formHeightReserved = 3
-	formHeightMin      = 3
+	formHeightMin = 3 // 表单最小高度
 )
 
 // 默认终端尺寸(检测失败时回退)
@@ -144,28 +141,26 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	}
 }
 
-// CalculateTableHeight 计算表格可视行数;multi 多选模式额外预留标题/底部帮助行
+// CalculateTableHeight 计算表格可视行数;单选模式无附加元素直接占满终端,
+// 多选模式额外预留标题/空行/底部帮助行
 func CalculateTableHeight(height int, multi bool) int {
-	reserved := tableHeightReserved
+	reserved := 0
 	if multi {
-		reserved += tableHeightReservedMore
+		reserved = multiTableExtraLines
 	}
 	return max(height-reserved, tableHeightMin)
 }
 
-// CalculateSelectHeight 计算 huh Select 表单高度:按选项数自适应,上限为终端高度预留
-// CalculateSelectHeight 计算 huh Select 表单高度。
-// huh 字段高度 = viewport 高度 + 标题行,viewport 高度 = min(选项数, 终端高度 - 预留),
-// 保证矮屏下尽可能显示更多选项且不溢出。
+// CalculateSelectHeight 计算 huh Select 字段高度:
+// 内容(标题+选项)不足一屏时按内容高度显示,不渲染底部空白;
+// 内容超出一屏时占满终端高度并滚动
 func CalculateSelectHeight(optionCount, termHeight int) int {
-	viewport := min(optionCount, max(termHeight-formHeightReserved, formHeightMin))
-	return viewport + 1
+	return max(min(optionCount+1, termHeight), formHeightMin)
 }
 
-// CalculateMultiSelectHeight 计算 huh MultiSelect 表单高度,规则同单选
+// CalculateMultiSelectHeight 计算 huh MultiSelect 字段高度,规则同单选
 func CalculateMultiSelectHeight(optionCount, termHeight int) int {
-	viewport := min(optionCount, max(termHeight-formHeightReserved, formHeightMin))
-	return viewport + 1
+	return max(min(optionCount+1, termHeight), formHeightMin)
 }
 
 // TotalTableWidth 计算表格渲染总宽(列宽之和 + 单元格内边距)

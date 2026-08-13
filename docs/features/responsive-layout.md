@@ -43,18 +43,26 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 
 ### 表格高度
 
-普通模式 `height - 4`,多选模式再预留标题/底部帮助行(`CalculateTableHeight`)。
+普通模式占满 `height`(多选模式预留标题/空行/底部帮助行 3 行),再与内容行数取小:
+
+```
+viewport = min(CalculateTableHeight(高度, 多选), 内容行数)
+```
+
+内容不足一屏时表格按内容行数显示(底部不渲染空白),内容超出一屏时占满终端高度并滚动。
 
 ### 表单高度
 
-huh v2 字段的 `Height` 语义为 **viewport 高度 + 标题行**,紧凑主题(无边框、无帮助)下预留高度收紧为 3(标题一行 + 光标行 + 安全余量):
+huh v2 字段的 `Height` 语义为 **内容高度(标题行 + 选项数)**,紧凑主题(无边框、无帮助)下按内容与终端取小:
 
 ```
-viewport = min(选项数, 终端高度 - 3)   // 至少 3
-Height   = viewport + 1                // 补回标题行
+Height = max(min(选项数 + 1, 终端高度), 3)   // +1 为标题行
 ```
 
-`SelectForm` / `MultiSelectForm` 共用此公式,矮屏(10 行终端)也能显示 7 个选项,高屏(40 行)可显示全部 20 个选项,不再固定 8/10 行。
+`SelectForm` / `MultiSelectForm` 共用此公式:
+
+- 大屏(内容不足一屏):按内容高度显示,不渲染底部空白行 —— 有多少显示多少;
+- 矮屏(内容超出一屏):占满终端高度,huh 内部滚动,不再因预留高度浪费底部行。
 
 ### 进度条宽度
 
@@ -110,7 +118,9 @@ Height   = viewport + 1                // 补回标题行
 
 `internal/form/render_test.go` 渲染级测试(真实构造 huh 表单/表格模型,按终端尺寸矩阵渲染断言):
 
-- `Select` / `MultiSelect`:各终端高度下可见选项数符合公式(高屏全显示、矮屏不溢出)
+- `Select` / `MultiSelect`:各终端高度下可见选项数符合公式(大屏按内容显示、矮屏占满滚动)
 - `TableSelect` / `TableMultiSelect`:窄屏三列、宽屏四列、紧凑单列与居中均无 ANSI 泄漏/越界
+- 内置命令全覆盖:按各命令实际表单(单选/多选/表格/输入/确认)与选项规模渲染断言,含 drop/cherry-pick/reset/merge 等
+- `parseCommitInfo` 支持单行标签(reset 模式等),避免多列布局下整行空白
 
 验证方式:`make all`。

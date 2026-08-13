@@ -97,7 +97,8 @@ func (m *tableModel) applyLayout() {
 	columns := CalculateColumns(m.width, false)
 	m.messageWidth = CalculateMessageWidth(m.width, false)
 	cursor := m.table.Cursor()
-	// 表格高度不超过内容行数,避免小列表底部大片空白
+	// 表格高度不超过内容行数:内容不足一屏时按内容显示,
+	// 超出时占满终端由 viewport 滚动
 	height := min(CalculateTableHeight(m.height, false), max(len(m.choices), 1))
 	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
 	height += tableHeaderLines
@@ -204,16 +205,16 @@ func formatCompactCommit(commitInfo string, maxWidth int) string {
 
 func parseCommitInfo(commitInfo string, messageWidth int) (hash, message, date, author string) {
 	lines := strings.Split(commitInfo, "\n")
-	if len(lines) >= 2 {
-		// 解析第一行：hash + message
-		firstLine := lines[0]
-		parts := strings.SplitN(firstLine, " ", 2)
-		if len(parts) >= 2 {
-			hash = parts[0]
-			message = SafeTruncate(parts[1], messageWidth)
-		}
+	// 单行标签(如 reset 模式 "Soft - 保留工作目录")也能解析,首词作 hash 列
+	firstLine := lines[0]
+	parts := strings.SplitN(firstLine, " ", 2)
+	if len(parts) >= 2 {
+		hash = parts[0]
+		message = SafeTruncate(parts[1], messageWidth)
+	}
 
-		// 解析第二行：date + author
+	// 两行提交信息(GetRecentCommits 格式)再解析日期与作者
+	if len(lines) >= 2 {
 		secondLine := lines[1]
 		dateParts := strings.Split(secondLine, " • ")
 		if len(dateParts) >= 2 {
