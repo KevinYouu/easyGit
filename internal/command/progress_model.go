@@ -15,12 +15,8 @@ import (
 
 // 进度条宽度常量
 const (
-	progressBarMaxWidth    = 40 // 进度条最大宽度
-	progressBarMinWidth    = 10 // 进度条最小宽度
-	progressBarInset       = 8  // 进度条两侧预留
-	progressStatusInset    = 12 // 状态文本前侧预留(标签+图标)
-	progressStatusMinWidth = 10 // 状态文本最小宽度
-	progressDefaultWidth   = 80 // 默认终端宽度(未收到尺寸消息前)
+	progressBarMaxWidth  = 40 // 进度条最大宽度
+	progressDefaultWidth = 80 // 默认终端宽度(未收到尺寸消息前)
 )
 
 // ProgressModel 多步骤进度显示模型 - 统一的进度条组件
@@ -223,11 +219,11 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *ProgressModel) View() tea.View {
 	var s strings.Builder
 
-	// 标题 - 去掉多余的边距和空行
+	// 标题 - 去掉多余的边距和空行,超宽截断避免窄屏折行
 	titleStyle := lipgloss.NewStyle().
 		Foreground(theme.PrimaryColor).
 		Bold(true)
-	s.WriteString(titleStyle.Render(i18n.T("ui.executing.commands")))
+	s.WriteString(titleStyle.Render(ansi.Truncate(i18n.T("ui.executing.commands"), max(m.width, 0), "")))
 	s.WriteString("\n")
 
 	// 进度条
@@ -235,8 +231,12 @@ func (m *ProgressModel) View() tea.View {
 	if m.isCompleted {
 		progress = 1.0
 	}
-	// 进度条宽度自适应:min(40, max(终端宽度-8, 10)),窄屏不折行
-	barWidth := min(progressBarMaxWidth, max(m.width-progressBarInset, progressBarMinWidth))
+	// 进度条行固定开销(标签 + 括号 + 百分比 + 计数)随语言/进度变化,
+	// 先渲染前后缀实测宽度再反推条长:宽屏封顶 40,窄屏收缩条体不折行
+	percentText := fmt.Sprintf("%.0f%%", progress*100)
+	rowPrefix := theme.InfoStyle.Render(i18n.T("ui.progress"))
+	rowSuffix := fmt.Sprintf("] %s (%d/%d)", percentText, m.currentStep, m.total)
+	barWidth := min(progressBarMaxWidth, max(m.width-lipgloss.Width(rowPrefix)-lipgloss.Width(rowSuffix)-2, 1))
 	filled := int(progress * float64(barWidth))
 
 	var progressBar strings.Builder
@@ -248,12 +248,10 @@ func (m *ProgressModel) View() tea.View {
 		}
 	}
 
-	s.WriteString(fmt.Sprintf("%s [%s] %s (%d/%d)\n",
-		theme.InfoStyle.Render(i18n.T("ui.progress")),
+	s.WriteString(fmt.Sprintf("%s [%s%s\n",
+		rowPrefix,
 		theme.ProgressStyle.Render(progressBar.String()),
-		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(fmt.Sprintf("%.0f%%", progress*100)),
-		m.currentStep,
-		m.total))
+		rowSuffix))
 
 	// 当前状态
 	statusIcon := "⏳"
@@ -267,13 +265,13 @@ func (m *ProgressModel) View() tea.View {
 		statusIcon = "⚡"
 	}
 
-	// 状态文本超宽时按显示宽度截断,避免窄屏折行
-	statusMaxWidth := max(m.width-progressStatusInset, progressStatusMinWidth)
+	// 状态行固定开销(标签 + 图标)实测,剩余空间给状态文本,避免窄屏折行
+	statusPrefix := fmt.Sprintf("%s %s ", theme.InfoStyle.Render(i18n.T("ui.status")), statusIcon)
+	statusMaxWidth := max(m.width-lipgloss.Width(statusPrefix), 0)
 	statusText := ansi.Truncate(m.status, statusMaxWidth, "...")
 
-	s.WriteString(fmt.Sprintf("%s %s %s\n",
-		theme.InfoStyle.Render(i18n.T("ui.status")),
-		statusIcon,
+	s.WriteString(fmt.Sprintf("%s%s\n",
+		statusPrefix,
 		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(statusText)))
 
 	// 显示当前执行的步骤列表
@@ -337,18 +335,18 @@ func (m *ProgressModel) View() tea.View {
 			textStyle.Render(fmt.Sprintf(i18n.T("ui.step"), i+1, cmd.Description))))
 	}
 
-	// 完成时的提示
+	// 完成时的提示,超宽截断避免窄屏折行
 	if m.isCompleted {
 		s.WriteString("\n")
 		hintStyle := lipgloss.NewStyle().
 			Foreground(theme.MutedForeground).
 			Italic(true)
 
-		if m.hasError {
-			s.WriteString(hintStyle.Render(i18n.T("ui.exiting.error")))
-		} else {
-			s.WriteString(hintStyle.Render(i18n.T("ui.exiting.success")))
+		hint := i18n.T("ui.exiting.error")
+		if !m.hasError {
+			hint = i18n.T("ui.exiting.success")
 		}
+		s.WriteString(hintStyle.Render(ansi.Truncate(hint, max(m.width, 0), "")))
 	}
 
 	return tea.NewView(s.String())
