@@ -25,6 +25,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components
 - 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
+- ⌨️ **Unified Help Bar** - Every screen shows a single-line shortcut bar with inline option descriptions (bright name + muted detail), auto-hidden on tiny terminals
 - 💻 **Cross-Platform** - Works seamlessly on Linux, macOS, and Windows
 
 ## 📖 Design Philosophy
