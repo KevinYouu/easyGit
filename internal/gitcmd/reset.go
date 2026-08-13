@@ -27,6 +27,17 @@ type Commit struct {
 // resetMessageMaxWidth 重置模式选择时提交消息的最大显示宽度
 const resetMessageMaxWidth = 40
 
+// resetModeOptions 重置模式选择项:列表式单选表单 4 项单行选项(名称亮 + 说明灰)。
+// default 的 Value 为空串,执行时不传模式参数(等同 mixed)。
+func resetModeOptions() []config.Option {
+	return []config.Option{
+		{Label: form.OptionLabel(i18n.T("reset.option.default.name"), i18n.T("reset.option.default.desc")), Value: ""},
+		{Label: form.OptionLabel(i18n.T("reset.option.soft.name"), i18n.T("reset.option.soft.desc")), Value: "--soft"},
+		{Label: form.OptionLabel(i18n.T("reset.option.mixed.name"), i18n.T("reset.option.mixed.desc")), Value: "--mixed"},
+		{Label: form.OptionLabel(i18n.T("reset.option.hard.name"), i18n.T("reset.option.hard.desc")), Value: "--hard"},
+	}
+}
+
 func Reset() error {
 	// 显示开始信息 - 简洁的标题
 	headerStyle := lipgloss.NewStyle().
@@ -119,30 +130,17 @@ func Reset() error {
 		}
 	}
 
-	// 选择重置模式，使用更紧凑的格式 - 纯文本格式以确保背景色能正确覆盖
-	resetModes := []config.Option{
-		{
-			Label: i18n.T("reset.mode.soft.label"),
-			Value: "--soft",
-		},
-		{
-			Label: i18n.T("reset.mode.mixed.label"),
-			Value: "--mixed",
-		},
-		{
-			Label: i18n.T("reset.mode.hard.label"),
-			Value: "--hard",
-		},
-	}
-
-	// 使用表格选择表单选择重置模式
-	_, resetMode, err := form.TableSelectForm(resetModes)
+	// 选择重置模式:列表式单选表单,4 项单行选项(名称 + 说明)
+	_, resetMode, err := form.SelectForm(i18n.T("reset.select.mode"), resetModeOptions())
 	if err != nil {
 		return fmt.Errorf(i18n.T("reset.error.select.mode")+" %w", err)
 	}
 
-	// 获取可读的重置模式名称
+	// 获取可读的重置模式名称(default 不传参数,直接取选项名)
 	resetModeReadable := strings.TrimPrefix(resetMode, "--")
+	if resetMode == "" {
+		resetModeReadable = i18n.T("reset.option.default.name")
+	}
 
 	// 重置模式样式：统一使用 PrimaryColor + Bold
 	modeStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
@@ -171,9 +169,9 @@ func Reset() error {
 	confirm := form.Confirm(confirmDesc)
 
 	if confirm {
-		// 执行重置操作
+		// 执行重置操作:default 不传模式参数,其余模式传对应 flag
 		resetArgs := []string{"reset"}
-		if resetMode != "--mixed" { // mixed是默认值，不需要显式指定
+		if resetMode != "" {
 			resetArgs = append(resetArgs, resetMode)
 		}
 		resetArgs = append(resetArgs, choose)
@@ -219,22 +217,18 @@ func Reset() error {
 	return nil
 }
 
-// 获取重置模式的简短描述
+// 获取重置模式的简短描述(default 不传参数,复用选项说明文案)
+// getModeDescription 返回模式简短说明:统一复用选项说明文案,
+// 避免与选项列表维护两份描述(默认模式即 default 选项)。
 func getModeDescription(mode string) string {
-	switch mode {
-	case "--soft":
-		return lipgloss.NewStyle().
-			Foreground(theme.MutedForeground).
-			Render(i18n.T("reset.mode.soft.desc"))
-	case "--mixed":
-		return lipgloss.NewStyle().
-			Foreground(theme.MutedForeground).
-			Render(i18n.T("reset.mode.mixed.desc"))
-	case "--hard":
-		return lipgloss.NewStyle().
-			Foreground(theme.MutedForeground).
-			Render(i18n.T("reset.mode.hard.desc"))
-	default:
+	key := strings.TrimPrefix(mode, "--")
+	if key == "" {
+		key = "default"
+	}
+	if !i18n.Has("reset.option." + key + ".desc") {
 		return ""
 	}
+	return lipgloss.NewStyle().
+		Foreground(theme.MutedForeground).
+		Render(i18n.T("reset.option." + key + ".desc"))
 }

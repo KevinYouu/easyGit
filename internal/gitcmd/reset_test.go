@@ -1,8 +1,12 @@
 package gitcmd
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestCommit_Structure(t *testing.T) {
@@ -53,6 +57,11 @@ func TestGetModeDescription(t *testing.T) {
 			mode: "--unknown",
 			want: false,
 		},
+		{
+			name: "default mode",
+			mode: "",
+			want: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -66,6 +75,18 @@ func TestGetModeDescription(t *testing.T) {
 				t.Errorf("getModeDescription(%s) returned non-empty string, want empty", tt.mode)
 			}
 		})
+	}
+
+	// 有效模式须精确等于对应选项说明(单一来源:reset.option.<key>.desc)
+	for _, mode := range []string{"", "--soft", "--mixed", "--hard"} {
+		key := strings.TrimPrefix(mode, "--")
+		if key == "" {
+			key = "default"
+		}
+		want := i18n.T("reset.option." + key + ".desc")
+		if got := ansi.Strip(getModeDescription(mode)); got != want {
+			t.Errorf("getModeDescription(%q) = %q, want %q", mode, got, want)
+		}
 	}
 }
 
@@ -109,5 +130,35 @@ func TestCommit_MessageTruncation(t *testing.T) {
 
 	if shortMsg[len(shortMsg)-3:] != "..." {
 		t.Error("Truncated message should end with '...'")
+	}
+}
+
+// TestResetModeOptions 重置模式选项:4 项含 default,值顺序与参数语义一致,
+// 标签为「名称 + 说明」单行(名称亮 + 说明灰,ANSI 内嵌),无换行。
+func TestResetModeOptions(t *testing.T) {
+	opts := resetModeOptions()
+	wantValues := []string{"", "--soft", "--mixed", "--hard"}
+	if len(opts) != len(wantValues) {
+		t.Fatalf("重置模式选项 %d 项, want %d", len(opts), len(wantValues))
+	}
+	for i, opt := range opts {
+		if opt.Value != wantValues[i] {
+			t.Errorf("第 %d 项 Value = %q, want %q", i, opt.Value, wantValues[i])
+		}
+		if strings.Contains(opt.Label, "\n") {
+			t.Errorf("第 %d 项标签含换行(应单行): %q", i, opt.Label)
+		}
+		// 名称与说明键:default 的空值映射到 default 键
+		key := strings.TrimPrefix(opt.Value, "--")
+		if key == "" {
+			key = "default"
+		}
+		plain := ansi.Strip(opt.Label)
+		if !strings.Contains(plain, i18n.T("reset.option."+key+".name")) {
+			t.Errorf("第 %d 项标签缺名称 %q: %q", i, i18n.T("reset.option."+key+".name"), plain)
+		}
+		if !strings.Contains(plain, i18n.T("reset.option."+key+".desc")) {
+			t.Errorf("第 %d 项标签缺说明 %q: %q", i, i18n.T("reset.option."+key+".desc"), plain)
+		}
 	}
 }

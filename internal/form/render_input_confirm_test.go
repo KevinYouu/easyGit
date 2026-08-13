@@ -69,7 +69,7 @@ var commandConfirmCases = []struct {
 	// hard 模式追加警告行(警告图标 + 文案)
 	{command: "reset confirm", title: fmt.Sprintf("%s %s  %s %s %s%s\n%s %s",
 		i18n.T("reset.confirm.to"), "a1b2c3d", "修复登录问题", i18n.T("reset.confirm.mode"),
-		"hard", i18n.T("reset.mode.hard.desc"),
+		"hard", i18n.T("reset.option.hard.desc"),
 		"⚠", i18n.T("reset.hard.warning"))},
 	// tag delete:两行动态消息(标签名 + 影响范围)
 	{command: "tag delete confirm", title: fmt.Sprintf(i18n.T("tag.delete.confirm"), "v1.0.0")},

@@ -25,6 +25,13 @@ var commandSelectCases = []struct {
 	labels  []string
 }{
 	{command: "set-language", title: i18n.T("language.select.title"), labels: []string{i18n.T("language.option.en"), i18n.T("language.option.zh")}},
+	// reset 模式:列表式单选 4 项,单行「名称 + 说明」(default 值为空,不传参数)
+	{command: "reset mode", title: i18n.T("reset.select.mode"), labels: []string{
+		OptionLabel(i18n.T("reset.option.default.name"), i18n.T("reset.option.default.desc")),
+		OptionLabel(i18n.T("reset.option.soft.name"), i18n.T("reset.option.soft.desc")),
+		OptionLabel(i18n.T("reset.option.mixed.name"), i18n.T("reset.option.mixed.desc")),
+		OptionLabel(i18n.T("reset.option.hard.name"), i18n.T("reset.option.hard.desc")),
+	}},
 	{command: "cherry-pick option", title: i18n.T("cherry.pick.select.option"), labels: []string{
 		i18n.T("cherry.pick.option.default.name"),
 		i18n.T("cherry.pick.option.no.commit.name"),
@@ -167,20 +174,6 @@ func TestCommandTableRender(t *testing.T) {
 
 	t.Run("reset 提交列表", func(t *testing.T) {
 		options := tableOptions(20)
-		for _, sz := range tableSizes {
-			m := NewTableSelectModel(options)
-			m.width, m.height = sz.w, sz.h
-			m.applyLayout()
-			assertTableView(t, m.View().Content, sz.w, sz.h, options, false)
-		}
-	})
-
-	t.Run("reset 模式仅3项", func(t *testing.T) {
-		options := []config.Option{
-			{Label: "--soft 保留工作区更改", Value: "--soft"},
-			{Label: "--mixed 保留但取消暂存", Value: "--mixed"},
-			{Label: "--hard 丢弃所有更改", Value: "--hard"},
-		}
 		for _, sz := range tableSizes {
 			m := NewTableSelectModel(options)
 			m.width, m.height = sz.w, sz.h

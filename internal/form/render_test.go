@@ -42,13 +42,14 @@ func renderMultiSelectField(title string, labels []string, termHeight int) strin
 }
 
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
-// 选项行形如 "> fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配。
+// 选项行形如 "> fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配;
+// 标签本身也可能内嵌样式(OptionLabel 名称亮 + 说明灰),匹配前同样去样式。
 func visibleLabels(view string, labels []string) []string {
 	var got []string
 	for line := range strings.SplitSeq(view, "\n") {
 		plain := ansi.Strip(line)
 		for _, l := range labels {
-			if strings.Contains(plain, l) {
+			if strings.Contains(plain, ansi.Strip(l)) {
 				got = append(got, l)
 				break
 			}
