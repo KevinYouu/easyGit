@@ -6,8 +6,20 @@ import (
 	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/theme"
+	"github.com/charmbracelet/x/ansi"
 	"golang.org/x/term"
 )
+
+// selectOptionLabel 组装单选选项标签:accessible 模式(huh 直接打印
+// option.Key 且不再包外层样式)下,内嵌段无 reset 的序列会泄漏到后续
+// 提示行,故此时剥离样式输出纯文本;其余情况返回内嵌样式标签。
+func selectOptionLabel(opt config.Option) string {
+	label := OptionLabel(opt.Label, opt.Description)
+	if isAccessibleMode() {
+		return ansi.Strip(label)
+	}
+	return label
+}
 
 // NewSelectForm 构造单选 huh 表单(SelectForm 与渲染测试共用同一构造路径,
 // 防止生产配置与测试复刻漂移)。height 为终端高度,字段高度按
@@ -16,7 +28,7 @@ func NewSelectForm(title string, options []config.Option, height int, selected *
 	selectOpts := make([]huh.Option[string], len(options))
 	for i, opt := range options {
 		// 统一单行组装:名称亮加粗 + 说明灰(Description 为空则纯名称,零变化)
-		selectOpts[i] = huh.NewOption(OptionLabel(opt.Label, opt.Description), opt.Value)
+		selectOpts[i] = huh.NewOption(selectOptionLabel(opt), opt.Value)
 	}
 
 	// huh v2 已修复 v1 滚动 bug(光标跟随可见区),高屏展示更多选项,

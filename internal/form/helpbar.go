@@ -7,6 +7,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // HelpBarMinTermHeight 终端高度低于该值时帮助栏不渲染(避免挤压内容)
@@ -120,10 +121,34 @@ func OptionLabel(name, desc string) string {
 	if desc == "" {
 		return name
 	}
-	return lipgloss.NewStyle().
-		Foreground(theme.PrimaryColor).
-		Bold(true).
-		Render(name) + " " + lipgloss.NewStyle().
-		Foreground(theme.MutedForeground).
-		Render(desc)
+	// 内嵌段不输出 reset:lipgloss.Render 默认在段尾输出 reset,会中断 huh
+	// 选中态 SelectedOption 为整行设置的背景色,导致说明文本失去高亮;
+	// 剥离段尾 reset 后每段仅切换前景/字重,背景从外层序列连续贯穿整行。
+	// 说明段前须显式复位字重(\x1b[22m):名称段的 Bold 状态在无 reset 时
+	// 持续贯穿,只切前景的说明段会被错误加粗(说明应为常规字重)。
+	return optionSegment(lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true), name) +
+		" " + ansi.SGR(ansi.AttrNormalIntensity) + optionSegment(lipgloss.NewStyle().Foreground(theme.MutedForeground), desc)
+}
+
+// optionSegment 渲染单段内嵌样式并剥离段尾纯 reset 序列(见 OptionLabel 注释)
+func optionSegment(style lipgloss.Style, text string) string {
+	return stripTrailingReset(style.Render(text))
+}
+
+// stripTrailingReset 剥离段尾纯 reset 序列(\x1b[m 与 \x1b[0m 等价);
+// 段尾非 reset 时原样返回,不依赖 lipgloss 固定输出某一种编码。
+func stripTrailingReset(s string) string {
+	idx := strings.LastIndex(s, "\x1b[")
+	if idx < 0 {
+		return s
+	}
+	end := strings.Index(s[idx:], "m")
+	if end < 0 {
+		return s
+	}
+	params := s[idx+2 : idx+end]
+	if params != "" && params != "0" {
+		return s
+	}
+	return s[:idx] + s[idx+end+1:]
 }

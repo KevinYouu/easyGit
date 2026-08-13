@@ -1,11 +1,15 @@
 package form
 
 import (
+	"bytes"
+	"context"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // 注意: form 包的函数依赖于交互式终端输入,
@@ -56,6 +60,64 @@ var ErrEmptyInput = &validationError{msg: "input cannot be empty"}
 
 type validationError struct {
 	msg string
+}
+
+// selectOptionLabel TERM=dumb(accessible 纯文本模式)时剥离内嵌样式,
+// 避免行尾无 reset 的样式序列泄漏到后续提示行。
+func TestSelectOptionLabel(t *testing.T) {
+	t.Run("正常终端:名称亮加粗 + 说明灰(内嵌样式)", func(t *testing.T) {
+		t.Setenv("TERM", "xterm-256color")
+		label := selectOptionLabel(config.Option{Label: "soft", Description: "保留工作区更改"})
+		if !strings.Contains(label, "\x1b[") {
+			t.Errorf("正常终端应内嵌样式: %q", label)
+		}
+	})
+
+	t.Run("TERM=dumb:剥离样式输出纯文本", func(t *testing.T) {
+		t.Setenv("TERM", "dumb")
+		label := selectOptionLabel(config.Option{Label: "soft", Description: "保留工作区更改"})
+		if strings.Contains(label, "\x1b[") {
+			t.Errorf("dumb 不应含 ANSI: %q", label)
+		}
+		if got := ansi.Strip(label); got != "soft 保留工作区更改" {
+			t.Errorf("dumb 应输出纯文本, got %q", got)
+		}
+	})
+
+	t.Run("TERM=dumb 无说明:纯名称", func(t *testing.T) {
+		t.Setenv("TERM", "dumb")
+		if got := selectOptionLabel(config.Option{Label: "main"}); got != "main" {
+			t.Errorf("dumb 无说明应输出纯名称, got %q", got)
+		}
+	})
+}
+
+// TestSelectOptionLabelAccessiblePath 经 huh 真实 accessible 渲染路径验证:
+// TERM=dumb 时 huh 构造期自动进入 accessible 模式并原样打印 option.Key,
+// 选项键必须为无 ANSI 的连续纯文本(huh 判定耦合见 isAccessibleMode)。
+// 选项行格式 "编号. 键" 固化了 huh v2.0.3 field_select.go RunAccessible
+// (fmt.Fprintf(w, "%d. %s\n", i+1, option.Key)),huh 变更格式时需同步。
+func TestSelectOptionLabelAccessiblePath(t *testing.T) {
+	t.Setenv("TERM", "dumb")
+	var selected string
+	f := NewSelectForm("标题", []config.Option{
+		{Label: "soft", Description: "保留工作区更改"},
+		{Label: "hard", Description: "丢弃所有更改"},
+	}, 24, &selected)
+	var buf bytes.Buffer
+	if err := f.Form.
+		WithOutput(&buf).
+		WithInput(strings.NewReader("1\n")).
+		RunWithContext(context.Background()); err != nil {
+		t.Fatalf("RunWithContext 失败: %v", err)
+	}
+	out := buf.String()
+	// 选项行按 "编号. 键" 原样打印:键必须为无 ANSI 的连续纯文本
+	for _, want := range []string{"1. soft 保留工作区更改", "2. hard 丢弃所有更改"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("accessible 选项行应为纯文本键,缺少 %q: %q", want, out)
+		}
+	}
 }
 
 func (e *validationError) Error() string {

@@ -72,13 +72,23 @@ func (f *Form) View() tea.View {
 	return v
 }
 
+// isAccessibleMode 判断 huh 是否处于 accessible 纯文本模式。
+// 与 huh v2.0.3 构造期判定耦合(huh/form.go NewForm:TERM=dumb 时
+// WithAccessible(true)):该模式直接打印 option.Key 且不再包外层样式,
+// 无 reset 的内嵌序列会泄漏到输出(selectOptionLabel 据此剥离样式);
+// 包装模型的 Run 也据此委托 huh 原生 Run,避免无 TTY 时 bubbletea OpenTTY 失败。
+// 若 huh 放宽 accessible 判定(如空 TERM / NO_COLOR),需同步本函数。
+func isAccessibleMode() bool {
+	return os.Getenv("TERM") == "dumb"
+}
+
 // Run 以本包装模型运行表单。Esc 取消返回 huh.ErrUserAborted,语义与 huh.Form.Run 一致。
-// TERM=dumb 时 huh 构造期已自动启用 accessible 模式(纯文本行提示,不依赖 TTY),
-// 直接委托 huh 原生 Run,避免 bubbletea 在无 TTY 的 stdin 上 OpenTTY 失败。
+// accessible 模式(纯文本行提示,不依赖 TTY)下直接委托 huh 原生 Run,
+// 避免 bubbletea 在无 TTY 的 stdin 上 OpenTTY 失败。
 func (f *Form) Run() error {
 	f.SubmitCmd = tea.Quit
 	f.CancelCmd = tea.Interrupt
-	if os.Getenv("TERM") == "dumb" {
+	if isAccessibleMode() {
 		return f.Form.Run()
 	}
 	// 与 huh 默认一致输出到 stderr:stdout 重定向管道时 TUI 画面不污染输出

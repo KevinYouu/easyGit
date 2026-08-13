@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -99,17 +100,63 @@ func TestAppendHelpBar(t *testing.T) {
 	}
 }
 
-// sgrParams 提取字符串中首个 SGR 序列的参数列表,用于断言样式层次
-func sgrParams(s string) []string {
-	start := strings.Index(s, "\x1b[")
-	if start < 0 {
-		return nil
+// sgrSeqList 提取字符串中所有 SGR 序列的参数列表(按出现顺序),用于断言样式层次
+func sgrSeqList(s string) [][]string {
+	var out [][]string
+	for {
+		start := strings.Index(s, "\x1b[")
+		if start < 0 {
+			return out
+		}
+		s = s[start+2:]
+		end := strings.Index(s, "m")
+		if end < 0 {
+			return out
+		}
+		out = append(out, strings.Split(s[:end], ";"))
+		s = s[end+1:]
 	}
-	end := strings.Index(s[start:], "m")
-	if end < 0 {
-		return nil
+}
+
+// isResetSeq 判断 SGR 参数列表是否为纯 reset(\x1b[m 或 \x1b[0m)
+func isResetSeq(params []string) bool {
+	return len(params) == 1 && (params[0] == "" || params[0] == "0")
+}
+
+// effectiveBoldAt 模拟终端 SGR 状态机,返回 s 中 text 首次出现处的生效加粗状态
+// (bold 由 1 开启、22 或 reset 关闭),用于断言内嵌段边界无字重泄漏。
+func effectiveBoldAt(s, text string) bool {
+	pos := strings.Index(s, text)
+	if pos < 0 {
+		return false
 	}
-	return strings.Split(s[start+2:start+end], ";")
+	bold := false
+	for i := 0; i < pos; {
+		if s[i] != '\x1b' {
+			i++
+			continue
+		}
+		end := strings.IndexByte(s[i:], 'm')
+		if end < 0 || i+end > pos {
+			break
+		}
+		seq := s[i+2 : i+end]
+		switch {
+		case seq == "" || seq == "0":
+			bold = false
+		default:
+			for p := range strings.SplitSeq(seq, ";") {
+				switch p {
+				case "1":
+					bold = true
+				case "22":
+					bold = false
+				}
+			}
+		}
+		i += end + 1
+	}
+	return bold
 }
 
 // OptionLabel 单行选项标签:名称亮色加粗 + 说明灰色;说明为空仅名称。
@@ -123,18 +170,64 @@ func TestOptionLabel(t *testing.T) {
 		if strings.Contains(plain, "\n") {
 			t.Errorf("标签折行为多行: %q", plain)
 		}
-		// 名称段加粗、说明段不加粗(解析 SGR 参数,lipgloss v2 合并且色值含数字 1)
-		nameParams := sgrParams(label)
-		if !slices.Contains(nameParams, "1") {
+		// 名称段加粗、说明段常规字重(解析 SGR 参数,lipgloss v2 合并且色值含数字 1)
+		seqs := sgrSeqList(label)
+		if len(seqs) != 3 {
+			t.Fatalf("标签应含名称段/字重复位段/说明段三段样式: %q", label)
+		}
+		if !slices.Contains(seqs[0], "1") {
 			t.Errorf("名称应加粗: %q", label)
 		}
-		_, after, _ := strings.Cut(label, "\x1b[m")
-		descParams := sgrParams(after)
-		if slices.Contains(descParams, "1") {
+		if !slices.Contains(seqs[1], "22") {
+			t.Errorf("说明段前应复位字重(22): %q", label)
+		}
+		if slices.Contains(seqs[2], "1") {
 			t.Errorf("说明不应加粗: %q", label)
+		}
+		// 按终端状态机验证生效字重:名称加粗、说明常规(防止 Bold 状态贯穿到说明段)
+		if !effectiveBoldAt(label, "soft") {
+			t.Errorf("名称处应生效加粗: %q", label)
+		}
+		if effectiveBoldAt(label, "保留工作区更改") {
+			t.Errorf("说明处不应生效加粗(字重被名称段贯穿): %q", label)
+		}
+		// 内嵌段不得输出 reset(含 \x1b[m / \x1b[0m):否则会中断选中态背景色(见下方回归用例)
+		for _, params := range seqs {
+			if isResetSeq(params) {
+				t.Errorf("内嵌段不得输出 reset(会中断选中背景): %q", label)
+			}
 		}
 		if lipgloss.Width(plain) != lipgloss.Width("soft")+1+lipgloss.Width("保留工作区更改") {
 			t.Errorf("标签宽度异常: %q (%d)", plain, lipgloss.Width(plain))
+		}
+	})
+
+	t.Run("选中态:背景色连续覆盖名称与说明(回归)", func(t *testing.T) {
+		label := OptionLabel("soft", "保留工作区更改")
+		// 模拟 huh SelectedOption 整行样式:背景 + 前景 + 加粗 + 左右内边距
+		selected := lipgloss.NewStyle().
+			Background(theme.SelectionBg).
+			Foreground(theme.SelectionFg).
+			Bold(true).
+			Padding(0, 1).
+			Render(label)
+		// 行首序列必须带背景色(48)
+		seqs := sgrSeqList(selected)
+		if len(seqs) == 0 || !slices.Contains(seqs[0], "48") {
+			t.Fatalf("选中行首序列应设置背景色: %q", selected)
+		}
+		// 名称与说明之间的原始内容不得含 reset,否则说明文本背景被中断
+		softIdx := strings.Index(selected, "soft")
+		descIdx := strings.Index(selected, "保留工作区更改")
+		if softIdx < 0 || descIdx < 0 {
+			t.Fatalf("选中行应含名称与说明: %q", selected)
+		}
+		// 名称与说明之间不得出现 reset(背景被中断);允许其余样式序列(如说明前景切换)
+		between := selected[softIdx+len("soft") : descIdx]
+		for _, params := range sgrSeqList(between) {
+			if isResetSeq(params) {
+				t.Errorf("名称与说明之间存在 reset,背景被中断: %q", selected)
+			}
 		}
 	})
 
