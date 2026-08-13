@@ -125,19 +125,26 @@ func TestProgressView(t *testing.T) {
 	})
 
 	t.Run("进度条宽度自适应且行宽不越界", func(t *testing.T) {
-		// 宽屏封顶 40;窄屏按实际行开销收缩条体,进度条行不越界。
-		// 24 为进度条行物理下限(标签+计数固定开销+1 格条体),更窄终端无解
+		// 宽屏封顶 40;窄屏按实际行开销收缩条体,空间耗尽时条体为 0,
+		// 进度条行仍保留前后缀不折行。
+		// 80 列下中英文行开销都足以达到封顶,封顶断言与语言无关。
+		// 步骤描述使用超长文本,验证步骤行按剩余宽度截断同样不折行
+		commands := []CommandInfo{
+			{Command: "git", Args: []string{"add", "."}, Description: "暂存所有更改到索引区等待后续提交", SuccessMsg: "暂存完成"},
+			{Command: "git", Args: []string{"commit", "-m", "x"}, Description: "提交代码并生成一条新的提交记录", SuccessMsg: "提交完成"},
+			{Command: "git", Args: []string{"push"}, Description: "推送本地提交到远程仓库 origin/main 分支", SuccessMsg: "推送完成"},
+		}
 		for _, width := range []int{80, 50, 40, 30, 24} {
 			m := NewProgressModel(commands)
 			m.width = width
 			view := m.View().Content
 
 			bar := extractBar(view)
-			if bar < 1 || bar > progressBarMaxWidth {
+			if bar < 0 || bar > progressBarMaxWidth {
 				t.Errorf("宽度 %d:进度条长度 %d 非法", width, bar)
 			}
 			// 宽屏应封顶 40
-			if width >= 61 && bar != progressBarMaxWidth {
+			if width == 80 && bar != progressBarMaxWidth {
 				t.Errorf("宽度 %d:进度条长度 %d, want 40", width, bar)
 			}
 			// 所有行(标题/进度条/状态/步骤/提示)都不得越界

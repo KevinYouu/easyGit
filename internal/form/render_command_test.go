@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -16,23 +17,43 @@ import (
 // 按各命令实际使用的表单类型与选项规模,在终端尺寸矩阵下断言:
 // 内容不足一屏时按内容显示,超出一屏时占满终端滚动,且无越界行。
 
-// commandSelectCases 各命令的单选表单(选项数/标题与命令一致)
+// commandSelectCases 各命令的单选表单。
+// 标题使用命令实际的 i18n 键(经 i18n.T 取值,与命令渲染一致且与语言无关);
+// 选项标签按命令实际格式构造(装饰/本地化),数据库与时间戳等动态内容为代表性取值。
 var commandSelectCases = []struct {
 	command string
 	title   string
 	labels  []string
 }{
-	{command: "set-language", title: "选择语言", labels: []string{"中文", "English"}},
-	{command: "cherry-pick option", title: "选择模式", labels: []string{"default", "no-commit", "edit", "signoff"}},
-	{command: "merge strategy", title: "合并策略", labels: []string{"default", "ff-only", "no-ff", "squash"}},
-	{command: "rebase action", title: "rebase 操作", labels: []string{"--continue", "--skip", "--abort"}},
-	{command: "push commit type", title: "提交类型", labels: []string{"fix", "feat", "refactor", "build", "chore", "style", "docs", "revert", "test"}},
-	{command: "branch delete", title: "删除分支", labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
-	{command: "remote select", title: "选择远端", labels: []string{"origin", "upstream", "github"}},
-	{command: "remote branch", title: "选择分支", labels: []string{"main", "develop", "feature/login", "release/v2.0"}},
-	{command: "merge target", title: "选择要合并到当前分支的分支：", labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
-	{command: "rebase target", title: "选择要变基到的目标分支:", labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
-	{command: "tag delete", title: "删除标签", labels: []string{"v1.0.0", "v1.1.0", "v2.0.0-beta"}},
+	{command: "set-language", title: i18n.T("language.select.title"), labels: []string{i18n.T("language.option.en"), i18n.T("language.option.zh")}},
+	{command: "cherry-pick option", title: i18n.T("cherry.pick.select.option"), labels: []string{
+		i18n.T("cherry.pick.option.default.name"),
+		i18n.T("cherry.pick.option.no.commit.name"),
+		i18n.T("cherry.pick.option.edit.name"),
+		i18n.T("cherry.pick.option.signoff.name"),
+	}},
+	// 合并策略:实际格式 "%s - %s"(名称 - 描述)
+	{command: "merge strategy", title: i18n.T("merge.select.strategy"), labels: []string{
+		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.default.name"), i18n.T("merge.strategy.default.description")),
+		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.ff.only.name"), i18n.T("merge.strategy.ff.only.description")),
+		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.no.ff.name"), i18n.T("merge.strategy.no.ff.description")),
+		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.squash.name"), i18n.T("merge.strategy.squash.description")),
+	}},
+	{command: "rebase action", title: i18n.T("rebase.status.in_progress"), labels: []string{
+		i18n.T("rebase.action.continue"),
+		i18n.T("rebase.action.skip"),
+		i18n.T("rebase.action.abort"),
+	}},
+	// 提交类型来自配置数据库(用户数据),标签为代表性取值
+	{command: "push commit type", title: i18n.T("push.select.commit.type"), labels: []string{"fix", "feat", "refactor", "build", "chore", "style", "docs", "revert", "test"}},
+	// 分支选项实际带 🌱 装饰
+	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"🌱 main", "🌱 develop", "🌱 feature/login", "🌱 fix/typo", "🌱 release/v1.2.0"}},
+	{command: "remote select", title: i18n.T("git.select.remote"), labels: []string{"origin", "upstream", "github"}},
+	{command: "remote branch", title: i18n.T("git.select.branch"), labels: []string{"main", "develop", "feature/login", "release/v2.0"}},
+	{command: "merge target", title: i18n.T("merge.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
+	{command: "rebase target", title: i18n.T("rebase.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
+	// 标签选项实际带 🏷️ 装饰(无创建时间时的回退格式;有时间时为 "🏷️  %s  📅 %s")
+	{command: "tag delete", title: i18n.T("tag.delete.select"), labels: []string{"🏷️  v1.0.0", "🏷️  v1.1.0", "🏷️  v2.0.0-beta"}},
 }
 
 // commandMultiCases 各命令的多选表单
@@ -41,18 +62,17 @@ var commandMultiCases = []struct {
 	title   string
 	labels  []string
 }{
-	// cherry-pick 提交列表:单行 "[hash8] 日期 (作者) - 消息" 格式
-	{command: "cherry-pick commits", title: "选择提交", labels: multiLabels(50, func(i int) string {
+	// cherry-pick 提交列表:单行 "[短hash] 日期 (作者) - 消息" 格式(hash 为代表性取值)
+	{command: "cherry-pick commits", title: i18n.T("cherry.pick.select.commits"), labels: multiLabels(50, func(i int) string {
 		return fmt.Sprintf("[a1b2c3d%02d] 07-12 10:00 (张三丰) - 修复登录问题", i)
 	})},
 	// push-selected 文件列表
-	{command: "push-selected files", title: "选择文件", labels: multiLabels(12, func(i int) string {
+	{command: "push-selected files", title: i18n.T("push.select.files"), labels: multiLabels(12, func(i int) string {
 		return fmt.Sprintf("internal/form/file-%02d.go", i)
 	})},
-	// set-push-config 远端列表
-	{command: "set-push-config remotes", title: "选择远端", labels: []string{"origin", "upstream", "github", "gitlab"}},
-	// remote 命令多选默认推送远端
-	{command: "remote remotes", title: "检测到多个远程仓库,请选择默认推送的远程(可多选)", labels: []string{"origin", "upstream", "github", "gitlab"}},
+	// remote(SelectRemoteWithConfig)与 set-push-config 共用提示语 git.select.remotes.first,
+	// 均为多选远端列表(set-push-config 额外带预选,渲染结构一致)
+	{command: "remote remotes", title: i18n.T("git.select.remotes.first"), labels: []string{"origin", "upstream", "github", "gitlab"}},
 }
 
 // multiLabels 生成 n 个标签

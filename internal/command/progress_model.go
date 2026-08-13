@@ -232,11 +232,12 @@ func (m *ProgressModel) View() tea.View {
 		progress = 1.0
 	}
 	// 进度条行固定开销(标签 + 括号 + 百分比 + 计数)随语言/进度变化,
-	// 先渲染前后缀实测宽度再反推条长:宽屏封顶 40,窄屏收缩条体不折行
+	// 先渲染前后缀实测宽度再反推条长:宽屏封顶 40,窄屏收缩条体,
+	// 空间耗尽时条体为 0(仅保留前后缀),行不折行
 	percentText := fmt.Sprintf("%.0f%%", progress*100)
 	rowPrefix := theme.InfoStyle.Render(i18n.T("ui.progress"))
 	rowSuffix := fmt.Sprintf("] %s (%d/%d)", percentText, m.currentStep, m.total)
-	barWidth := min(progressBarMaxWidth, max(m.width-lipgloss.Width(rowPrefix)-lipgloss.Width(rowSuffix)-2, 1))
+	barWidth := min(progressBarMaxWidth, max(m.width-lipgloss.Width(rowPrefix)-lipgloss.Width(rowSuffix)-2, 0))
 	filled := int(progress * float64(barWidth))
 
 	var progressBar strings.Builder
@@ -330,9 +331,12 @@ func (m *ProgressModel) View() tea.View {
 			}
 		}
 
+		// 步骤行固定开销(缩进 + 图标 + 空格)实测,剩余空间给步骤文本,避免窄屏折行
+		stepMaxWidth := max(m.width-2-lipgloss.Width(icon)-1, 0)
+		stepText := ansi.Truncate(fmt.Sprintf(i18n.T("ui.step"), i+1, cmd.Description), stepMaxWidth, "...")
 		s.WriteString(fmt.Sprintf("  %s %s\n",
 			iconStyle.Render(icon),
-			textStyle.Render(fmt.Sprintf(i18n.T("ui.step"), i+1, cmd.Description))))
+			textStyle.Render(stepText)))
 	}
 
 	// 完成时的提示,超宽截断避免窄屏折行

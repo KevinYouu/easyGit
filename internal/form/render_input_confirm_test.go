@@ -82,8 +82,12 @@ var commandConfirmCases = []struct {
 	{command: "drop confirm", title: "确定要删除这 5 个提交吗？"},
 	// merge:存在未提交更改时继续合并
 	{command: "merge continue confirm", title: "是否仍要继续合并？"},
-	// reset:两行动态消息(提交 hash + 模式)
-	{command: "reset confirm", title: "重置到：a1b2c3d\n模式：--hard"},
+	// reset:按 reset.go 实际 fmt.Sprintf 拼装(重置到 + hash + 短消息 + 模式 + 描述),
+	// hard 模式追加警告行(警告图标 + 文案)
+	{command: "reset confirm", title: fmt.Sprintf("%s %s  %s %s %s%s\n%s %s",
+		i18n.T("reset.confirm.to"), "a1b2c3d", "修复登录问题", i18n.T("reset.confirm.mode"),
+		"hard", i18n.T("reset.mode.hard.desc"),
+		"⚠️", i18n.T("reset.hard.warning"))},
 	// tag delete:两行动态消息(标签名 + 影响范围)
 	{command: "tag delete confirm", title: "您确定要删除标签 'v1.0.0' 吗？\n这将从本地和远程仓库中删除标签。"},
 }
