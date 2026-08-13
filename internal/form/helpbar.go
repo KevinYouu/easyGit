@@ -9,8 +9,8 @@ import (
 	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
-// helpBarMinTermHeight 终端高度低于该值时帮助栏不渲染(避免挤压内容)
-const helpBarMinTermHeight = 6
+// HelpBarMinTermHeight 终端高度低于该值时帮助栏不渲染(避免挤压内容)
+const HelpBarMinTermHeight = 6
 
 // HelpKey 帮助栏键位项:键位徽章 + 动作说明(调用方已 i18n)
 type HelpKey struct {
@@ -78,7 +78,8 @@ func tableMultiHelpKeys() []HelpKey {
 	}
 }
 
-func progressHelpKeys() []HelpKey {
+// ProgressHelpKeys 进度屏执行中的帮助栏键位(q 退出)
+func ProgressHelpKeys() []HelpKey {
 	return []HelpKey{
 		{Key: "q", Action: i18n.T("form.help.quit")},
 	}

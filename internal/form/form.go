@@ -66,7 +66,7 @@ func (f *Form) View() tea.View {
 		return tea.NewView("")
 	}
 	v := tea.NewView(content)
-	if f.height >= helpBarMinTermHeight {
+	if f.height >= HelpBarMinTermHeight {
 		v = AppendHelpBar(v, f.helpKeys, f.width)
 	}
 	return v

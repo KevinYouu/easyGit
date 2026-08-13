@@ -143,7 +143,7 @@ func CalculateTableHeight(height int, multi bool) int {
 	reserved := 0
 	if multi {
 		reserved = multiTableExtraLines
-	} else if height >= helpBarMinTermHeight {
+	} else if height >= HelpBarMinTermHeight {
 		reserved = singleTableHelpLines
 	}
 	return max(height-reserved, tableHeightMin)
@@ -158,7 +158,7 @@ func CalculateTableHeight(height int, multi bool) int {
 // 多出一个空白行(标题+选项+空行+帮助栏),收紧后恰好标题+选项+帮助栏。
 func formFieldHeight(optionCount, termHeight int) int {
 	// 帮助栏仅在 ≥6 行终端渲染,故仅在该档位让出 1 行
-	if termHeight >= helpBarMinTermHeight {
+	if termHeight >= HelpBarMinTermHeight {
 		termHeight = termHeight - 1
 	}
 	floor := max(optionCount+1, 1)

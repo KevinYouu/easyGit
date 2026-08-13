@@ -96,7 +96,7 @@ func assertCommandField(t *testing.T, view string, labels []string, termHeight, 
 	// 大屏按内容显示,小屏占满终端滚动;帮助栏在 ≥6 行终端渲染,<6 行时隐藏
 	wantTotal := min(n+1, termHeight)
 	wantVisible := min(n, termHeight-1)
-	if termHeight >= helpBarMinTermHeight {
+	if termHeight >= HelpBarMinTermHeight {
 		wantTotal = min(n+2, termHeight)
 		wantVisible = min(n, termHeight-2)
 	}

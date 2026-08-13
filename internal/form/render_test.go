@@ -189,7 +189,7 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 	// 单选在 ≥6 行终端含底部帮助栏一行;多选固定 标题/count 行 + 底部帮助行(空行不计)
 	if multi {
 		extraRows = 2
-	} else if h >= helpBarMinTermHeight {
+	} else if h >= HelpBarMinTermHeight {
 		extraRows = 1
 	}
 
