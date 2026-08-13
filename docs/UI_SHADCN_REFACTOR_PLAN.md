@@ -1,9 +1,9 @@
 # easyGit UI 重构计划：Shadcn TUI 风格迁移
 
-本项目将参考 Shadcn/UI 的极简设计语言（Zinc Dark 色系），对当前基于 Bubbletea / Lipgloss / Huh 的 TUI 界面进行全面重构。重构过程分为两个主要阶段。
+本项目将参考 Shadcn/UI 的极简设计语言（Neutral Dark 色系），对当前基于 Bubbletea / Lipgloss / Huh 的 TUI 界面进行全面重构。重构过程分为两个主要阶段。
 
 ## 设计目标
-- **色系**: 全面转向 Zinc Dark (灰白色系)，取代现有的青蓝/紫色渐变。
+- **色系**: 全面转向 Neutral Dark (灰白色系)，取代现有的青蓝/紫色渐变。
 - **布局**: 紧凑型布局，减少冗余 Margin/Padding，使用直角边框和左侧单线装饰。
 - **交互**: 强化“选中态”的三重强调模式（背景、前景、指示符 `❯`）。
 - **一致性**: 所有文本输出必须通过标准排版组件，严禁硬编码颜色。
@@ -16,11 +16,11 @@
 
 ### 1.1 设计令牌 (Design Tokens) 重定义
 在 `internal/theme/theme.go` 中引入符合 Shadcn 规范的常量：
-- `Foreground`: `#fafafa` (Zinc 50) - 主要文字
-- `Muted`: `#a1a1aa` (Zinc 400) - 辅助提示文案
-- `Border`: `#3f3f46` (Zinc 700) - 默认边框
-- `Selection`: `#3f3f46` (Zinc 700) - 选中项背景
-- `Primary`: `#fafafa` (Zinc 50) - 关键操作/焦点高亮
+- `Foreground`: `#fafafa` (Neutral 50) - 主要文字
+- `Muted`: `#a3a3a3` (Neutral 400) - 辅助提示文案
+- `Border`: `#404040` (Neutral 700) - 默认边框
+- `Selection`: `#404040` (Neutral 700) - 选中项背景
+- `Primary`: `#fafafa` (Neutral 50) - 关键操作/焦点高亮
 - **语义色**: Success (Emerald 500), Error (Red 500), Warning (Amber 500), Info (Blue 500)
 
 ### 1.2 封装标准排版组件 (Typography)
@@ -71,12 +71,12 @@
 - 执行交互式提交流程。
 - 执行分支/远程列表选择。
 - 执行 Cherry-pick 冲突处理流程。
-- 确保所有界面在 Zinc Dark 风格下展现出高度的专业感和一致性。
+- 确保所有界面在 Neutral Dark 风格下展现出高度的专业感和一致性。
 
 ---
 
 ## 验收标准
 1. [ ] 界面无任何高饱和渐变色。
 2. [ ] 选中项焦点清晰，符合“三重强调”模式。
-3. [ ] 所有文本颜色符合 Zinc 设计令牌。
+3. [ ] 所有文本颜色符合 Neutral 设计令牌。
 4. [ ] 布局紧凑，无非必要空行，使用左侧单线装饰内容块。

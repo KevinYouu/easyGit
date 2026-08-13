@@ -188,7 +188,7 @@ func TestProgressView(t *testing.T) {
 	})
 }
 
-// TestProgressHelpBar 执行中底部帮助栏:≥6 行终端渲染 q 徽章,<6 行隐藏,完成时切换为退出提示
+// TestProgressHelpBar 执行中底部帮助栏:≥6 行终端渲染 [q] 前缀,<6 行隐藏,完成时切换为退出提示
 func TestProgressHelpBar(t *testing.T) {
 	commands := []CommandInfo{
 		{Command: "git", Args: []string{"add", "."}, Description: "暂存更改", SuccessMsg: "暂存完成"},
@@ -199,8 +199,8 @@ func TestProgressHelpBar(t *testing.T) {
 		m.width, m.height = 80, 24
 		m.executing = true
 		view := ansi.Strip(m.View().Content)
-		if !strings.Contains(view, " q ") {
-			t.Errorf("执行中应渲染 q 退出徽章: %q", view)
+		if !strings.Contains(view, "[q]") {
+			t.Errorf("执行中应渲染 [q] 退出前缀: %q", view)
 		}
 		if !strings.Contains(view, i18n.T("form.help.quit")) {
 			t.Errorf("执行中应含退出动作文本: %q", view)
@@ -212,7 +212,7 @@ func TestProgressHelpBar(t *testing.T) {
 		m.width, m.height = 80, 4
 		m.executing = true
 		view := ansi.Strip(m.View().Content)
-		if strings.Contains(view, " q ") {
+		if strings.Contains(view, "[q]") {
 			t.Errorf("4 行终端不应渲染帮助栏: %q", view)
 		}
 	})
@@ -225,7 +225,7 @@ func TestProgressHelpBar(t *testing.T) {
 		if !strings.Contains(view, i18n.T("ui.exiting.success")) {
 			t.Errorf("完成时应显示退出提示: %q", view)
 		}
-		if strings.Contains(view, " q ") {
+		if strings.Contains(view, "[q]") {
 			t.Errorf("完成时不应渲染帮助栏: %q", view)
 		}
 	})

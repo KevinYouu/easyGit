@@ -7,17 +7,17 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// 设计令牌 - Shadcn / Zinc Dark 色系
+// 设计令牌 - Shadcn / Neutral Dark 色系
 // 参考: docs/ui-shadcn-tui-refactor.md
 var (
 	// 核心文本颜色
-	PrimaryColor    = lipgloss.Color("#fafafa") // foreground / primary (Zinc 50)
-	MutedForeground = lipgloss.Color("#a1a1aa") // muted text (Zinc 400)
+	PrimaryColor    = lipgloss.Color("#fafafa") // foreground / primary (Neutral 50)
+	MutedForeground = lipgloss.Color("#a3a3a3") // muted text (Neutral 400)
 
 	// 边框 / 输入 / 选中背景
-	BorderColor = lipgloss.Color("#3f3f46") // border / input (Zinc 700)
-	SelectionBg = lipgloss.Color("#3f3f46") // selection background (Zinc 700)
-	SelectionFg = lipgloss.Color("#fafafa") // selection foreground (Zinc 50)
+	BorderColor = lipgloss.Color("#404040") // border / input (Neutral 700)
+	SelectionBg = lipgloss.Color("#404040") // selection background (Neutral 700)
+	SelectionFg = lipgloss.Color("#fafafa") // selection foreground (Neutral 50)
 
 	// 语义颜色
 	SuccessColor = lipgloss.Color("#10b981") // Emerald 500
@@ -137,7 +137,7 @@ func GetCompactTheme() huh.Theme {
 		theme.Blurred.Description = lipgloss.NewStyle().
 			Foreground(MutedForeground)
 
-		// 选择器样式 - Zinc Dark 选中态
+		// 选择器样式 - Neutral Dark 选中态
 		theme.Focused.SelectedOption = lipgloss.NewStyle().
 			Background(SelectionBg).
 			Foreground(SelectionFg).

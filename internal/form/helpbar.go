@@ -13,18 +13,16 @@ import (
 // HelpBarMinTermHeight 终端高度低于该值时帮助栏不渲染(避免挤压内容)
 const HelpBarMinTermHeight = 6
 
-// HelpKey 帮助栏键位项:键位徽章 + 动作说明(调用方已 i18n)
+// HelpKey 帮助栏键位项:键位前缀 + 动作说明(调用方已 i18n)
 type HelpKey struct {
 	Key    string // "↑/↓"、"Enter"、"Space"、"Esc"、"q"
 	Action string // 动作说明(调用方已 i18n)
 }
 
-// keyBadgeStyle 键位徽章:Zinc Dark 选中色底 + 浅色字,与选项选中态同色系
-var keyBadgeStyle = lipgloss.NewStyle().
-	Background(theme.SelectionBg).
-	Foreground(theme.SelectionFg).
-	Bold(true).
-	Padding(0, 1)
+// keyStyle 键位前缀样式:主色加粗文本,无背景色(终端友好,括号本身即视觉边界)
+var keyStyle = lipgloss.NewStyle().
+	Foreground(theme.PrimaryColor).
+	Bold(true)
 
 // helpActionStyle 动作说明:弱化前景色
 var helpActionStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
@@ -86,7 +84,7 @@ func ProgressHelpKeys() []HelpKey {
 	}
 }
 
-// RenderHelpBar 渲染单行帮助栏:键位徽章 + 动作说明,键值对间两空格分隔;
+// RenderHelpBar 渲染单行帮助栏:`[键位]` 前缀 + 动作说明,键值对间两空格分隔;
 // 超宽时整行 SafeTruncate 防止折行;空键位或负宽度返回空串。
 func RenderHelpBar(keys []HelpKey, width int) string {
 	if len(keys) == 0 || width < 0 {
@@ -94,7 +92,7 @@ func RenderHelpBar(keys []HelpKey, width int) string {
 	}
 	parts := make([]string, 0, len(keys))
 	for _, k := range keys {
-		parts = append(parts, keyBadgeStyle.Render(k.Key)+" "+helpActionStyle.Render(k.Action))
+		parts = append(parts, keyStyle.Render("["+k.Key+"]")+" "+helpActionStyle.Render(k.Action))
 	}
 	return SafeTruncate(strings.Join(parts, "  "), width)
 }

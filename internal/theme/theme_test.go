@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"image/color"
 	"strings"
 	"testing"
 )
@@ -62,26 +63,37 @@ func TestGetArrowSpinnerFrames(t *testing.T) {
 }
 
 func TestColors(t *testing.T) {
-	// 验证 Zinc Dark 颜色令牌已定义
-	colors := []struct {
+	// 验证 Neutral Dark 颜色令牌精确色值(lipgloss.Color 返回 color.Color 接口,
+	// 仅断言非 nil 无效——接口零值也是 nil 字符串兜底,故按 RGBA 逐通道断言)
+	tests := []struct {
 		name string
-		val  any
+		got  color.Color
+		want color.RGBA
 	}{
-		{"PrimaryColor", PrimaryColor},
-		{"MutedForeground", MutedForeground},
-		{"BorderColor", BorderColor},
-		{"SelectionBg", SelectionBg},
-		{"SelectionFg", SelectionFg},
-		{"SuccessColor", SuccessColor},
-		{"ErrorColor", ErrorColor},
-		{"WarningColor", WarningColor},
-		{"InfoColor", InfoColor},
+		{"PrimaryColor", PrimaryColor, color.RGBA{R: 0xfa, G: 0xfa, B: 0xfa, A: 0xff}},       // Neutral 50
+		{"MutedForeground", MutedForeground, color.RGBA{R: 0xa3, G: 0xa3, B: 0xa3, A: 0xff}}, // Neutral 400
+		{"BorderColor", BorderColor, color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0xff}},         // Neutral 700
+		{"SelectionBg", SelectionBg, color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0xff}},         // Neutral 700
+		{"SelectionFg", SelectionFg, color.RGBA{R: 0xfa, G: 0xfa, B: 0xfa, A: 0xff}},         // Neutral 50
+		{"SuccessColor", SuccessColor, color.RGBA{R: 0x10, G: 0xb9, B: 0x81, A: 0xff}},       // Emerald 500
+		{"ErrorColor", ErrorColor, color.RGBA{R: 0xef, G: 0x44, B: 0x44, A: 0xff}},           // Red 500
+		{"WarningColor", WarningColor, color.RGBA{R: 0xf5, G: 0x9e, B: 0x0b, A: 0xff}},       // Amber 500
+		{"InfoColor", InfoColor, color.RGBA{R: 0x3b, G: 0x82, B: 0xf6, A: 0xff}},             // Blue 500
 	}
 
-	for _, c := range colors {
-		if c.val == nil {
-			t.Errorf("%s should not be nil", c.name)
-		}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.got == nil {
+				t.Fatalf("%s 未定义", tc.name)
+			}
+			r, g, b, a := tc.got.RGBA()
+			want := tc.want
+			if r != uint32(want.R)*0x101 || g != uint32(want.G)*0x101 ||
+				b != uint32(want.B)*0x101 || a != uint32(want.A)*0x101 {
+				t.Errorf("%s = #%02x%02x%02x, want #%02x%02x%02x",
+					tc.name, r>>8, g>>8, b>>8, want.R, want.G, want.B)
+			}
+		})
 	}
 }
 

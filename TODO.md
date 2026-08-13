@@ -6,6 +6,7 @@
 
 ## 已完成:统一帮助栏 + 选项单行说明
 
+- [x] 帮助栏键位改 `[Esc]` 前缀式(主色加粗无背景),主题 Zinc Dark → Neutral Dark(Muted 400 / Border 700) → `internal/form/helpbar.go`、`internal/theme/theme.go`
 - [x] 修复选中态背景断裂:OptionLabel 内嵌段剥离段尾 reset,说明段前复位字重(`\x1b[22m`),背景连续贯穿整行且说明保持常规字重 → `internal/form/helpbar.go`
 - [x] TERM=dumb(accessible)时 selectOptionLabel 剥离样式,防无 reset 序列泄漏;`isAccessibleMode` 统一判定(与 huh 构造期耦合注释钉住) → `internal/form/select.go`、`form.go`
 - [x] 回归测试:选中态背景连续(名称与说明之间无 reset)、说明段生效字重常规(状态机断言)、TERM=dumb 纯文本(含 huh accessible 真实路径) → `helpbar_test.go`、`form_test.go`

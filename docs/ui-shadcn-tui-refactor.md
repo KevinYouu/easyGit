@@ -10,15 +10,15 @@
 
 ### 2.1 设计令牌 (Design Tokens)
 
-统一定义了全局样式令牌，并严格遵循 Zinc Dark 色系：
+统一定义了全局样式令牌，并严格遵循 Neutral Dark 色系：
 
-核心颜色令牌 (Zinc Dark)：
-`foreground`: `#fafafa` (高亮白文字，Zinc 50)
+核心颜色令牌 (Neutral Dark)：
+`foreground`: `#fafafa` (高亮白文字，Neutral 50)
 `primary`: `#fafafa` (主操作/高亮文字)
-`mutedForeground`: `#a1a1aa` (弱化提示文本，Zinc 400)
-`border`: `#3f3f46` (边框/分隔线，Zinc 700，增强可见度)
-`input`: `#3f3f46` (输入边界色)
-`selection`: `#3f3f46` (选中项/焦点行背景色) \* `selectionForeground`: `#fafafa` (选中项文字前景色)
+`mutedForeground`: `#a3a3a3` (弱化提示文本，Neutral 400)
+`border`: `#404040` (边框/分隔线，Neutral 700，增强可见度)
+`input`: `#404040` (输入边界色)
+`selection`: `#404040` (选中项/焦点行背景色) \* `selectionForeground`: `#fafafa` (选中项文字前景色)
 
 Diff 颜色令牌：
 `diffAddedBg`: `#1a3a1a` (暗绿色背景)
@@ -51,7 +51,7 @@ Diff 颜色令牌：
 审批弹窗 (Approval Prompt)：移除大块黄色和冗余边框。使用左侧单像素装饰线标识内容块。
 垂直间距：收紧非必要的垂直 Margin/Padding，优先展示核心内容（如代码 Diff 或命令预览）。
 边框规范：
-默认容器（`Panel`）使用 `colors.border` (#3f3f46)。
+默认容器（`Panel`）使用 `colors.border` (#404040)。
 获取焦点或处于等待审批状态时，边框颜色可动态切换为 `colors.primary` 或 `colors.warning`。
 
 ## 4. 实施成果验证

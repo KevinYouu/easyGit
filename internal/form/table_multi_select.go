@@ -146,7 +146,7 @@ func (m *tableMultiModel) View() tea.View {
 		lines = lines[1:]
 	}
 
-	// 底部帮助行改为徽章式帮助栏(与全局统一风格),结构仍为 标题/空行/帮助 三行
+	// 底部帮助行改为 [键位] 前缀式帮助栏(与全局统一风格),结构仍为 标题/空行/帮助 三行
 	footer := RenderHelpBar(tableMultiHelpKeys(), max(m.width-cellPaddingWidth, footerMinWidth))
 	// 窄屏下帮助文本可能溢出,按终端宽度截断
 	footer = SafeTruncate(footer, max(m.width-cellPaddingWidth, footerMinWidth))

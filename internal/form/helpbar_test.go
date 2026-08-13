@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// RenderHelpBar 单行帮助栏:徽章渲染、ANSI 剥离后单行不折行、超宽截断、空键位。
+// RenderHelpBar 单行帮助栏:`[键位]` 前缀渲染、ANSI 剥离后单行不折行、超宽截断、空键位。
 func TestRenderHelpBar(t *testing.T) {
 	keys := []HelpKey{
 		{Key: "↑/↓", Action: "导航"},
@@ -21,12 +21,30 @@ func TestRenderHelpBar(t *testing.T) {
 		{Key: "Esc", Action: "取消"},
 	}
 
-	t.Run("键位徽章与动作文本均出现", func(t *testing.T) {
+	t.Run("键位方括号前缀与动作文本均出现", func(t *testing.T) {
 		bar := RenderHelpBar(keys, 80)
 		plain := ansi.Strip(bar)
-		for _, want := range []string{"↑/↓", "Enter", "Esc", "导航", "确认", "取消"} {
+		for _, want := range []string{"[↑/↓]", "[Enter]", "[Esc]", "导航", "确认", "取消"} {
 			if !strings.Contains(plain, want) {
 				t.Errorf("帮助栏缺少 %q: %q", want, plain)
+			}
+		}
+	})
+
+	t.Run("键位段样式:主色加粗无背景", func(t *testing.T) {
+		bar := RenderHelpBar(keys, 80)
+		seqs := sgrSeqList(bar)
+		if len(seqs) < 2 {
+			t.Fatalf("帮助栏应含键位/动作样式序列: %q", bar)
+		}
+		// 首个序列属于第一个键位段([↑/↓]):主色加粗(1 + 前景 38)
+		if !slices.Contains(seqs[0], "1") || !slices.Contains(seqs[0], "38") {
+			t.Errorf("键位段应主色加粗(含 1;38): %q", bar)
+		}
+		// 键位前缀无背景:整行不得出现背景色序列(48)
+		for _, params := range seqs {
+			if slices.Contains(params, "48") {
+				t.Errorf("键位段不应含背景色(48): %q", bar)
 			}
 		}
 	})
