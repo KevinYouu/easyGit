@@ -6,7 +6,6 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
@@ -147,18 +146,16 @@ func TestCommandTableRender(t *testing.T) {
 
 	t.Run("drop/squash 多选提交", func(t *testing.T) {
 		options := tableOptions(20)
-		for _, sz := range tableSizes {
-			m := &tableMultiModel{
-				choices:  options,
-				selected: make(map[int]bool),
-				width:    sz.w,
-				height:   sz.h,
-				title:    "选择提交",
-				styles:   defaultTableStyles(),
-				table:    table.New(table.WithFocused(true)),
+		// drop 与 squash 使用不同的 i18n 标题,逐一驱动生产构造器
+		for _, title := range []string{i18n.T("rebase.select.drop_commits"), i18n.T("rebase.select.squash_commits")} {
+			for _, sz := range tableSizes {
+				t.Run(fmt.Sprintf("%s %dx%d", title, sz.w, sz.h), func(t *testing.T) {
+					m := NewTableMultiSelectModel(title, options)
+					m.width, m.height = sz.w, sz.h
+					m.updateLayout()
+					assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
+				})
 			}
-			m.updateLayout()
-			assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
 		}
 	})
 
@@ -217,8 +214,8 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{
 			name: "多选",
 			view: func(w, h int) string {
-				m := &tableMultiModel{choices: options, selected: map[int]bool{}, width: w, height: h,
-					title: "选择提交", styles: defaultTableStyles(), table: table.New(table.WithFocused(true))}
+				m := NewTableMultiSelectModel(i18n.T("rebase.select.drop_commits"), options)
+				m.width, m.height = w, h
 				m.updateLayout()
 				return ansi.Strip(m.View().Content)
 			},

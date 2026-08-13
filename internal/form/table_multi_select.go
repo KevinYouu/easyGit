@@ -135,7 +135,10 @@ func (m *tableMultiModel) View() tea.View {
 			count++
 		}
 	}
-	countView := lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(fmt.Sprintf(" (%d selected)", count))
+	countView := lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(fmt.Sprintf(i18n.T("table.multi.selected.count"), count))
+
+	// 标题行固定为一行:窄屏下按终端宽度截断,避免折行
+	titleLine := SafeTruncate(titleView+countView, max(m.width-cellPaddingWidth, footerMinWidth))
 
 	tableView := m.table.View()
 	lines := strings.Split(tableView, "\n")
@@ -147,7 +150,7 @@ func (m *tableMultiModel) View() tea.View {
 	// 窄屏下帮助文本可能溢出,按终端宽度截断
 	footer = SafeTruncate(footer, max(m.width-cellPaddingWidth, footerMinWidth))
 
-	content := fmt.Sprintf("%s%s\n\n%s\n%s", titleView, countView, strings.Join(lines, "\n"), footer)
+	content := fmt.Sprintf("%s\n\n%s\n%s", titleLine, strings.Join(lines, "\n"), footer)
 	// 宽屏富余时水平居中
 	if ShouldCenterTable(m.width, m.table.Columns()) {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
@@ -158,15 +161,16 @@ func (m *tableMultiModel) View() tea.View {
 	return v
 }
 
-// TableMultiSelectForm creates a table-based multi-select form suitable for commits
-func TableMultiSelectForm(title string, options []config.Option) ([]string, error) {
+// NewTableMultiSelectModel 构建多选表格模型(TableMultiSelectForm 与渲染测试
+// 共用同一构造路径,防止模型配置漂移)
+func NewTableMultiSelectModel(title string, options []config.Option) *tableMultiModel {
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		width = defaultTermWidth
 		height = defaultTermHeight
 	}
 
-	m := tableMultiModel{
+	m := &tableMultiModel{
 		choices:  options,
 		selected: make(map[int]bool),
 		width:    width,
@@ -177,9 +181,15 @@ func TableMultiSelectForm(title string, options []config.Option) ([]string, erro
 	}
 
 	m.updateLayout()
+	return m
+}
+
+// TableMultiSelectForm creates a table-based multi-select form suitable for commits
+func TableMultiSelectForm(title string, options []config.Option) ([]string, error) {
+	m := NewTableMultiSelectModel(title, options)
 
 	// 统一使用全屏模式(紧凑仅影响列布局,不决定 AltScreen)
-	p := tea.NewProgram(&m)
+	p := tea.NewProgram(m)
 
 	finalModel, err := p.Run()
 	if err != nil {

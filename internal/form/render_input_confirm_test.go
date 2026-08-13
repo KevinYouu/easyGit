@@ -1,7 +1,6 @@
 package form
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -11,77 +10,62 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
-	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/x/ansi"
 )
 
 // 命令 × Input/Confirm 表单渲染覆盖。
-// 两类表单均无 Height 设置,内容高度固定,任何终端高度下不填充不裁剪。
+// 经生产构造器 NewInputForm/NewConfirmForm 驱动渲染,与命令实际执行的
+// 构造路径一致;两类表单均无 Height 设置,内容高度固定,任何终端高度下不填充不裁剪。
 
-// renderInputField 构造与 Input 完全一致的 huh 输入表单
-// (占位符/非空校验与 internal/form/input.go 保持一致)
+// renderInputField 经生产构造器 NewInputForm 渲染输入表单
 func renderInputField(title, defaultValue string, termHeight int) string {
 	value := defaultValue
-	form := huh.NewForm(huh.NewGroup(
-		huh.NewInput().
-			Title(title).
-			Placeholder(i18n.T("form.input.placeholder")).
-			Value(&value).
-			Validate(func(str string) error {
-				if str == "" {
-					return errors.New(i18n.T("form.input.empty.error"))
-				}
-				return nil
-			}),
-	)).WithTheme(theme.GetCompactTheme())
+	form := NewInputForm(title, &value)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*huh.Form).View()
 }
 
-// renderConfirmField 构造与 Confirm 完全一致的 huh 确认表单
+// renderConfirmField 经生产构造器 NewConfirmForm 渲染确认表单
 func renderConfirmField(title string, termHeight int) string {
 	var confirmed bool
-	form := huh.NewForm(huh.NewGroup(
-		huh.NewConfirm().
-			Title(title).
-			Value(&confirmed),
-	)).WithTheme(theme.GetCompactTheme()).WithShowHelp(false)
+	form := NewConfirmForm(title, &confirmed)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*huh.Form).View()
 }
 
-// commandInputCases 各命令的输入表单(标题/默认值与命令一致)
+// commandInputCases 各命令的输入表单(标题取命令实际 i18n 键;默认值为代表性数据)
 var commandInputCases = []struct {
 	command      string
 	title        string
 	defaultValue string
 }{
 	// push-all / push-selected:提交类型前缀作默认值
-	{command: "push-all message", title: "输入提交信息：", defaultValue: "fix: "},
-	{command: "push-selected message", title: "输入提交信息：", defaultValue: "feat: "},
-	// squash:最早选中提交的消息作默认值
-	{command: "squash message", title: "输入新的提交信息：", defaultValue: "修复登录问题"},
+	{command: "push-all message", title: i18n.T("push.input.commit.message"), defaultValue: "fix: "},
+	{command: "push-selected message", title: i18n.T("push.input.commit.message"), defaultValue: "feat: "},
+	// squash:最早选中提交的消息作默认值(用户数据,代表性取值)
+	{command: "squash message", title: i18n.T("squash.input.message"), defaultValue: "修复登录问题"},
 	// tag:版本号自动递增作默认值
-	{command: "tag version", title: "输入版本号：", defaultValue: "v1.1.0"},
+	{command: "tag version", title: i18n.T("tag.input.version"), defaultValue: "v1.1.0"},
 	// tag:提交消息无默认值,显示占位符
-	{command: "tag message", title: "输入提交信息：", defaultValue: ""},
+	{command: "tag message", title: i18n.T("tag.input.commit.message"), defaultValue: ""},
 }
 
-// commandConfirmCases 各命令的确认表单(动态消息按命令实际 fmt.Sprintf 拼装)
+// commandConfirmCases 各命令的确认表单(标题按命令实际 i18n 键与
+// fmt.Sprintf 格式拼装,与命令渲染完全一致)
 var commandConfirmCases = []struct {
 	command string
 	title   string
 }{
-	// branch delete:本地分支确认,动态嵌入分支名
-	{command: "branch delete confirm", title: "您确定要删除分支 'feature/login' 吗？"},
+	// branch delete:本地分支确认,动态嵌入分支名(代表性取值)
+	{command: "branch delete confirm", title: fmt.Sprintf(i18n.T("branch.delete.confirm"), "feature/login")},
 	// branch delete:远端分支追加确认
-	{command: "branch delete remote confirm", title: "您是否也想删除远程分支？"},
+	{command: "branch delete remote confirm", title: i18n.T("branch.delete.remote.confirm")},
 	// drop:动态嵌入提交计数
-	{command: "drop confirm", title: "确定要删除这 5 个提交吗？"},
+	{command: "drop confirm", title: fmt.Sprintf(i18n.T("rebase.drop.confirm"), 5)},
 	// merge:存在未提交更改时继续合并
-	{command: "merge continue confirm", title: "是否仍要继续合并？"},
+	{command: "merge continue confirm", title: i18n.T("merge.confirm.continue.with.changes")},
 	// reset:按 reset.go 实际 fmt.Sprintf 拼装(重置到 + hash + 短消息 + 模式 + 描述),
 	// hard 模式追加警告行(警告图标 + 文案)
 	{command: "reset confirm", title: fmt.Sprintf("%s %s  %s %s %s%s\n%s %s",
@@ -89,7 +73,7 @@ var commandConfirmCases = []struct {
 		"hard", i18n.T("reset.mode.hard.desc"),
 		"⚠️", i18n.T("reset.hard.warning"))},
 	// tag delete:两行动态消息(标签名 + 影响范围)
-	{command: "tag delete confirm", title: "您确定要删除标签 'v1.0.0' 吗？\n这将从本地和远程仓库中删除标签。"},
+	{command: "tag delete confirm", title: fmt.Sprintf(i18n.T("tag.delete.confirm"), "v1.0.0")},
 }
 
 // assertCompactField 校验 Input/Confirm 表单:内容高度固定,

@@ -6,56 +6,37 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
-	"github.com/KevinYouu/easyGit/internal/theme"
 	"github.com/charmbracelet/x/ansi"
 )
 
-// 渲染级测试:直接构造真实 huh 字段/表格模型,按终端尺寸矩阵渲染并断言,
+// 渲染级测试:直接驱动生产表单构造器,按终端尺寸矩阵渲染并断言,
 // 覆盖 SelectForm/MultiSelectForm 高度利用与 TableSelect/TableMultiSelect 溢出问题。
 // 按测试功能块拆分:
 //   - render_test.go:            基础组件渲染 + 共享辅助函数
 //   - render_command_test.go:    命令 × Select/MultiSelect/Table 表单渲染
 //   - render_input_confirm_test.go: 命令 × Input/Confirm 表单渲染
 
-// renderSelectField 构造与 SelectForm 完全一致的 huh 单选表单
+// renderSelectField 经生产构造器 NewSelectForm 渲染单选表单
 func renderSelectField(title string, labels []string, termHeight int) string {
-	opts := make([]huh.Option[string], len(labels))
+	opts := make([]config.Option, len(labels))
 	for i, l := range labels {
-		opts[i] = huh.NewOption(l, l)
+		opts[i] = config.Option{Label: l, Value: l}
 	}
 	var selected string
-	form := huh.NewForm(huh.NewGroup(
-		huh.NewSelect[string]().
-			Title(title).
-			Options(opts...).
-			Value(&selected).
-			Height(CalculateSelectHeight(len(labels), termHeight)).
-			Filtering(false),
-	)).WithTheme(theme.GetCompactTheme()).WithShowHelp(false)
+	form := NewSelectForm(title, opts, termHeight, &selected)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*huh.Form).View()
 }
 
-// renderMultiSelectField 构造与 MultiSelectForm 完全一致的 huh 多选表单
+// renderMultiSelectField 经生产构造器 NewMultiSelectForm 渲染多选表单
 func renderMultiSelectField(title string, labels []string, termHeight int) string {
-	opts := make([]huh.Option[string], len(labels))
-	for i, l := range labels {
-		opts[i] = huh.NewOption(l, l)
-	}
 	var selected []string
-	form := huh.NewForm(huh.NewGroup(
-		huh.NewMultiSelect[string]().
-			Title(title).
-			Options(opts...).
-			Value(&selected).
-			Height(CalculateMultiSelectHeight(len(labels), termHeight)),
-	)).WithTheme(theme.GetCompactTheme()).WithShowHelp(false)
+	form := NewMultiSelectForm(title, labels, termHeight, &selected)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*huh.Form).View()
@@ -261,15 +242,8 @@ func TestTableMultiSelectRender(t *testing.T) {
 	options := testOptions()
 	for _, sz := range tableSizes {
 		t.Run(fmt.Sprintf("%dx%d", sz.w, sz.h), func(t *testing.T) {
-			m := &tableMultiModel{
-				choices:  options,
-				selected: make(map[int]bool),
-				width:    sz.w,
-				height:   sz.h,
-				title:    "测试多选",
-				styles:   defaultTableStyles(),
-				table:    table.New(table.WithFocused(true)),
-			}
+			m := NewTableMultiSelectModel("测试多选", options)
+			m.width, m.height = sz.w, sz.h
 			m.updateLayout()
 			assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
 		})

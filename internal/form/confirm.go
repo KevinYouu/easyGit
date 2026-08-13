@@ -5,21 +5,24 @@ import (
 	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
-func Confirm(title string) bool {
-	var confirmed bool
-
+// NewConfirmForm 构造确认 huh 表单(Confirm 与渲染测试共用同一构造路径,
+// 防止生产配置与测试复刻漂移)。确认结果写入 value。
+func NewConfirmForm(title string, value *bool) *huh.Form {
 	// 直接使用紧凑模式，并尝试禁用帮助
-	form := huh.NewForm(
+	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Title(title).
-				Value(&confirmed),
+				Value(value),
 		),
 	).WithTheme(theme.GetCompactTheme()).
 		WithShowHelp(false) // 尝试禁用帮助
+}
 
-	err := form.Run()
-	if err != nil {
+func Confirm(title string) bool {
+	var confirmed bool
+
+	if err := NewConfirmForm(title, &confirmed).Run(); err != nil {
 		return false
 	}
 
