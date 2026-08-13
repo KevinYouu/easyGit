@@ -71,6 +71,8 @@ var zhTranslations = map[string]string{
 	"language.select.title":     "选择界面语言",
 	"language.option.en":        "English",
 	"language.option.zh":        "简体中文",
+	"language.option.en.desc":   "英文界面",
+	"language.option.zh.desc":   "简体中文界面",
 
 	// Common messages
 	"error.general":      "发生错误：",
@@ -102,12 +104,30 @@ var zhTranslations = map[string]string{
 	"progress.loading":  "加载中...",
 	"progress.complete": "完成！",
 
+	// Progress model (multi-step execution screen)
+	"progress.preparing":   "准备中...",
+	"progress.executing":   "正在执行: %s",
+	"progress.completed":   "已完成: %s",
+	"progress.failed":      "失败: %s",
+	"progress.step.failed": "步骤 %d 失败: %s",
+	"progress.output":      "输出: %s",
+	"progress.command":     "命令: %s %s",
+
 	// Form components
 	"form.input.placeholder": "请输入...",
 	"form.input.empty.error": "输入不能为空",
 	"form.confirm.title":     "确认",
 	"form.select.title":      "请选择一个选项",
 	"form.multiselect.title": "请选择选项",
+
+	// Form help bar keys
+	"form.help.navigate": "导航",
+	"form.help.confirm":  "确认",
+	"form.help.cancel":   "取消",
+	"form.help.submit":   "提交",
+	"form.help.toggle":   "选择/取消",
+	"form.help.switch":   "切换",
+	"form.help.quit":     "退出",
 
 	// Git commands and operations
 	"git.remotes.title":        "远程仓库：",
@@ -143,6 +163,14 @@ var zhTranslations = map[string]string{
 	"reset.mode.soft.desc":      " (保留全部)",
 	"reset.mode.mixed.desc":     " (默认)",
 	"reset.mode.hard.desc":      " (危险)",
+	"reset.option.default.name": "default",
+	"reset.option.default.desc": "推荐,等同 mixed 不传参数",
+	"reset.option.soft.name":    "soft",
+	"reset.option.soft.desc":    "保留工作区与暂存区更改",
+	"reset.option.mixed.name":   "mixed",
+	"reset.option.mixed.desc":   "保留工作区更改,取消暂存",
+	"reset.option.hard.name":    "hard",
+	"reset.option.hard.desc":    "丢弃所有未提交更改(危险)",
 	"reset.confirm.to":          "确认重置到",
 	"reset.confirm.mode":        "模式",
 	"reset.hard.warning":        "将丢失所有未提交更改！",
@@ -281,6 +309,17 @@ var zhTranslations = map[string]string{
 	"push.files.adding":         "正在添加文件...",
 	"push.committing":           "正在提交更改...",
 	"push.to.remote":            "正在推送到远程...",
+
+	// Commit type descriptions (rendered as single-line option hints)
+	"commit.type.desc.fix":      "修复缺陷",
+	"commit.type.desc.feat":     "新功能",
+	"commit.type.desc.refactor": "代码重构",
+	"commit.type.desc.build":    "构建系统",
+	"commit.type.desc.chore":    "杂项维护",
+	"commit.type.desc.style":    "代码风格",
+	"commit.type.desc.docs":     "文档",
+	"commit.type.desc.revert":   "回滚更改",
+	"commit.type.desc.test":     "测试",
 
 	// Form validation
 	"validation.required": "此字段为必填项",
@@ -458,6 +497,9 @@ var zhTranslations = map[string]string{
 	"rebase.action.continue":       "继续 (Continue)",
 	"rebase.action.skip":           "跳过当前提交 (Skip)",
 	"rebase.action.abort":          "中止并恢复原状 (Abort)",
+	"rebase.action.continue.desc":  "继续执行变基",
+	"rebase.action.skip.desc":      "跳过当前提交",
+	"rebase.action.abort.desc":     "取消本次变基",
 	"rebase.select.target":         "选择要变基到的目标分支:",
 	"rebase.select.drop_commits":   "选择要删除的提交:",
 	"rebase.select.squash_commits": "选择要合并的连续提交:",

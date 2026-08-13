@@ -52,6 +52,17 @@ func T(key string) string {
 	return key
 }
 
+// Has 报告翻译键是否存在(以英文表为准,英文表是全部语言的回退基准)
+func Has(key string) bool {
+	once.Do(initLanguage)
+
+	mu.RLock()
+	defer mu.RUnlock()
+
+	_, exists := enTranslations[key]
+	return exists
+}
+
 // SetLanguage manually sets the language (runtime temporary setting - priority 2)
 func SetLanguage(lang Language) {
 	mu.Lock()

@@ -71,6 +71,8 @@ var enTranslations = map[string]string{
 	"language.select.title":     "Select Interface Language",
 	"language.option.en":        "English",
 	"language.option.zh":        "简体中文",
+	"language.option.en.desc":   "English interface",
+	"language.option.zh.desc":   "Simplified Chinese interface",
 
 	// Common messages
 	"error.general":      "An error occurred:",
@@ -102,12 +104,30 @@ var enTranslations = map[string]string{
 	"progress.loading":  "Loading...",
 	"progress.complete": "Complete!",
 
+	// Progress model (multi-step execution screen)
+	"progress.preparing":   "Preparing...",
+	"progress.executing":   "Executing: %s",
+	"progress.completed":   "Completed: %s",
+	"progress.failed":      "Failed: %s",
+	"progress.step.failed": "Step %d failed: %s",
+	"progress.output":      "Output: %s",
+	"progress.command":     "Command: %s %s",
+
 	// Form components
 	"form.input.placeholder": "Please enter...",
 	"form.input.empty.error": "Input cannot be empty",
 	"form.confirm.title":     "Confirmation",
 	"form.select.title":      "Please select an option",
 	"form.multiselect.title": "Please select options",
+
+	// Form help bar keys
+	"form.help.navigate": "Navigate",
+	"form.help.confirm":  "Confirm",
+	"form.help.cancel":   "Cancel",
+	"form.help.submit":   "Submit",
+	"form.help.toggle":   "Toggle",
+	"form.help.switch":   "Switch",
+	"form.help.quit":     "Quit",
 
 	// Git commands and operations
 	"git.remotes.title":        "Remotes:",
@@ -143,6 +163,14 @@ var enTranslations = map[string]string{
 	"reset.mode.soft.desc":      " (keep all)",
 	"reset.mode.mixed.desc":     " (default)",
 	"reset.mode.hard.desc":      " (dangerous)",
+	"reset.option.default.name": "default",
+	"reset.option.default.desc": "recommended, same as mixed",
+	"reset.option.soft.name":    "soft",
+	"reset.option.soft.desc":    "keep working dir & staging",
+	"reset.option.mixed.name":   "mixed",
+	"reset.option.mixed.desc":   "keep working dir, unstage",
+	"reset.option.hard.name":    "hard",
+	"reset.option.hard.desc":    "discard all changes (danger)",
 	"reset.confirm.to":          "Confirm reset to",
 	"reset.confirm.mode":        "mode",
 	"reset.hard.warning":        "Will lose all uncommitted changes!",
@@ -281,6 +309,17 @@ var enTranslations = map[string]string{
 	"push.files.adding":         "Adding files...",
 	"push.committing":           "Committing changes...",
 	"push.to.remote":            "Pushing to remote...",
+
+	// Commit type descriptions (rendered as single-line option hints)
+	"commit.type.desc.fix":      "Bug fixes",
+	"commit.type.desc.feat":     "New features",
+	"commit.type.desc.refactor": "Code refactoring",
+	"commit.type.desc.build":    "Build system",
+	"commit.type.desc.chore":    "Maintenance tasks",
+	"commit.type.desc.style":    "Code style",
+	"commit.type.desc.docs":     "Documentation",
+	"commit.type.desc.revert":   "Revert changes",
+	"commit.type.desc.test":     "Tests",
 
 	// Form validation
 	"validation.required": "This field is required",
@@ -458,6 +497,9 @@ var enTranslations = map[string]string{
 	"rebase.action.continue":       "Continue",
 	"rebase.action.skip":           "Skip current commit",
 	"rebase.action.abort":          "Abort and return to original state",
+	"rebase.action.continue.desc":  "Continue the rebase",
+	"rebase.action.skip.desc":      "Skip the current commit",
+	"rebase.action.abort.desc":     "Cancel the rebase",
 	"rebase.select.target":         "Select branch to rebase onto:",
 	"rebase.select.drop_commits":   "Select commits to drop (delete):",
 	"rebase.select.squash_commits": "Select contiguous commits to squash (merge):",

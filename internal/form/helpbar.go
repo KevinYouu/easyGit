@@ -1,0 +1,128 @@
+package form
+
+import (
+	"strings"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
+)
+
+// helpBarMinTermHeight 终端高度低于该值时帮助栏不渲染(避免挤压内容)
+const helpBarMinTermHeight = 6
+
+// HelpKey 帮助栏键位项:键位徽章 + 动作说明(调用方已 i18n)
+type HelpKey struct {
+	Key    string // "↑/↓"、"Enter"、"Space"、"Esc"、"q"
+	Action string // 动作说明(调用方已 i18n)
+}
+
+// keyBadgeStyle 键位徽章:Zinc Dark 选中色底 + 浅色字,与选项选中态同色系
+var keyBadgeStyle = lipgloss.NewStyle().
+	Background(theme.SelectionBg).
+	Foreground(theme.SelectionFg).
+	Bold(true).
+	Padding(0, 1)
+
+// helpActionStyle 动作说明:弱化前景色
+var helpActionStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+
+// 预置键位集合:各交互形态的统一帮助栏内容,全部单行紧凑
+func selectHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
+		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
+func multiSelectHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
+		{Key: "Space", Action: i18n.T("form.help.toggle")},
+		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
+func inputHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "Enter", Action: i18n.T("form.help.submit")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
+func confirmHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "←/→", Action: i18n.T("form.help.switch")},
+		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
+func tableSelectHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
+		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "q", Action: i18n.T("form.help.quit")},
+	}
+}
+
+func tableMultiHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
+		{Key: "Space", Action: i18n.T("form.help.toggle")},
+		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "q", Action: i18n.T("form.help.quit")},
+	}
+}
+
+func progressHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "q", Action: i18n.T("form.help.quit")},
+	}
+}
+
+// RenderHelpBar 渲染单行帮助栏:键位徽章 + 动作说明,键值对间两空格分隔;
+// 超宽时整行 SafeTruncate 防止折行;空键位或负宽度返回空串。
+func RenderHelpBar(keys []HelpKey, width int) string {
+	if len(keys) == 0 || width < 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, keyBadgeStyle.Render(k.Key)+" "+helpActionStyle.Render(k.Action))
+	}
+	return SafeTruncate(strings.Join(parts, "  "), width)
+}
+
+// AppendHelpBar 将帮助栏追加到视图末尾(单行);键位为空、视图为空或宽度无效时不附加。
+// width 为终端宽度:截断须以真实终端宽度为准,而非视图内容宽度
+// (内容可能仅数列宽,按内容截断会把帮助栏裁没)。
+func AppendHelpBar(v tea.View, keys []HelpKey, width int) tea.View {
+	if len(keys) == 0 || strings.TrimSpace(v.Content) == "" {
+		return v
+	}
+	bar := RenderHelpBar(keys, width)
+	if bar == "" {
+		return v
+	}
+	v.SetContent(v.Content + "\n" + bar)
+	return v
+}
+
+// OptionLabel 构造单行选项标签:名称亮色加粗 + 说明灰色(同一行内嵌 ANSI)。
+// desc 为空时仅返回名称(纯文本,与未配置说明时零变化)。
+// 说明文案须保持简短(≤ 20 字),避免超宽折行占用额外行高。
+func OptionLabel(name, desc string) string {
+	if desc == "" {
+		return name
+	}
+	return lipgloss.NewStyle().
+		Foreground(theme.PrimaryColor).
+		Bold(true).
+		Render(name) + " " + lipgloss.NewStyle().
+		Foreground(theme.MutedForeground).
+		Render(desc)
+}
