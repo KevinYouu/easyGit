@@ -404,6 +404,42 @@ func TestCommandTableRender(t *testing.T) {
 	})
 }
 
+// TestTableListLongMessageSingleLine 列表超长省略:
+// 每条提交只占一行,消息超列宽时以省略号截断,完整长文本不泄漏到视图
+func TestTableListLongMessageSingleLine(t *testing.T) {
+	// 超过 160 显示宽度(消息列上限),确保所有布局下都必须截断
+	longMsg := strings.Repeat("这个提交消息非常长用于测试省略行为", 6) + "TAILMARKER987654"
+	full := longMsg + "完整尾巴绝不应出现在列表中"
+	options := []config.Option{
+		{Label: fmt.Sprintf("a1b2c3d %s\n07-12 10:00 • 张三丰", full), Value: "v"},
+	}
+	for _, sz := range tableSizes {
+		m := &tableMultiModel{choices: options, selected: map[int]bool{}, width: sz.w, height: sz.h,
+			title: "选择提交", styles: defaultTableStyles(), table: table.New(table.WithFocused(true))}
+		m.updateLayout()
+		view := ansi.Strip(m.View().Content)
+
+		// 恰好 3 行:标题 + 一行提交 + 底部帮助行(提交不得折行)
+		lines := 0
+		for line := range strings.SplitSeq(view, "\n") {
+			if strings.TrimSpace(line) != "" {
+				lines++
+			}
+		}
+		if lines != 3 {
+			t.Errorf("%dx%d: 非空行数 = %d, want 3(提交折行为多行)", sz.w, sz.h, lines)
+		}
+
+		// 超长消息必须以省略号截断,完整尾巴不得出现
+		if !strings.Contains(view, "...") {
+			t.Errorf("%dx%d: 超长消息未省略", sz.w, sz.h)
+		}
+		if strings.Contains(view, "完整尾巴") {
+			t.Errorf("%dx%d: 完整长文本泄漏到列表中", sz.w, sz.h)
+		}
+	}
+}
+
 // renderInputField 构造与 Input 完全一致的 huh 输入表单
 func renderInputField(title string, termHeight int) string {
 	var value string
