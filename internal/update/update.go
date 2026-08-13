@@ -1,293 +1,144 @@
 package update
 
 import (
-	"archive/zip"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/version"
 )
 
-const (
-	repoOwner = "KevinYouu"
-	repoName  = "easyGit"
-)
-
-type GitHubRelease struct {
-	TagName string `json:"tag_name"`
-}
-
-func getLatestVersion() (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var release GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", err
-	}
-	return release.TagName, nil
-}
-
-func getPlatformName() (string, error) {
-	switch runtime.GOOS {
-	case "windows":
-		switch runtime.GOARCH {
-		case "amd64":
-			return "windows_amd64", nil
-		case "arm64":
-			return "windows_arm64", nil
-		}
-	case "linux":
-		switch runtime.GOARCH {
-		case "amd64":
-			return "linux_amd64", nil
-		case "arm64", "aarch64":
-			return "linux_arm64", nil
-		}
-	case "darwin":
-		switch runtime.GOARCH {
-		case "amd64":
-			return "darwin_amd64", nil
-		case "arm64":
-			return "darwin_arm64", nil
-		}
-	}
-	return "", fmt.Errorf(i18n.T("update.unsupported_platform")+": %s/%s", runtime.GOOS, runtime.GOARCH)
-}
-
-func getInstallDir() string {
-	switch runtime.GOOS {
-	case "darwin":
-		if runtime.GOARCH == "arm64" {
-			return "/opt/homebrew/bin"
-		}
-		return "/usr/local/bin"
-	case "linux":
-		return "/usr/local/bin"
-	case "windows":
-		// Windows 通过 PowerShell 脚本处理
-		return ""
-	}
-	return "/usr/local/bin"
-}
-
+// UpdateSelf 将 easyGit 更新到最新版本。
+// Windows 通过本地下载的 PowerShell 脚本完成，Unix 走内置的 下载→校验→解压→原子安装 流程。
 func UpdateSelf() error {
-	// Windows 使用 PowerShell 脚本
 	if runtime.GOOS == "windows" {
-		fmt.Println(i18n.T("update.running_windows_script"))
-		_, err := command.RunCmdWithSpinnerOptions("powershell",
-			[]string{"-Command", "iwr -useb https://raw.githubusercontent.com/KevinYouu/easyGit/main/install.ps1 | iex"},
-			i18n.T("update.downloading_running_script"),
-			i18n.T("update.script_executed_success"), true)
-		if err != nil {
-			return fmt.Errorf(i18n.T("update.failed_run_script")+": %w", err)
-		}
-		fmt.Println(i18n.T("update.complete_restart_manual"))
-		return nil
+		return updateWindows()
 	}
-
-	// Unix 系统（Linux, macOS）使用改进的更新流程
 	return updateUnix()
 }
 
+// updateUnix 在 Unix 系统上执行完整更新流程
 func updateUnix() error {
+	return updateUnixTo(NewReleaseClient(), "")
+}
+
+// updateUnixTo 执行 Unix 更新流程并安装到 target；target 为空时自动解析当前二进制路径。
+// releaseClient 可注入（测试用）。
+func updateUnixTo(releaseClient *ReleaseClient, target string) error {
 	fmt.Println(i18n.T("update.checking_latest_version"))
 
-	version, err := getLatestVersion()
+	remoteVersion, err := releaseClient.LatestVersion()
 	if err != nil {
-		return fmt.Errorf(i18n.T("update.failed_get_latest_version")+": %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_get_latest_version"), err)
 	}
-	fmt.Printf(i18n.T("update.latest_version")+": %s\n", version)
+	fmt.Printf("%s: %s\n", i18n.T("update.latest_version"), remoteVersion)
+
+	// 本地为可比较的发布版本且不低于远程版本时，直接提示已最新
+	if cmp, comparable := compareVersions(version.Version, remoteVersion); comparable && cmp >= 0 {
+		logs.Success(fmt.Sprintf(i18n.T("update.already_latest"), remoteVersion))
+		return nil
+	}
 
 	platform, err := getPlatformName()
 	if err != nil {
 		return err
 	}
 
-	assetName := fmt.Sprintf("easyGit_%s_%s.zip", version, platform)
-	url := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", repoOwner, repoName, version, assetName)
+	assetName := releaseClient.AssetName(remoteVersion, platform)
+	zipURL := releaseClient.AssetURL(remoteVersion, assetName)
 
-	// 创建临时目录
 	tempDir, err := os.MkdirTemp("", "easygit-update-*")
 	if err != nil {
-		return fmt.Errorf(i18n.T("update.failed_create_temp_dir")+": %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_create_temp_dir"), err)
 	}
 	defer os.RemoveAll(tempDir)
 
 	zipPath := filepath.Join(tempDir, assetName)
 
-	// 使用命令执行器下载文件
-	commands := []command.CommandInfo{
-		{
-			Command:     "curl",
-			Args:        []string{"-L", "-o", zipPath, url},
-			Description: i18n.T("update.downloading_latest_release"),
-			LoadingMsg:  fmt.Sprintf(i18n.T("update.downloading_asset"), assetName),
-			SuccessMsg:  i18n.T("update.download_completed"),
-		},
-	}
-
-	err = command.RunMultipleCommands(commands)
+	// 下载安装包（原生 HTTP，带 spinner）
+	err = command.RunFuncWithSpinnerOptions(
+		i18n.T("update.downloading_latest_release"),
+		i18n.T("update.download_completed"),
+		func() error {
+			return releaseClient.DownloadFile(zipURL, zipPath)
+		})
 	if err != nil {
-		// 如果 curl 失败，尝试使用 wget
-		fmt.Println(i18n.T("update.curl_failed_try_wget"))
-		commands[0].Command = "wget"
-		commands[0].Args = []string{"-O", zipPath, url}
-		commands[0].LoadingMsg = fmt.Sprintf(i18n.T("update.downloading_with_wget"), assetName)
-
-		err = command.RunMultipleCommands(commands)
-		if err != nil {
-			return fmt.Errorf(i18n.T("update.failed_download_both")+": %w", err)
-		}
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_download_both"), err)
 	}
 
-	// 解压文件
+	// 下载校验文件并验证安装包完整性，防止下载被篡改或截断
+	err = command.RunFuncWithSpinnerOptions(
+		i18n.T("update.downloading_checksum"),
+		i18n.T("update.checksum_verified"),
+		func() error {
+			checksums, fetchErr := releaseClient.Checksums(remoteVersion)
+			if fetchErr != nil {
+				return fmt.Errorf("%s: %w", i18n.T("update.failed_get_checksums"), fetchErr)
+			}
+			// 校验失败的错误包含实际与期望哈希，便于诊断
+			return verifyChecksum(checksums, assetName, zipPath)
+		})
+	if err != nil {
+		return err
+	}
+
+	// 解压安装包
 	fmt.Println(i18n.T("update.extracting_file"))
-	if err := extractZip(zipPath, tempDir); err != nil {
-		return fmt.Errorf(i18n.T("update.failed_extract_zip")+": %w", err)
+	if err := ExtractZip(zipPath, tempDir); err != nil {
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_extract_zip"), err)
 	}
 
-	// 安装文件
-	installDir := getInstallDir()
+	// 解析当前运行二进制的真实路径作为安装目标，原子替换
+	if target == "" {
+		target, err = resolveInstallTarget()
+		if err != nil {
+			return fmt.Errorf("%s: %w", i18n.T("update.failed_resolve_target"), err)
+		}
+	}
 	extractedBinary := filepath.Join(tempDir, "easyGit")
-	targetPath := filepath.Join(installDir, "easyGit")
 
-	fmt.Printf(i18n.T("update.installing_to")+": %s...\n", installDir)
+	fmt.Printf("%s: %s\n", i18n.T("update.installing_to"), target)
 
-	// 检查目标文件是否存在，如果存在先尝试删除以测试权限
-	if _, err := os.Stat(targetPath); err == nil {
-		// 文件存在，尝试移除以测试权限
-		if err := os.Remove(targetPath); err != nil {
-			fmt.Println(i18n.T("update.root_permissions_required"))
-			fmt.Println(i18n.T("update.password_prompt_hint"))
-			err = runSudoInstall(extractedBinary, targetPath)
-		} else {
-			// 能够删除，说明有权限，直接安装
-			fmt.Println(i18n.T("update.direct_install_sufficient_permissions"))
-			err = runDirectInstall(extractedBinary, targetPath)
-		}
-	} else {
-		// 文件不存在，尝试创建测试文件来检查权限
-		if hasWritePermission(installDir) {
-			fmt.Println(i18n.T("update.direct_install_no_sudo"))
-			err = runDirectInstall(extractedBinary, targetPath)
-		} else {
-			fmt.Println(i18n.T("update.root_permissions_required"))
-			fmt.Println(i18n.T("update.password_prompt_hint"))
-			err = runSudoInstall(extractedBinary, targetPath)
-		}
+	if err := installBinary(extractedBinary, target); err != nil {
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_install_binary"), err)
 	}
 
-	if err != nil {
-		return fmt.Errorf(i18n.T("update.failed_install_binary")+": %w", err)
-	}
-
-	fmt.Println(i18n.T("update.completed_successfully"))
+	logs.Success(i18n.T("update.completed_successfully"))
 	fmt.Println(i18n.T("update.restart_terminal_hint"))
 
 	return nil
 }
 
-func extractZip(src, dest string) error {
-	reader, err := zip.OpenReader(src)
+// updateWindows 下载安装脚本到本地临时目录后执行，避免远程管道执行（iwr | iex）无法审计
+func updateWindows() error {
+	logs.Info(i18n.T("update.running_windows_script"))
+
+	tempDir, err := os.MkdirTemp("", "easygit-update-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_create_temp_dir"), err)
 	}
-	defer reader.Close()
+	defer os.RemoveAll(tempDir)
 
-	for _, file := range reader.File {
-		path := filepath.Join(dest, file.Name)
-
-		if file.FileInfo().IsDir() {
-			os.MkdirAll(path, file.FileInfo().Mode())
-			continue
-		}
-
-		fileReader, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer fileReader.Close()
-
-		targetFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
-		if err != nil {
-			return err
-		}
-		defer targetFile.Close()
-
-		_, err = io.Copy(targetFile, fileReader)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// hasWritePermission 检查是否对目录有写权限
-func hasWritePermission(dir string) bool {
-	testFile := filepath.Join(dir, ".easygit-write-test")
-	file, err := os.Create(testFile)
+	scriptPath := filepath.Join(tempDir, "install.ps1")
+	err = NewReleaseClient().DownloadFile(installScriptURL, scriptPath)
 	if err != nil {
-		return false
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_download_script"), err)
 	}
-	file.Close()
-	os.Remove(testFile)
-	return true
-}
 
-// runDirectInstall 直接安装（无需 sudo）
-func runDirectInstall(source, target string) error {
-	installCommands := []command.CommandInfo{
-		{
-			Command:     "cp",
-			Args:        []string{source, target},
-			Description: i18n.T("update.installing_binary_system"),
-			LoadingMsg:  i18n.T("update.installing_binary"),
-			SuccessMsg:  i18n.T("update.binary_installed_success"),
-		},
-		{
-			Command:     "chmod",
-			Args:        []string{"+x", target},
-			Description: i18n.T("update.setting_executable_permissions"),
-			LoadingMsg:  i18n.T("update.setting_permissions"),
-			SuccessMsg:  i18n.T("update.permissions_set_success"),
-		},
-	}
-	return command.RunMultipleCommands(installCommands)
-}
-
-// runSudoInstall 使用交互式 sudo 安装
-func runSudoInstall(source, target string) error {
-	fmt.Println(i18n.T("update.installing_with_sudo"))
-
-	// 复制文件
-	_, err := command.RunCmdWithSpinnerOptions("sudo",
-		[]string{"cp", source, target},
-		i18n.T("update.installing_binary_sudo"),
-		i18n.T("update.binary_installed_success"), true)
+	// RemoteSigned 允许本地文件执行（Go 下载器不写 MOTW 标记，脚本按本地文件处理），
+	// 比 Bypass 限制更严，脚本即使被篡改也无法绕过签名策略
+	_, err = command.RunCmdWithSpinnerOptions("powershell",
+		[]string{"-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", scriptPath},
+		i18n.T("update.downloading_running_script"),
+		i18n.T("update.script_executed_success"), true)
 	if err != nil {
-		return fmt.Errorf(i18n.T("update.failed_copy_binary")+": %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("update.failed_run_script"), err)
 	}
 
-	// 设置权限
-	_, err = command.RunCmdWithSpinnerOptions("sudo",
-		[]string{"chmod", "+x", target},
-		i18n.T("update.setting_executable_permissions"),
-		i18n.T("update.permissions_set_success"), true)
-	if err != nil {
-		return fmt.Errorf(i18n.T("update.failed_set_permissions")+": %w", err)
-	}
-
+	fmt.Println(i18n.T("update.complete_restart_manual"))
 	return nil
 }
