@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/charmbracelet/x/ansi"
@@ -23,7 +22,7 @@ func renderInputField(title, defaultValue string, termHeight int) string {
 	form := NewInputForm(title, &value)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*huh.Form).View()
+	return m.(*Form).View().Content
 }
 
 // renderConfirmField 经生产构造器 NewConfirmForm 渲染确认表单
@@ -32,7 +31,7 @@ func renderConfirmField(title string, termHeight int) string {
 	form := NewConfirmForm(title, &confirmed)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*huh.Form).View()
+	return m.(*Form).View().Content
 }
 
 // commandInputCases 各命令的输入表单(标题取命令实际 i18n 键;默认值为代表性数据)

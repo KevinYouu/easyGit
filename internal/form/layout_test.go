@@ -72,10 +72,10 @@ func TestCalculateTableHeight(t *testing.T) {
 		multi  bool
 		want   int
 	}{
-		{name: "常规 24 行单选占满", height: 24, multi: false, want: 24},
+		{name: "常规 24 行单选让出帮助行", height: 24, multi: false, want: 23},
 		{name: "常规 24 行多选预留标题", height: 24, multi: true, want: 21},
 		{name: "高屏 50 行多选", height: 50, multi: true, want: 47},
-		{name: "矮屏 10 行单选占满", height: 10, multi: false, want: 10},
+		{name: "矮屏 10 行单选让出帮助行", height: 10, multi: false, want: 9},
 		{name: "极矮屏 6 行多选触底", height: 6, multi: true, want: 3},
 		{name: "极矮屏 3 行触底", height: 3, multi: false, want: 3},
 	}
@@ -89,8 +89,8 @@ func TestCalculateTableHeight(t *testing.T) {
 	}
 }
 
-// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度):
-// 内容不足一屏按内容显示,超出一屏占满终端滚动
+// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度-帮助栏1行):
+// 内容不足一屏按内容显示,超出一屏占满终端滚动;帮助栏仅在 ≥6 行终端让出 1 行
 func TestCalculateSelectHeight(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -100,14 +100,16 @@ func TestCalculateSelectHeight(t *testing.T) {
 	}{
 		{name: "大屏内容不足按内容显示", optionNum: 9, termHeight: 24, want: 10},
 		{name: "大屏少量选项", optionNum: 4, termHeight: 40, want: 5},
-		{name: "大屏海量选项占满", optionNum: 50, termHeight: 24, want: 24},
-		{name: "恰好一屏", optionNum: 9, termHeight: 10, want: 10},
-		{name: "矮屏滚动", optionNum: 9, termHeight: 8, want: 8},
+		{name: "大屏海量选项占满让出帮助行", optionNum: 50, termHeight: 24, want: 23},
+		{name: "恰好一屏让出帮助行", optionNum: 9, termHeight: 10, want: 9},
+		{name: "矮屏滚动让出帮助行", optionNum: 9, termHeight: 8, want: 7},
 		{name: "极矮屏触底", optionNum: 50, termHeight: 3, want: 3},
 		{name: "极端 2 行不越界", optionNum: 50, termHeight: 2, want: 2},
 		{name: "极端 1 行不越界", optionNum: 50, termHeight: 1, want: 1},
 		{name: "极端 0 行不 panic", optionNum: 50, termHeight: 0, want: 1},
-		{name: "单选项保底", optionNum: 1, termHeight: 24, want: 3},
+		{name: "单选项保底", optionNum: 1, termHeight: 24, want: 2},
+		{name: "矮屏单选项", optionNum: 1, termHeight: 4, want: 2},
+		{name: "零选项不 panic", optionNum: 0, termHeight: 24, want: 1},
 	}
 
 	for _, tt := range tests {

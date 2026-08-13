@@ -2,6 +2,10 @@ package form
 
 import (
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"github.com/KevinYouu/easyGit/internal/config"
 )
 
 // 注意: form 包的函数依赖于交互式终端输入,
@@ -149,4 +153,69 @@ func TestConfirm_BooleanValue(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestFormEscCancels Esc 触发取消:huh 默认 Quit 仅绑 ctrl+c,统一键位将 Esc
+// 并入 Quit,保证帮助栏「Esc 取消」提示与实际行为一致。
+func TestFormEscCancels(t *testing.T) {
+	var selected string
+	f := NewSelectForm("标题", []config.Option{{Label: "a", Value: "a"}}, 4, &selected)
+	f.SubmitCmd = tea.Quit
+	f.CancelCmd = tea.Interrupt
+	m, _ := f.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+	if cmd == nil {
+		t.Fatal("Esc 未触发取消命令")
+	}
+	wrapped, ok := m.(*Form)
+	if !ok {
+		t.Fatalf("更新后模型类型 = %T, want *form.Form", m)
+	}
+	if wrapped.State != huh.StateAborted {
+		t.Errorf("Esc 后状态 = %v, want StateAborted", wrapped.State)
+	}
+}
+
+// TestFilterBindingsDisabled 筛选键禁用回归:Esc 在表单级先于字段分发匹配 Quit,
+// 若 "/" 可进入筛选模式,筛选中的 Esc 会误终止表单并丢弃选择。
+// 统一键位在传播前禁用 Select/MultiSelect 的 Filter 键(字段键位按值拷贝),
+// 保证 Esc 始终是「取消表单」语义。
+func TestFilterBindingsDisabled(t *testing.T) {
+	// 单选与多选字段的键位均不得含可用的 "/" 筛选绑定
+	assertNoActiveFilter := func(t *testing.T, f *Form) {
+		t.Helper()
+		for _, b := range f.KeyBinds() {
+			for _, k := range b.Keys() {
+				if k == "/" && b.Enabled() {
+					t.Fatalf("筛选键 / 未被禁用: %+v", b)
+				}
+			}
+		}
+	}
+	t.Run("select", func(t *testing.T) {
+		var selected string
+		f := NewSelectForm("标题", []config.Option{{Label: "a", Value: "a"}}, 1, &selected)
+		assertNoActiveFilter(t, f)
+		// 行为回归:先按 "/" 再按 Esc,表单应正常取消(而非进入筛选模式)
+		f.SubmitCmd = tea.Quit
+		f.CancelCmd = tea.Interrupt
+		m, _ := f.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+		m, _ = m.Update(tea.KeyPressMsg{Code: '/'})
+		m, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+		if cmd == nil {
+			t.Fatal("Esc 未触发取消命令")
+		}
+		wrapped, ok := m.(*Form)
+		if !ok {
+			t.Fatalf("更新后模型类型 = %T, want *form.Form", m)
+		}
+		if wrapped.State != huh.StateAborted {
+			t.Errorf("Esc 后状态 = %v, want StateAborted", wrapped.State)
+		}
+	})
+	t.Run("multiSelect", func(t *testing.T) {
+		var selected []string
+		f := NewMultiSelectForm("标题", []string{"a"}, 24, &selected)
+		assertNoActiveFilter(t, f)
+	})
 }

@@ -37,13 +37,9 @@ const (
 // 表格高度计算常量
 const (
 	multiTableExtraLines = 3 // 多选模式额外固定行数:标题 + 空行 + 底部帮助行
+	singleTableHelpLines = 1 // 单选模式底部帮助栏一行(≥6 行终端)
 	tableHeightMin       = 3 // 表格最小高度
 	tableHeaderLines     = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
-)
-
-// huh 表单高度计算常量
-const (
-	formHeightMin = 3 // 表单最小高度
 )
 
 // 默认终端尺寸(检测失败时回退)
@@ -141,12 +137,14 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	}
 }
 
-// CalculateTableHeight 计算表格可视行数;单选模式无附加元素直接占满终端,
-// 多选模式额外预留标题/空行/底部帮助行
+// CalculateTableHeight 计算表格可视行数;多选模式额外预留标题/空行/底部帮助行,
+// 单选模式在 ≥6 行终端为底部帮助栏让出 1 行(<6 行帮助栏不渲染,零开销)
 func CalculateTableHeight(height int, multi bool) int {
 	reserved := 0
 	if multi {
 		reserved = multiTableExtraLines
+	} else if height >= helpBarMinTermHeight {
+		reserved = singleTableHelpLines
 	}
 	return max(height-reserved, tableHeightMin)
 }
@@ -155,8 +153,16 @@ func CalculateTableHeight(height int, multi bool) int {
 // 内容模型:标题一行 + 每选项一行(紧凑主题无边框/帮助,标题按一行计)。
 // 内容不足一屏时按内容高度显示,不渲染底部空白;超出一屏时占满终端高度并滚动;
 // 极小终端(<3 行)退化为实际终端高度,避免渲染越界。
+// 底部帮助栏占一行:终端高度 ≥ 6 行时字段上限让出 1 行(帮助栏不渲染时零开销)。
+// 单选项时保底随选项数收缩(标题 + 选项):固定保底 3 会令 huh 视图
+// 多出一个空白行(标题+选项+空行+帮助栏),收紧后恰好标题+选项+帮助栏。
 func formFieldHeight(optionCount, termHeight int) int {
-	height := max(min(optionCount+1, termHeight), formHeightMin)
+	// 帮助栏仅在 ≥6 行终端渲染,故仅在该档位让出 1 行
+	if termHeight >= helpBarMinTermHeight {
+		termHeight = termHeight - 1
+	}
+	floor := max(optionCount+1, 1)
+	height := max(min(optionCount+1, termHeight), floor)
 	return min(height, max(termHeight, 1))
 }
 

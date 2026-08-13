@@ -86,6 +86,10 @@ func (m tableModel) View() tea.View {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
 	}
 	v := tea.NewView(content)
+	// 底部帮助栏一行(≥6 行终端渲染,极小终端零开销);计算高度时已让出该行
+	if m.height >= helpBarMinTermHeight {
+		v = AppendHelpBar(v, tableSelectHelpKeys(), m.width)
+	}
 	// bubbletea v2 全屏模式改为声明式:View 中设置 AltScreen
 	v.AltScreen = true
 	return v

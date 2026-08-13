@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/charmbracelet/x/ansi"
@@ -30,7 +29,7 @@ func renderSelectField(title string, labels []string, termHeight int) string {
 	form := NewSelectForm(title, opts, termHeight, &selected)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*huh.Form).View()
+	return m.(*Form).View().Content
 }
 
 // renderMultiSelectField 经生产构造器 NewMultiSelectForm 渲染多选表单
@@ -39,7 +38,7 @@ func renderMultiSelectField(title string, labels []string, termHeight int) strin
 	form := NewMultiSelectForm(title, labels, termHeight, &selected)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*huh.Form).View()
+	return m.(*Form).View().Content
 }
 
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
@@ -66,15 +65,15 @@ func TestSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度, 终端高度)
+		wantTotal   int // 渲染总高:min(内容高度+帮助1行, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 1},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 1},
-		{name: "恰好一屏12行", termHeight: 12, wantVisible: n, wantTotal: n + 1},
-		{name: "余1行仍按内容显示", termHeight: 11, wantVisible: n, wantTotal: n + 1},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n, wantTotal: 10},
-		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 1, wantTotal: 9},
-		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 2, wantTotal: 8},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
+		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
+		{name: "恰好一屏12行", termHeight: 12, wantVisible: n, wantTotal: n + 2},
+		{name: "余1行仍按内容显示", termHeight: 11, wantVisible: n, wantTotal: n + 2},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 1, wantTotal: 10},
+		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 2, wantTotal: 9},
+		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 3, wantTotal: 8},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,13 +121,13 @@ func TestMultiSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度, 终端高度)
+		wantTotal   int // 渲染总高:min(内容高度+帮助1行, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 1},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 1},
-		{name: "恰好一屏13行", termHeight: 13, wantVisible: n, wantTotal: n + 1},
-		{name: "矮屏12行占满滚动", termHeight: 12, wantVisible: n - 1, wantTotal: 12},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 3, wantTotal: 10},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
+		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
+		{name: "恰好一屏13行", termHeight: 13, wantVisible: n - 1, wantTotal: 13},
+		{name: "矮屏12行占满滚动", termHeight: 12, wantVisible: n - 2, wantTotal: 12},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 4, wantTotal: 10},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -187,8 +186,11 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 	n := len(options)
 	expectRows := min(CalculateTableHeight(h, multi), n)
 	extraRows := 0
+	// 单选在 ≥6 行终端含底部帮助栏一行;多选固定 标题/count 行 + 底部帮助行(空行不计)
 	if multi {
-		extraRows = 2 // 标题/count 行 + 底部帮助行(空行不计)
+		extraRows = 2
+	} else if h >= helpBarMinTermHeight {
+		extraRows = 1
 	}
 
 	nonEmpty := 0

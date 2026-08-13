@@ -357,7 +357,6 @@ var enTranslations = map[string]string{
 	// Table operations
 	"table.user.aborted":         "user aborted",
 	"table.no.selection":         "no selection made",
-	"table.multi.help":           "Space: toggle • Enter: confirm • Esc/q: cancel • ↑/↓: move",
 	"table.multi.selected.count": " (%d selected)",
 
 	// Git command operations - pushAll

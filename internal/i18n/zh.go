@@ -357,7 +357,6 @@ var zhTranslations = map[string]string{
 	// Table operations
 	"table.user.aborted":         "用户中止操作",
 	"table.no.selection":         "未进行选择",
-	"table.multi.help":           "空格: 切换选择 • 回车: 确认 • Esc/q: 取消 • ↑/↓: 移动",
 	"table.multi.selected.count": " (已选 %d 项)",
 
 	// Git command operations - pushAll
