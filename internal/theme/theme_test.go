@@ -119,11 +119,6 @@ func TestGetStatusIcon(t *testing.T) {
 			expected: "ℹ",
 		},
 		{
-			name:     "loading status",
-			status:   "loading",
-			expected: "⏳",
-		},
-		{
 			name:     "pending status",
 			status:   "pending",
 			expected: "○",

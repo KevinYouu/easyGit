@@ -11,6 +11,7 @@ import (
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 func CreateAndPushTag() error {
@@ -143,13 +144,13 @@ func DeleteAndPushTag() error {
 		if err != nil {
 			// 如果获取时间失败，只显示标签名
 			options = append(options, config.Option{
-				Label: fmt.Sprintf("🏷️  %s", tag),
+				Label: tag,
 				Value: tag,
 			})
 		} else {
 			// 显示标签名和创建时间
 			options = append(options, config.Option{
-				Label: fmt.Sprintf("🏷️  %s  📅 %s", tag, creationDate),
+				Label: fmt.Sprintf("%s (%s)", tag, creationDate),
 				Value: tag,
 			})
 		}
@@ -164,7 +165,7 @@ func DeleteAndPushTag() error {
 	// 确认删除操作
 	confirmMessage := fmt.Sprintf(i18n.T("tag.delete.confirm"), selectedTag)
 	if !form.Confirm(confirmMessage) {
-		fmt.Println(i18n.T("tag.delete.cancelled"))
+		fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ"), theme.InfoStyle.Render(i18n.T("tag.delete.cancelled")))
 		return nil
 	}
 

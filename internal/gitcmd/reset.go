@@ -161,7 +161,7 @@ func Reset() error {
 
 	// 针对 hard 模式添加警告，带黄色警告图标
 	if resetMode == "--hard" {
-		confirmDesc += "\n" + theme.WarningIconStyle.Render("⚠️") + " " + lipgloss.NewStyle().
+		confirmDesc += "\n" + theme.WarningIconStyle.Render("⚠") + " " + lipgloss.NewStyle().
 			Foreground(theme.PrimaryColor).
 			Bold(true).
 			Render(i18n.T("reset.hard.warning"))
@@ -213,7 +213,7 @@ func Reset() error {
 		}
 	} else {
 		fmt.Printf("\n%s %s\n",
-			theme.InfoIconStyle.Render("ℹ️"),
+			theme.InfoIconStyle.Render("ℹ"),
 			theme.InfoStyle.Render(i18n.T("reset.cancelled.msg")))
 	}
 	return nil

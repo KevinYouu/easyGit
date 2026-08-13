@@ -12,4 +12,4 @@
 - [x] MultiSelect 补 remote 远端多选 → `render_command_test.go`
 - [x] progress_model_test.go 补 View 渲染测试(进度条自适应/状态图标) → 顺带修复窄屏越界
 - [x] docs/features/测试用例.md 同步渲染测试矩阵
-- [ ] make all 全绿并提交
+- [x] make all 全绿并提交

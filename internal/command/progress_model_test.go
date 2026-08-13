@@ -119,8 +119,8 @@ func TestProgressView(t *testing.T) {
 		if !strings.Contains(view, "(0/3)") {
 			t.Errorf("进度计数错误: %q", view)
 		}
-		if strings.Count(view, "○") != 3 {
-			t.Errorf("未决步骤应显示 3 个 ○")
+		if strings.Count(view, "○") != 4 {
+			t.Errorf("未决步骤应显示 3 个 ○ 加状态行 1 个 ○,共 4 个")
 		}
 	})
 
@@ -157,31 +157,31 @@ func TestProgressView(t *testing.T) {
 	})
 
 	t.Run("状态图标切换", func(t *testing.T) {
-		// 步骤进行中:已完成 ✓、运行中 ▶(无 spinner)、未决 ○,状态行 ⚡
+		// 步骤进行中:已完成 ✓、运行中 ▶(无 spinner)、未决 ○,状态行 ▶
 		m := NewProgressModelWithoutSpinner(commands)
 		m.width = 80
 		m.currentStep = 1
 		m.executing = true
 		m.stepStatus = []int{2, 1, 0}
 		view := ansi.Strip(m.View().Content)
-		if !strings.Contains(view, "✓") || !strings.Contains(view, "▶") || !strings.Contains(view, "⚡") {
+		if !strings.Contains(view, "✓") || !strings.Contains(view, "▶") || !strings.Contains(view, "○") {
 			t.Errorf("进行中状态图标错误: %q", view)
 		}
 
-		// 全部完成:步骤全 ✓、状态行 ✅、完成提示
+		// 全部完成:步骤 3 个 ✓ + 状态行 ✓
 		m.isCompleted = true
 		m.currentStep = 3
 		m.executing = false
 		m.stepStatus = []int{2, 2, 2}
 		view = ansi.Strip(m.View().Content)
-		if strings.Count(view, "✓") != 3 || !strings.Contains(view, "✅") {
+		if strings.Count(view, "✓") != 4 {
 			t.Errorf("完成状态图标错误: %q", view)
 		}
 
-		// 失败:状态行 ❌
+		// 失败:状态行 ✗
 		m.hasError = true
 		view = ansi.Strip(m.View().Content)
-		if !strings.Contains(view, "❌") {
+		if !strings.Contains(view, "✗") {
 			t.Errorf("失败状态图标错误: %q", view)
 		}
 	})

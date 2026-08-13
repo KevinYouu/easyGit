@@ -254,16 +254,16 @@ func (m *ProgressModel) View() tea.View {
 		theme.ProgressStyle.Render(progressBar.String()),
 		rowSuffix))
 
-	// 当前状态
-	statusIcon := "⏳"
+	// 当前状态（用特殊字符，避免 emoji 在不同终端渲染不一致）
+	statusIcon := "○"
 	if m.isCompleted {
 		if m.hasError {
-			statusIcon = "❌"
+			statusIcon = "✗"
 		} else {
-			statusIcon = "✅"
+			statusIcon = "✓"
 		}
 	} else if m.executing {
-		statusIcon = "⚡"
+		statusIcon = "▶"
 	}
 
 	// 状态行固定开销(标签 + 图标)实测,剩余空间给状态文本,避免窄屏折行

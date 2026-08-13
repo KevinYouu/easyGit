@@ -45,14 +45,14 @@ var commandSelectCases = []struct {
 	}},
 	// 提交类型来自配置数据库(用户数据),标签为代表性取值
 	{command: "push commit type", title: i18n.T("push.select.commit.type"), labels: []string{"fix", "feat", "refactor", "build", "chore", "style", "docs", "revert", "test"}},
-	// 分支选项实际带 🌱 装饰
-	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"🌱 main", "🌱 develop", "🌱 feature/login", "🌱 fix/typo", "🌱 release/v1.2.0"}},
+	// 分支选项无装饰前缀
+	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
 	{command: "remote select", title: i18n.T("git.select.remote"), labels: []string{"origin", "upstream", "github"}},
 	{command: "remote branch", title: i18n.T("git.select.branch"), labels: []string{"main", "develop", "feature/login", "release/v2.0"}},
 	{command: "merge target", title: i18n.T("merge.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
 	{command: "rebase target", title: i18n.T("rebase.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
-	// 标签选项实际带 🏷️ 装饰(无创建时间时的回退格式;有时间时为 "🏷️  %s  📅 %s")
-	{command: "tag delete", title: i18n.T("tag.delete.select"), labels: []string{"🏷️  v1.0.0", "🏷️  v1.1.0", "🏷️  v2.0.0-beta"}},
+	// 标签选项无装饰前缀(无创建时间时的回退格式;有时间时为 "%s (%s)")
+	{command: "tag delete", title: i18n.T("tag.delete.select"), labels: []string{"v1.0.0", "v1.1.0", "v2.0.0-beta"}},
 }
 
 // commandMultiCases 各命令的多选表单

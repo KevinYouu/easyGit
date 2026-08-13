@@ -9,6 +9,7 @@ import (
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 // GetCurrentBranch retrieves the name of the currently checked out branch.
@@ -66,14 +67,14 @@ func DeleteBranch() error {
 	}
 
 	if len(deletableBranches) == 0 {
-		fmt.Println(i18n.T("branch.no.deletable.branches"))
+		fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ"), theme.InfoStyle.Render(i18n.T("branch.no.deletable.branches")))
 		return nil
 	}
 
 	var options []config.Option
 	for _, branch := range deletableBranches {
 		options = append(options, config.Option{
-			Label: fmt.Sprintf("🌱 %s", branch),
+			Label: branch,
 			Value: branch,
 		})
 	}
@@ -85,7 +86,7 @@ func DeleteBranch() error {
 
 	confirmMessage := fmt.Sprintf(i18n.T("branch.delete.confirm"), selectedBranch)
 	if !form.Confirm(confirmMessage) {
-		fmt.Println(i18n.T("branch.delete.cancelled"))
+		fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ"), theme.InfoStyle.Render(i18n.T("branch.delete.cancelled")))
 		return nil
 	}
 

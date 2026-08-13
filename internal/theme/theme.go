@@ -320,7 +320,6 @@ func GetStatusIcon(status string) string {
 		"error":    "✗",
 		"warning":  "⚠",
 		"info":     "ℹ",
-		"loading":  "⏳",
 		"pending":  "○",
 		"complete": "✓",
 		"running":  "▶",

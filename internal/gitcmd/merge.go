@@ -149,7 +149,7 @@ func getLocalBranches(currentBranch string) ([]config.Option, error) {
 		branch := strings.TrimSpace(strings.TrimPrefix(line, "* "))
 		if branch != "" && branch != "(no branch)" && branch != currentBranch {
 			branches = append(branches, config.Option{
-				Label: fmt.Sprintf("📍 %s (local)", branch),
+				Label: fmt.Sprintf("%s (local)", branch),
 				Value: branch,
 			})
 		}
@@ -178,7 +178,7 @@ func getRemoteBranches(currentBranch string) ([]config.Option, error) {
 				branchName := strings.Join(parts[1:], "/")
 				if branchName != currentBranch {
 					branches = append(branches, config.Option{
-						Label: fmt.Sprintf("🌐 %s (remote)", branch),
+						Label: fmt.Sprintf("%s (remote)", branch),
 						Value: branch,
 					})
 				}

@@ -8,11 +8,11 @@ import (
 
 // Warning should be used to render warning text
 func Warning(text string) {
-	fmt.Printf("%s %s\n", theme.WarningIconStyle.Render("⚠️"), theme.WarningStyle.Render(text))
+	fmt.Printf("%s %s\n", theme.WarningIconStyle.Render("⚠"), theme.WarningStyle.Render(text))
 }
 
 func Info(text string) {
-	fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ️"), theme.InfoStyle.Render(text))
+	fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ"), theme.InfoStyle.Render(text))
 }
 
 func Success(text string) {
