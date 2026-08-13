@@ -128,8 +128,8 @@ func TestOptionLabel(t *testing.T) {
 		if !slices.Contains(nameParams, "1") {
 			t.Errorf("名称应加粗: %q", label)
 		}
-		descStart := strings.Index(label, "\x1b[m")
-		descParams := sgrParams(label[descStart+len("\x1b[m"):])
+		_, after, _ := strings.Cut(label, "\x1b[m")
+		descParams := sgrParams(after)
 		if slices.Contains(descParams, "1") {
 			t.Errorf("说明不应加粗: %q", label)
 		}
