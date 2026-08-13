@@ -104,7 +104,9 @@ func TestCalculateSelectHeight(t *testing.T) {
 		{name: "恰好一屏", optionNum: 9, termHeight: 10, want: 10},
 		{name: "矮屏滚动", optionNum: 9, termHeight: 8, want: 8},
 		{name: "极矮屏触底", optionNum: 50, termHeight: 3, want: 3},
-		{name: "极端 1 行保底", optionNum: 50, termHeight: 1, want: 3},
+		{name: "极端 2 行不越界", optionNum: 50, termHeight: 2, want: 2},
+		{name: "极端 1 行不越界", optionNum: 50, termHeight: 1, want: 1},
+		{name: "极端 0 行不 panic", optionNum: 50, termHeight: 0, want: 1},
 		{name: "单选项保底", optionNum: 1, termHeight: 24, want: 3},
 	}
 

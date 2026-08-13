@@ -302,7 +302,9 @@ func multiLabels(n int, f func(int) string) []string {
 }
 
 // assertCommandField 校验单选/多选表单渲染:总高 = min(内容, 终端),
-// 可见项 = min(选项数, 终端-1),行宽不越界
+// 可见项 = min(选项数, 终端-1),行宽不越界。
+// 断言独立于 CalculateSelectHeight 本身(渲染层验证,不构成循环):
+// 钉住的是 formFieldHeight 文档化的内容模型 —— 标题一行 + 每选项一行。
 func assertCommandField(t *testing.T, view string, labels []string, termHeight, termWidth int) {
 	t.Helper()
 	if !utf8.ValidString(view) {
