@@ -203,8 +203,9 @@ func selectMergeStrategy() (MergeStrategy, error) {
 	var strategies []config.Option
 	for _, strategy := range mergeStrategies {
 		strategies = append(strategies, config.Option{
-			Label: fmt.Sprintf("%s - %s", i18n.T(strategy.NameKey), i18n.T(strategy.DescriptionKey)),
-			Value: strategy.Name,
+			Label:       i18n.T(strategy.NameKey),
+			Description: i18n.T(strategy.DescriptionKey),
+			Value:       strategy.Name,
 		})
 	}
 

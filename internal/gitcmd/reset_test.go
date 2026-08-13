@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -134,7 +135,7 @@ func TestCommit_MessageTruncation(t *testing.T) {
 }
 
 // TestResetModeOptions 重置模式选项:4 项含 default,值顺序与参数语义一致,
-// 标签为「名称 + 说明」单行(名称亮 + 说明灰,ANSI 内嵌),无换行。
+// 名称与说明分字段存放(SelectForm 统一组装单行),OptionLabel 组装结果无换行。
 func TestResetModeOptions(t *testing.T) {
 	opts := resetModeOptions()
 	wantValues := []string{"", "--soft", "--mixed", "--hard"}
@@ -145,20 +146,24 @@ func TestResetModeOptions(t *testing.T) {
 		if opt.Value != wantValues[i] {
 			t.Errorf("第 %d 项 Value = %q, want %q", i, opt.Value, wantValues[i])
 		}
-		if strings.Contains(opt.Label, "\n") {
-			t.Errorf("第 %d 项标签含换行(应单行): %q", i, opt.Label)
-		}
 		// 名称与说明键:default 的空值映射到 default 键
 		key := strings.TrimPrefix(opt.Value, "--")
 		if key == "" {
 			key = "default"
 		}
-		plain := ansi.Strip(opt.Label)
-		if !strings.Contains(plain, i18n.T("reset.option."+key+".name")) {
-			t.Errorf("第 %d 项标签缺名称 %q: %q", i, i18n.T("reset.option."+key+".name"), plain)
+		if opt.Label != i18n.T("reset.option."+key+".name") {
+			t.Errorf("第 %d 项 Label = %q, want %q", i, opt.Label, i18n.T("reset.option."+key+".name"))
 		}
-		if !strings.Contains(plain, i18n.T("reset.option."+key+".desc")) {
-			t.Errorf("第 %d 项标签缺说明 %q: %q", i, i18n.T("reset.option."+key+".desc"), plain)
+		if opt.Description != i18n.T("reset.option."+key+".desc") {
+			t.Errorf("第 %d 项 Description = %q, want %q", i, opt.Description, i18n.T("reset.option."+key+".desc"))
+		}
+		// SelectForm 统一组装后的单行渲染:名称与说明同在一行
+		plain := ansi.Strip(form.OptionLabel(opt.Label, opt.Description))
+		if strings.Contains(plain, "\n") {
+			t.Errorf("第 %d 项组装标签含换行(应单行): %q", i, plain)
+		}
+		if !strings.Contains(plain, opt.Label) || !strings.Contains(plain, opt.Description) {
+			t.Errorf("第 %d 项组装标签缺名称或说明: %q", i, plain)
 		}
 	}
 }

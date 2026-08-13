@@ -306,8 +306,9 @@ func selectCherryPickOption() (CherryPickOption, error) {
 	var options []config.Option
 	for _, option := range cherryPickOptions {
 		options = append(options, config.Option{
-			Label: i18n.T(option.NameKey),
-			Value: option.Name,
+			Label:       i18n.T(option.NameKey),
+			Description: i18n.T(option.DescriptionKey),
+			Value:       option.Name,
 		})
 	}
 

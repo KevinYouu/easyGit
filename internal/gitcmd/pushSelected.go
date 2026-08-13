@@ -45,6 +45,7 @@ func PushSelected() error {
 		logs.Error(i18n.T("error.get.options"))
 		return fmt.Errorf("GetOptions: %w", err)
 	}
+	options = applyCommitTypeDescriptions(options)
 
 	_, suffix, err := form.SelectForm(i18n.T("push.select.commit.type"), options)
 	if err != nil {

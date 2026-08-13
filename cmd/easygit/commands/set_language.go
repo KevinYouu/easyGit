@@ -27,15 +27,17 @@ func setLanguageInteractive() {
 		preselected = "en"
 	}
 
-	// 创建语言选项
+	// 创建语言选项(SelectForm 统一组装为「名称 + 单行说明」)
 	options := []config.Option{
 		{
-			Label: i18n.T("language.option.en"),
-			Value: "en",
+			Label:       i18n.T("language.option.en"),
+			Description: i18n.T("language.option.en.desc"),
+			Value:       "en",
 		},
 		{
-			Label: i18n.T("language.option.zh"),
-			Value: "zh",
+			Label:       i18n.T("language.option.zh"),
+			Description: i18n.T("language.option.zh.desc"),
+			Value:       "zh",
 		},
 	}
 

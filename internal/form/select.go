@@ -15,7 +15,8 @@ import (
 func NewSelectForm(title string, options []config.Option, height int, selected *string) *Form {
 	selectOpts := make([]huh.Option[string], len(options))
 	for i, opt := range options {
-		selectOpts[i] = huh.NewOption(opt.Label, opt.Value)
+		// 统一单行组装:名称亮加粗 + 说明灰(Description 为空则纯名称,零变化)
+		selectOpts[i] = huh.NewOption(OptionLabel(opt.Label, opt.Description), opt.Value)
 	}
 
 	// huh v2 已修复 v1 滚动 bug(光标跟随可见区),高屏展示更多选项,

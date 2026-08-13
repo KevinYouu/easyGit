@@ -72,7 +72,7 @@ var enTranslations = map[string]string{
 	"language.option.en":        "English",
 	"language.option.zh":        "简体中文",
 	"language.option.en.desc":   "English interface",
-	"language.option.zh.desc":   "Simplified Chinese interface",
+	"language.option.zh.desc":   "Chinese interface",
 
 	// Common messages
 	"error.general":      "An error occurred:",
@@ -403,13 +403,13 @@ var enTranslations = map[string]string{
 
 	// Merge strategies
 	"merge.strategy.default.name":        "Default",
-	"merge.strategy.default.description": "Default merge behavior",
+	"merge.strategy.default.description": "Default strategy",
 	"merge.strategy.ff.only.name":        "Fast-forward only",
-	"merge.strategy.ff.only.description": "Only merge if fast-forward is possible",
+	"merge.strategy.ff.only.description": "Require fast-forward",
 	"merge.strategy.no.ff.name":          "No fast-forward",
-	"merge.strategy.no.ff.description":   "Always create a merge commit",
+	"merge.strategy.no.ff.description":   "Create merge commit",
 	"merge.strategy.squash.name":         "Squash",
-	"merge.strategy.squash.description":  "Squash all commits into a single commit",
+	"merge.strategy.squash.description":  "Squash to one commit",
 
 	// Cherry-pick messages
 	"cherry.pick.select.commits":      "Select commits to cherry-pick:",
@@ -438,11 +438,11 @@ var enTranslations = map[string]string{
 	"cherry.pick.option.default.name":          "Default",
 	"cherry.pick.option.default.description":   "Standard cherry-pick",
 	"cherry.pick.option.no.commit.name":        "No commit",
-	"cherry.pick.option.no.commit.description": "Apply changes without committing",
+	"cherry.pick.option.no.commit.description": "Apply, don't commit",
 	"cherry.pick.option.edit.name":             "Edit",
-	"cherry.pick.option.edit.description":      "Edit commit message before committing",
+	"cherry.pick.option.edit.description":      "Edit commit message",
 	"cherry.pick.option.signoff.name":          "Sign-off",
-	"cherry.pick.option.signoff.description":   "Add Signed-off-by line to commit message",
+	"cherry.pick.option.signoff.description":   "Add sign-off line",
 
 	// Push config command
 	"push.config.short":                   "Configure default push remotes",
@@ -488,7 +488,7 @@ var enTranslations = map[string]string{
 	"rebase.action.skip":           "Skip current commit",
 	"rebase.action.abort":          "Abort and return to original state",
 	"rebase.action.continue.desc":  "Continue the rebase",
-	"rebase.action.skip.desc":      "Skip the current commit",
+	"rebase.action.skip.desc":      "Skip current commit",
 	"rebase.action.abort.desc":     "Cancel the rebase",
 	"rebase.select.target":         "Select branch to rebase onto:",
 	"rebase.select.drop_commits":   "Select commits to drop (delete):",

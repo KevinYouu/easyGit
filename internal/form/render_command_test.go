@@ -24,7 +24,10 @@ var commandSelectCases = []struct {
 	title   string
 	labels  []string
 }{
-	{command: "set-language", title: i18n.T("language.select.title"), labels: []string{i18n.T("language.option.en"), i18n.T("language.option.zh")}},
+	{command: "set-language", title: i18n.T("language.select.title"), labels: []string{
+		OptionLabel(i18n.T("language.option.en"), i18n.T("language.option.en.desc")),
+		OptionLabel(i18n.T("language.option.zh"), i18n.T("language.option.zh.desc")),
+	}},
 	// reset 模式:列表式单选 4 项,单行「名称 + 说明」(default 值为空,不传参数)
 	{command: "reset mode", title: i18n.T("reset.select.mode"), labels: []string{
 		OptionLabel(i18n.T("reset.option.default.name"), i18n.T("reset.option.default.desc")),
@@ -33,25 +36,35 @@ var commandSelectCases = []struct {
 		OptionLabel(i18n.T("reset.option.hard.name"), i18n.T("reset.option.hard.desc")),
 	}},
 	{command: "cherry-pick option", title: i18n.T("cherry.pick.select.option"), labels: []string{
-		i18n.T("cherry.pick.option.default.name"),
-		i18n.T("cherry.pick.option.no.commit.name"),
-		i18n.T("cherry.pick.option.edit.name"),
-		i18n.T("cherry.pick.option.signoff.name"),
+		OptionLabel(i18n.T("cherry.pick.option.default.name"), i18n.T("cherry.pick.option.default.description")),
+		OptionLabel(i18n.T("cherry.pick.option.no.commit.name"), i18n.T("cherry.pick.option.no.commit.description")),
+		OptionLabel(i18n.T("cherry.pick.option.edit.name"), i18n.T("cherry.pick.option.edit.description")),
+		OptionLabel(i18n.T("cherry.pick.option.signoff.name"), i18n.T("cherry.pick.option.signoff.description")),
 	}},
-	// 合并策略:实际格式 "%s - %s"(名称 - 描述)
+	// 合并策略:SelectForm 统一组装「名称 + 单行说明」
 	{command: "merge strategy", title: i18n.T("merge.select.strategy"), labels: []string{
-		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.default.name"), i18n.T("merge.strategy.default.description")),
-		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.ff.only.name"), i18n.T("merge.strategy.ff.only.description")),
-		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.no.ff.name"), i18n.T("merge.strategy.no.ff.description")),
-		fmt.Sprintf("%s - %s", i18n.T("merge.strategy.squash.name"), i18n.T("merge.strategy.squash.description")),
+		OptionLabel(i18n.T("merge.strategy.default.name"), i18n.T("merge.strategy.default.description")),
+		OptionLabel(i18n.T("merge.strategy.ff.only.name"), i18n.T("merge.strategy.ff.only.description")),
+		OptionLabel(i18n.T("merge.strategy.no.ff.name"), i18n.T("merge.strategy.no.ff.description")),
+		OptionLabel(i18n.T("merge.strategy.squash.name"), i18n.T("merge.strategy.squash.description")),
 	}},
 	{command: "rebase action", title: i18n.T("rebase.status.in_progress"), labels: []string{
-		i18n.T("rebase.action.continue"),
-		i18n.T("rebase.action.skip"),
-		i18n.T("rebase.action.abort"),
+		OptionLabel(i18n.T("rebase.action.continue"), i18n.T("rebase.action.continue.desc")),
+		OptionLabel(i18n.T("rebase.action.skip"), i18n.T("rebase.action.skip.desc")),
+		OptionLabel(i18n.T("rebase.action.abort"), i18n.T("rebase.action.abort.desc")),
 	}},
-	// 提交类型来自配置数据库(用户数据),标签为代表性取值
-	{command: "push commit type", title: i18n.T("push.select.commit.type"), labels: []string{"fix", "feat", "refactor", "build", "chore", "style", "docs", "revert", "test"}},
+	// 提交类型来自配置数据库(用户数据),标签为代表性取值;按 commit.type.desc.<value> 查 i18n 附加说明
+	{command: "push commit type", title: i18n.T("push.select.commit.type"), labels: []string{
+		OptionLabel("fix", i18n.T("commit.type.desc.fix")),
+		OptionLabel("feat", i18n.T("commit.type.desc.feat")),
+		OptionLabel("refactor", i18n.T("commit.type.desc.refactor")),
+		OptionLabel("build", i18n.T("commit.type.desc.build")),
+		OptionLabel("chore", i18n.T("commit.type.desc.chore")),
+		OptionLabel("style", i18n.T("commit.type.desc.style")),
+		OptionLabel("docs", i18n.T("commit.type.desc.docs")),
+		OptionLabel("revert", i18n.T("commit.type.desc.revert")),
+		OptionLabel("test", i18n.T("commit.type.desc.test")),
+	}},
 	// 分支选项无装饰前缀
 	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
 	{command: "remote select", title: i18n.T("git.select.remote"), labels: []string{"origin", "upstream", "github"}},
@@ -122,12 +135,18 @@ func assertCommandField(t *testing.T, view string, labels []string, termHeight, 
 }
 
 func TestCommandSelectRender(t *testing.T) {
+	// huh 在 TERM=dumb 下强制固定宽度 80 并忽略 WindowSizeMsg(无障碍输出),
+	// 测试固定为普通终端语义,窄屏回归才可验证窗口宽度传导。
+	t.Setenv("TERM", "xterm-256color")
 	for _, tc := range commandSelectCases {
-		for _, h := range []int{24, 12, 10, 8, 6} {
-			t.Run(fmt.Sprintf("%s@%d行", tc.command, h), func(t *testing.T) {
-				view := renderSelectField(tc.title, tc.labels, h)
-				assertCommandField(t, view, tc.labels, h, 80)
-			})
+		// 窄屏(60 列)回归:单行说明不得折行破坏高度模型
+		for _, w := range []int{80, 60} {
+			for _, h := range []int{24, 12, 10, 8, 6} {
+				t.Run(fmt.Sprintf("%s@%d行x%d列", tc.command, h, w), func(t *testing.T) {
+					view := renderSelectFieldWidth(tc.title, tc.labels, h, w)
+					assertCommandField(t, view, tc.labels, h, w)
+				})
+			}
 		}
 	}
 }

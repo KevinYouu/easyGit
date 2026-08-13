@@ -11,12 +11,26 @@ import (
 	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
+// applyCommitTypeDescriptions 提交类型选项附加单行说明:按 commit.type.desc.<value>
+// 查 i18n,查不到时保持纯名称(优雅降级,不改库表)。
+func applyCommitTypeDescriptions(options []config.Option) []config.Option {
+	for i := range options {
+		desc := ""
+		if key := "commit.type.desc." + options[i].Value; i18n.Has(key) {
+			desc = i18n.T(key)
+		}
+		options[i].Description = desc
+	}
+	return options
+}
+
 func PushAll() error {
 	options, err := config.GetOptions()
 	if err != nil {
 		logs.Error(i18n.T("error.get.options"))
 		return fmt.Errorf("get options: %w", err)
 	}
+	options = applyCommitTypeDescriptions(options)
 
 	_, suffix, err := form.SelectForm(i18n.T("push.select.commit.type"), options)
 	if err != nil {

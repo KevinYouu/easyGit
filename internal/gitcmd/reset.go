@@ -27,14 +27,15 @@ type Commit struct {
 // resetMessageMaxWidth 重置模式选择时提交消息的最大显示宽度
 const resetMessageMaxWidth = 40
 
-// resetModeOptions 重置模式选择项:列表式单选表单 4 项单行选项(名称亮 + 说明灰)。
-// default 的 Value 为空串,执行时不传模式参数(等同 mixed)。
+// resetModeOptions 重置模式选择项:列表式单选表单 4 项单行选项
+// (名称 + 说明,由 SelectForm 统一组装)。default 的 Value 为空串,
+// 执行时不传模式参数(等同 mixed)。
 func resetModeOptions() []config.Option {
 	return []config.Option{
-		{Label: form.OptionLabel(i18n.T("reset.option.default.name"), i18n.T("reset.option.default.desc")), Value: ""},
-		{Label: form.OptionLabel(i18n.T("reset.option.soft.name"), i18n.T("reset.option.soft.desc")), Value: "--soft"},
-		{Label: form.OptionLabel(i18n.T("reset.option.mixed.name"), i18n.T("reset.option.mixed.desc")), Value: "--mixed"},
-		{Label: form.OptionLabel(i18n.T("reset.option.hard.name"), i18n.T("reset.option.hard.desc")), Value: "--hard"},
+		{Label: i18n.T("reset.option.default.name"), Description: i18n.T("reset.option.default.desc"), Value: ""},
+		{Label: i18n.T("reset.option.soft.name"), Description: i18n.T("reset.option.soft.desc"), Value: "--soft"},
+		{Label: i18n.T("reset.option.mixed.name"), Description: i18n.T("reset.option.mixed.desc"), Value: "--mixed"},
+		{Label: i18n.T("reset.option.hard.name"), Description: i18n.T("reset.option.hard.desc"), Value: "--hard"},
 	}
 }
 

@@ -20,7 +20,13 @@ import (
 //   - render_input_confirm_test.go: 命令 × Input/Confirm 表单渲染
 
 // renderSelectField 经生产构造器 NewSelectForm 渲染单选表单
+// renderSelectField 经生产构造器 NewSelectForm 渲染单选表单(默认 80 列)
 func renderSelectField(title string, labels []string, termHeight int) string {
+	return renderSelectFieldWidth(title, labels, termHeight, 80)
+}
+
+// renderSelectFieldWidth 指定终端宽度的单选表单渲染(窄屏折行回归)
+func renderSelectFieldWidth(title string, labels []string, termHeight, termWidth int) string {
 	opts := make([]config.Option, len(labels))
 	for i, l := range labels {
 		opts[i] = config.Option{Label: l, Value: l}
@@ -28,7 +34,7 @@ func renderSelectField(title string, labels []string, termHeight int) string {
 	var selected string
 	form := NewSelectForm(title, opts, termHeight, &selected)
 	form.Init()
-	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
+	m, _ := form.Update(tea.WindowSizeMsg{Width: termWidth, Height: termHeight})
 	return m.(*Form).View().Content
 }
 

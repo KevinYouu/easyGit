@@ -59,9 +59,9 @@ func getGitDir() (string, error) {
 
 func handleInProgressRebase() error {
 	options := []config.Option{
-		{Label: i18n.T("rebase.action.continue"), Value: "--continue"},
-		{Label: i18n.T("rebase.action.skip"), Value: "--skip"},
-		{Label: i18n.T("rebase.action.abort"), Value: "--abort"},
+		{Label: i18n.T("rebase.action.continue"), Description: i18n.T("rebase.action.continue.desc"), Value: "--continue"},
+		{Label: i18n.T("rebase.action.skip"), Description: i18n.T("rebase.action.skip.desc"), Value: "--skip"},
+		{Label: i18n.T("rebase.action.abort"), Description: i18n.T("rebase.action.abort.desc"), Value: "--abort"},
 	}
 
 	_, action, err := form.SelectForm(i18n.T("rebase.status.in_progress"), options)
