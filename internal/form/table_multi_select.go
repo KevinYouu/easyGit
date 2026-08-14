@@ -105,7 +105,7 @@ func (m *tableMultiModel) rebuildRows(cursorRow int) {
 }
 
 // optionRow 将单个选项按当前布局模式格式化为表格行;
-// 结构:指示列(2 宽,光标行 ❯)+ 复选框列([x]/[ ]),
+// 结构:指示列(1 宽,光标行 ❯)+ 复选框列([x]/[ ]),
 // 两列间间距由列填充与单元格内边距产生,❯ 与 [ 位置在所有行恒定,
 // 光标移动零位移不抖动(与单选表格、huh 光标槽同构)
 func (m *tableMultiModel) optionRow(i, cursorRow int, opt config.Option) table.Row {

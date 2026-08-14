@@ -5,7 +5,7 @@
 - [x] 选中指示符统一 `❯`(显示宽 2,与 huh 默认 `> ` 同宽零位移):huh Select/MultiSelect 主题换字(`SelectSelector`/`MultiSelectSelector` = `"❯ "` + PrimaryColor + Bold)→ `internal/theme/theme.go`
 - [x] 表单包装模型:标题下顶部线 + 帮助栏上底部线(≥6 行终端),`dividerAfterTitle` 随 `Update` 重建保留 → `internal/form/form.go`、`select.go`、`multiSelect.go`
 - [x] 布局公式更新:指示列 2 宽(单选最左列)、表单高度模型 +2 行(`min(n+4, 终端)`)、表格多选预留 4 行/单选 2 行 → `internal/form/layout.go`
-- [x] 表格单选:最左 2 宽指示列,`rebuildRows(cursorRow)` 让 ❯ 跟随光标 → `table_select.go`
+- [x] 表格单选:最左 1 宽指示列,`rebuildRows(cursorRow)` 让 ❯ 跟随光标 → `table_select.go`
 - [x] 表格多选:指示列 + 3 宽复选框列两列分离(❯ 与 `[ ]` 间距由列填充与内边距产生,零位移),View 结构「标题 + 顶部线 + 行 + 底部线 + 帮助」→ `table_multi_select.go`
 - [x] 进度屏:状态行下空行改分隔线,执行中帮助栏前插底部线(完成态保留 exiting 提示)→ `progress_model.go`
 - [x] 渲染/布局/主题测试全量更新(高度公式、列数、`❯` 断言)→ `make all` 全绿

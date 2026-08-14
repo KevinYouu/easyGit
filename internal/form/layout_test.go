@@ -46,13 +46,13 @@ func TestCalculateMessageWidth(t *testing.T) {
 	}{
 		{name: "极窄 20 无消息列", width: 20, want: 0},
 		{name: "极窄 35 无消息列", width: 35, want: 0},
-		{name: "三列 60 含指示列", width: 60, want: 30},
-		{name: "四列 80 含指示列", width: 80, want: 38},
-		{name: "四列 120 含指示列", width: 120, want: 78},
-		{name: "超宽 200 封顶", width: 200, want: 158},
-		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 21},
-		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 29},
-		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 149},
+		{name: "三列 60 含指示列", width: 60, want: 31},
+		{name: "四列 80 含指示列", width: 80, want: 39},
+		{name: "四列 120 含指示列", width: 120, want: 79},
+		{name: "超宽 200 封顶", width: 200, want: 159},
+		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 23},
+		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 31},
+		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 151},
 	}
 
 	for _, tt := range tests {

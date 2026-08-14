@@ -292,7 +292,7 @@ func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 	}
 
 	// 收集所有渲染行中复选框 [ 的显示位置(跳过标题/分隔线/帮助栏等不含复选框的行;
-	// 帮助栏 [Esc]/[Enter] 的 [ 在 pos 0,复选框 [ 由指示列宽 + 内边距布局决定,恒为 5)
+	// 帮助栏 [Esc]/[Enter] 的 [ 在 pos 0,复选框 [ 由指示列宽 + 内边距布局决定,恒为 4)
 	var positions []int
 	for _, view := range views {
 		for line := range strings.SplitSeq(view, "\n") {
