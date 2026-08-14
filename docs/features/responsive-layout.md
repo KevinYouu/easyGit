@@ -35,11 +35,11 @@ easyGit 的 TUI 界面支持响应式布局:根据终端实际宽高自动调整
 
 ### 消息列宽度
 
-`message = clamp(width - 固定列宽 - 内边距, 20, 160)`,宽屏上限由 100 提至 160,富余宽度全部吸收给消息列。
+`message = max(width - 固定列宽 - 内边距, 20)`,无上限:终端越宽消息列越宽,截断只发生在实际宽度不足时(2026-08 移除 160 上限,此前上限由 100 提至 160)。
 
 ### 宽屏居中
 
-当 `终端宽度 - 表总宽 > 16` 时表格水平居中,否则左对齐(`ShouldCenterTable`)。
+当 `终端宽度 - 表总宽 > 16` 时表格水平居中,否则左对齐(`ShouldCenterTable`)。消息列无上限后表总宽=终端宽,宽屏不再居中(完整显示优先于居中)。
 
 ### 表格高度
 
@@ -114,7 +114,7 @@ Height = clamp(min(选项数 + 1, 终端高度), 最小3, 终端高度)   // +1 
 `internal/form/layout_test.go` 表驱动覆盖:
 
 - `LayoutMode` 判定:40x10 / 40x40 / 200x10 / 120x30 / 300x60
-- `CalculateMessageWidth` 边界:20 / 35 / 60 / 80 / 120 / 200
+- `CalculateMessageWidth` 边界:20 / 35 / 60 / 80 / 120 / 200 / 240 / 300
 - `SafeTruncate` / `parseCommitInfo` / `formatCompactCommit`:中文、emoji、ASCII 混合,断言 `utf8.ValidString` 且 `lipgloss.Width ≤ 列宽`;极窄宽度(20)不 panic
 
 `internal/form/render_test.go` 渲染级测试(真实构造 huh 表单/表格模型,按终端尺寸矩阵渲染断言):

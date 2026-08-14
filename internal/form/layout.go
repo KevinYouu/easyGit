@@ -23,16 +23,15 @@ const (
 
 // 表格列宽常量
 const (
-	checkboxColWidth  = 3   // 多选框列宽([x] / [ ])
-	indicatorColWidth = 1   // 选中指示列宽(❯ 或空,间距由列右空间与内边距产生)
-	hashColWidth      = 8   // hash 列宽
-	dateColWidth      = 12  // 日期列宽
-	authorColWidth    = 10  // 作者列宽
-	messageColMin     = 20  // 消息列宽下限
-	messageColMax     = 160 // 消息列宽上限
-	cellPaddingWidth  = 2   // 单元格左右内边距(1+1)
-	tableInsetWidth   = 4   // 紧凑模式外层留白
-	centerTableMargin = 16  // 宽屏居中判定余量
+	checkboxColWidth  = 3  // 多选框列宽([x] / [ ])
+	indicatorColWidth = 1  // 选中指示列宽(❯ 或空,间距由列右空间与内边距产生)
+	hashColWidth      = 8  // hash 列宽
+	dateColWidth      = 12 // 日期列宽
+	authorColWidth    = 10 // 作者列宽
+	messageColMin     = 20 // 消息列宽下限(无上限,富余宽度全部给消息列)
+	cellPaddingWidth  = 2  // 单元格左右内边距(1+1)
+	tableInsetWidth   = 4  // 紧凑模式外层留白
+	centerTableMargin = 16 // 宽屏居中判定余量
 )
 
 // 表格高度计算常量
@@ -73,7 +72,8 @@ func LayoutMode(width int) LayoutKind {
 	}
 }
 
-// CalculateMessageWidth 计算消息列宽;紧凑模式无消息列,返回 0
+// CalculateMessageWidth 计算消息列宽;紧凑模式无消息列,返回 0。
+// 消息列无上限:终端越宽消息列越宽,截断只发生在实际宽度不足时
 // 单选/多选最左均为 1 宽指示列,多选另加复选框列(3 宽),间距由列右空间与内边距产生
 func CalculateMessageWidth(width int, withCheckbox bool) int {
 	mode := LayoutMode(width)
@@ -89,7 +89,7 @@ func CalculateMessageWidth(width int, withCheckbox bool) int {
 	if withCheckbox {
 		fixed += indicatorColWidth + checkboxColWidth + 2*cellPaddingWidth
 	}
-	return min(max(width-fixed, messageColMin), messageColMax)
+	return max(width-fixed, messageColMin)
 }
 
 // CalculateColumns 根据终端宽度与是否含多选框生成表格列;

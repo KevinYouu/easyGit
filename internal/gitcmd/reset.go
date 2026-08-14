@@ -24,9 +24,6 @@ type Commit struct {
 	Timestamp time.Time
 }
 
-// resetMessageMaxWidth 重置模式选择时提交消息的最大显示宽度
-const resetMessageMaxWidth = 40
-
 // resetModeOptions 重置模式选择项:列表式单选表单 4 项单行选项
 // (名称 + 说明,由 SelectForm 统一组装)。default 的 Value 为空串,
 // 执行时不传模式参数(等同 mixed)。
@@ -88,17 +85,14 @@ func Reset() error {
 			// 存储提交信息
 			commits = append(commits, commit)
 
-			// 限制消息长度，避免过长(按显示宽度截断,正确处理中文/emoji)
-			shortMsg := form.SafeTruncate(message, resetMessageMaxWidth)
-
-			// 添加到选择列表，使用纯文本格式以允许背景色正确覆盖
+			// 完整消息入标签,截断统一由列表组件按实际列宽处理(终端宽时完整显示)
 			commitLabel := ""
 			if i == 0 {
 				// HEAD提交使用纯文本格式，但添加标记以区分
 				commitLabel = fmt.Sprintf(
 					"[HEAD] %s %s\n%s • %s",
 					hash,
-					shortMsg,
+					message,
 					date,
 					author,
 				)
@@ -107,7 +101,7 @@ func Reset() error {
 				commitLabel = fmt.Sprintf(
 					"%s %s\n%s • %s",
 					hash,
-					shortMsg,
+					message,
 					date,
 					author,
 				)
@@ -148,13 +142,11 @@ func Reset() error {
 	// 重置模式样式：统一使用 PrimaryColor + Bold
 	modeStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
 
-	// 构建更紧凑的确认信息
-	shortMsg := form.SafeTruncate(selectedCommit.Message, resetMessageMaxWidth)
-
+	// 构建更紧凑的确认信息(完整提交消息,huh Confirm 长文本自动换行)
 	confirmDesc := fmt.Sprintf("%s %s  %s %s %s%s",
 		i18n.T("reset.confirm.to"),
 		lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true).Render(selectedCommit.Hash),
-		shortMsg,
+		selectedCommit.Message,
 		i18n.T("reset.confirm.mode"),
 		modeStyle.Render(resetModeReadable),
 		getModeDescription(resetMode),

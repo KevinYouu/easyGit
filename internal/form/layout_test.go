@@ -49,10 +49,13 @@ func TestCalculateMessageWidth(t *testing.T) {
 		{name: "三列 60 含指示列", width: 60, want: 31},
 		{name: "四列 80 含指示列", width: 80, want: 39},
 		{name: "四列 120 含指示列", width: 120, want: 79},
-		{name: "超宽 200 封顶", width: 200, want: 159},
+		{name: "超宽 200", width: 200, want: 159},
+		{name: "超宽 240", width: 240, want: 199},
+		{name: "超宽 300 无上限", width: 300, want: 259},
 		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 23},
 		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 31},
 		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 151},
+		{name: "超宽含多选框 300 无上限", width: 300, withCheckbox: true, want: 251},
 	}
 
 	for _, tt := range tests {
@@ -280,8 +283,9 @@ func TestTotalTableWidth(t *testing.T) {
 
 // TestShouldCenterTable 超宽屏居中判定
 func TestShouldCenterTable(t *testing.T) {
-	if !ShouldCenterTable(300, CalculateColumns(300, false)) {
-		t.Error("300 列终端应居中")
+	// 消息列无上限后表总宽 = 终端宽(300-41=259 列消息),无富余不居中
+	if ShouldCenterTable(300, CalculateColumns(300, false)) {
+		t.Error("300 列终端消息列占满全宽,不应居中")
 	}
 	if ShouldCenterTable(80, CalculateColumns(80, false)) {
 		t.Error("80 列终端不应居中")

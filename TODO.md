@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:列表消息完整显示(移除固定上限与仓库层预截断)
+
+- [x] `CalculateMessageWidth` 删除 `messageColMax=160` 封顶:消息列 = `max(width-fixed, 20)`,终端越宽显示越完整 → `internal/form/layout.go`
+- [x] `reset.go` 移除仓库层预截断:提交列表标签与确认行均用完整消息,删除 `resetMessageMaxWidth` 常量,截断统一由列表组件按实际列宽处理 → `internal/gitcmd/reset.go`
+- [x] 宽屏居中失效:消息列占满剩余宽度后表总宽=终端宽,300 宽终端不再居中(完整显示优先于居中)
+- [x] 测试同步:TestCalculateMessageWidth 新增 240/300 用例(无上限证明);TestShouldCenterTable 300 改不居中;TestTableListLongMessageSingleLine longMsg 加长至 >300 列;新增 TestTableListLongMessageFullDisplay(300 宽完整显示) → `make all` 全绿
+- [x] TERM=dumb 管道回归 rs:提交列表与确认行输出完整提交消息
+- [x] docs/features 文档同步 + TODO 登记,提交
+
 ## 已完成:TUI 布局优化(分隔线 + ❯ 选中指示符)
 
 - [x] 选中指示符统一 `❯`(显示宽 2,与 huh 默认 `> ` 同宽零位移):huh Select/MultiSelect 主题换字(`SelectSelector`/`MultiSelectSelector` = `"❯ "` + PrimaryColor + Bold)→ `internal/theme/theme.go`
