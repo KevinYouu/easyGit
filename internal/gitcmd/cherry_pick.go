@@ -270,19 +270,22 @@ func selectCommitsForCherryPick(commits []Commit) ([]Commit, error) {
 	// Create options for the multi-select form
 	var options []string
 	for _, commit := range commits {
-		displayText := fmt.Sprintf("[%s] %s (%s) - %s",
-			commit.Hash[:8],
+		// 统一列表组件按 hash/消息/日期/作者分列渲染,
+		// 标签用提交式两行格式(与 GetRecentCommits 一致)
+		displayText := fmt.Sprintf("%s %s\n%s • %s",
+			commit.Hash[:7],
+			commit.Message,
 			commit.Date,
-			commit.Author,
-			commit.Message)
+			commit.Author)
 
 		options = append(options, displayText)
 	}
 
 	// Show multi-select form
-	selectedDisplayTexts, err := form.MultiSelectForm(
+	selectedDisplayTexts, err := form.ListForm(
 		i18n.T("cherry.pick.select.commits"),
-		options,
+		form.StringOptions(options),
+		form.ListMulti,
 	)
 	if err != nil {
 		return nil, err
@@ -312,13 +315,15 @@ func selectCherryPickOption() (CherryPickOption, error) {
 		})
 	}
 
-	_, selectedName, err := form.SelectForm(
+	selectedNames, err := form.ListForm(
 		i18n.T("cherry.pick.select.option"),
 		options,
+		form.ListSingle,
 	)
 	if err != nil {
 		return CherryPickOption{}, err
 	}
+	selectedName := selectedNames[0]
 
 	for _, option := range cherryPickOptions {
 		if option.Name == selectedName {

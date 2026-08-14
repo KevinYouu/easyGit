@@ -60,23 +60,6 @@ func confirmHelpKeys() []HelpKey {
 	}
 }
 
-func tableSelectHelpKeys() []HelpKey {
-	return []HelpKey{
-		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
-		{Key: "Enter", Action: i18n.T("form.help.confirm")},
-		{Key: "q", Action: i18n.T("form.help.quit")},
-	}
-}
-
-func tableMultiHelpKeys() []HelpKey {
-	return []HelpKey{
-		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
-		{Key: "Space", Action: i18n.T("form.help.toggle")},
-		{Key: "Enter", Action: i18n.T("form.help.confirm")},
-		{Key: "q", Action: i18n.T("form.help.quit")},
-	}
-}
-
 // ProgressHelpKeys 进度屏执行中的帮助栏键位(q 退出)
 func ProgressHelpKeys() []HelpKey {
 	return []HelpKey{

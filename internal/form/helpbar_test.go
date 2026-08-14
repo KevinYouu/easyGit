@@ -270,15 +270,14 @@ func TestOptionLabel(t *testing.T) {
 
 // 极小终端(<6 行)不渲染帮助栏:经生产构造器驱动,内容不被挤压。
 func TestHelpBarHiddenOnTinyTerminal(t *testing.T) {
-	var selected string
-	form := NewSelectForm("标题", []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}, 4, &selected)
-	form.Init()
-	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: 4})
-	view := ansi.Strip(m.(*Form).View().Content)
+	m := NewListModel("标题", []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}, ListSingle)
+	m.width, m.height = 80, 4
+	m.applyLayout()
+	view := ansi.Strip(m.View().Content)
 	if strings.Contains(view, "Enter") {
 		t.Errorf("4 行终端不应渲染帮助栏: %q", view)
 	}
-	// 3 个选项 + 标题 = 4 行,内容完整不被裁剪
+	// 3 个选项完整,不被裁剪
 	for _, want := range []string{"a", "b", "c"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("4 行终端缺少选项 %q: %q", want, view)

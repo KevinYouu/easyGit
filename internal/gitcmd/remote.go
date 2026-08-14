@@ -106,7 +106,7 @@ func SelectRemoteWithConfig() ([]string, bool, error) {
 	}
 
 	// 使用多选表单
-	selectedRemotes, err := form.MultiSelectForm(i18n.T("git.select.remotes.first"), options)
+	selectedRemotes, err := form.ListForm(i18n.T("git.select.remotes.first"), form.StringOptions(options), form.ListMulti)
 	if err != nil {
 		return nil, false, err
 	}
@@ -145,12 +145,12 @@ func SelectRemote() (string, error) {
 		}
 	}
 
-	_, selected, err := form.SelectForm(i18n.T("git.select.remote"), options)
+	selectedValues, err := form.ListForm(i18n.T("git.select.remote"), options, form.ListSingle)
 	if err != nil {
 		return "", err
 	}
 
-	return selected, nil
+	return selectedValues[0], nil
 }
 
 // GetRemoteBranches 获取指定远程的分支列表
@@ -218,10 +218,10 @@ func SelectBranch(remote string, preselectedBranch ...string) (string, error) {
 		preselected = preselectedBranch[0]
 	}
 
-	_, selected, err := form.SelectForm(i18n.T("git.select.branch"), options, preselected)
+	selectedValues, err := form.ListForm(i18n.T("git.select.branch"), options, form.ListSingle, preselected)
 	if err != nil {
 		return "", err
 	}
 
-	return selected, nil
+	return selectedValues[0], nil
 }

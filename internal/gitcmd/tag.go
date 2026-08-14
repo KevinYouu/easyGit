@@ -157,10 +157,11 @@ func DeleteAndPushTag() error {
 	}
 
 	// 让用户选择要删除的标签
-	_, selectedTag, err := form.SelectForm(i18n.T("tag.delete.select"), options)
+	selectedTags, err := form.ListForm(i18n.T("tag.delete.select"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select tag error: %w", err)
 	}
+	selectedTag := selectedTags[0]
 
 	// 确认删除操作
 	confirmMessage := fmt.Sprintf(i18n.T("tag.delete.confirm"), selectedTag)

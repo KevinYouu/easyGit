@@ -64,10 +64,11 @@ func handleInProgressRebase() error {
 		{Label: i18n.T("rebase.action.abort"), Description: i18n.T("rebase.action.abort.desc"), Value: "--abort"},
 	}
 
-	_, action, err := form.SelectForm(i18n.T("rebase.status.in_progress"), options)
+	actions, err := form.ListForm(i18n.T("rebase.status.in_progress"), options, form.ListSingle)
 	if err != nil {
 		return err
 	}
+	action := actions[0]
 
 	output, err := command.RunCmd("git", []string{"rebase", action}, "")
 	if err != nil {
@@ -88,10 +89,11 @@ func handleStandardRebase() error {
 		return nil
 	}
 
-	_, selectedBranch, err := form.SelectForm(i18n.T("rebase.select.target"), branches)
+	selectedBranches, err := form.ListForm(i18n.T("rebase.select.target"), branches, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf(i18n.T("error.select.form.detail")+": %w", err)
 	}
+	selectedBranch := selectedBranches[0]
 
 	logs.Info(fmt.Sprintf(i18n.T("rebase.starting"), selectedBranch))
 	output, err := command.RunCmd("git", []string{"rebase", selectedBranch}, "")

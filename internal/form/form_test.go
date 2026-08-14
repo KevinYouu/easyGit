@@ -2,14 +2,12 @@ package form
 
 import (
 	"bytes"
-	"context"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
-	"github.com/charmbracelet/x/ansi"
 )
 
 // 注意: form 包的函数依赖于交互式终端输入,
@@ -62,62 +60,93 @@ type validationError struct {
 	msg string
 }
 
-// selectOptionLabel TERM=dumb(accessible 纯文本模式)时剥离内嵌样式,
-// 避免行尾无 reset 的样式序列泄漏到后续提示行。
-func TestSelectOptionLabel(t *testing.T) {
-	t.Run("正常终端:名称亮加粗 + 说明灰(内嵌样式)", func(t *testing.T) {
-		t.Setenv("TERM", "xterm-256color")
-		label := selectOptionLabel(config.Option{Label: "soft", Description: "保留工作区更改"})
-		if !strings.Contains(label, "\x1b[") {
-			t.Errorf("正常终端应内嵌样式: %q", label)
-		}
-	})
-
-	t.Run("TERM=dumb:剥离样式输出纯文本", func(t *testing.T) {
-		t.Setenv("TERM", "dumb")
-		label := selectOptionLabel(config.Option{Label: "soft", Description: "保留工作区更改"})
-		if strings.Contains(label, "\x1b[") {
-			t.Errorf("dumb 不应含 ANSI: %q", label)
-		}
-		if got := ansi.Strip(label); got != "soft 保留工作区更改" {
-			t.Errorf("dumb 应输出纯文本, got %q", got)
-		}
-	})
-
-	t.Run("TERM=dumb 无说明:纯名称", func(t *testing.T) {
-		t.Setenv("TERM", "dumb")
-		if got := selectOptionLabel(config.Option{Label: "main"}); got != "main" {
-			t.Errorf("dumb 无说明应输出纯名称, got %q", got)
-		}
-	})
+// optionDisplayText 无样式纯文本(列表模型与 accessible 模式共用):
+// 有说明时「名称 + 说明」拼接,无说明仅名称。
+func TestOptionDisplayText(t *testing.T) {
+	if got := optionDisplayText(config.Option{Label: "soft", Description: "保留工作区更改"}); got != "soft 保留工作区更改" {
+		t.Errorf("带说明 = %q, want %q", got, "soft 保留工作区更改")
+	}
+	if got := optionDisplayText(config.Option{Label: "main"}); got != "main" {
+		t.Errorf("无说明 = %q, want %q", got, "main")
+	}
 }
 
-// TestSelectOptionLabelAccessiblePath 经 huh 真实 accessible 渲染路径验证:
-// TERM=dumb 时 huh 构造期自动进入 accessible 模式并原样打印 option.Key,
-// 选项键必须为无 ANSI 的连续纯文本(huh 判定耦合见 isAccessibleMode)。
-// 选项行格式 "编号. 键" 固化了 huh v2.0.3 field_select.go RunAccessible
-// (fmt.Fprintf(w, "%d. %s\n", i+1, option.Key)),huh 变更格式时需同步。
-func TestSelectOptionLabelAccessiblePath(t *testing.T) {
-	t.Setenv("TERM", "dumb")
-	var selected string
-	f := NewSelectForm("标题", []config.Option{
-		{Label: "soft", Description: "保留工作区更改"},
-		{Label: "hard", Description: "丢弃所有更改"},
-	}, 24, &selected)
-	var buf bytes.Buffer
-	if err := f.Form.
-		WithOutput(&buf).
-		WithInput(strings.NewReader("1\n")).
-		RunWithContext(context.Background()); err != nil {
-		t.Fatalf("RunWithContext 失败: %v", err)
+// TestRunAccessibleList 无障碍纯文本路径(TERM=dumb 替代 TUI):
+// 编号行输出与序号解析,单选/多选/空行/非法重试/EOF 取消全覆盖。
+func TestRunAccessibleList(t *testing.T) {
+	options := []config.Option{
+		{Label: "soft", Value: "soft", Description: "保留工作区更改"},
+		{Label: "hard", Value: "hard", Description: "丢弃所有更改"},
+		{Label: "mixed", Value: "mixed", Description: "保留并暂存更改"},
 	}
-	out := buf.String()
-	// 选项行按 "编号. 键" 原样打印:键必须为无 ANSI 的连续纯文本
-	for _, want := range []string{"1. soft 保留工作区更改", "2. hard 丢弃所有更改"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("accessible 选项行应为纯文本键,缺少 %q: %q", want, out)
+	// 编号行输出(标题 + 逐项编号)对所有分支一致,单独验证一次
+	t.Run("编号行输出", func(t *testing.T) {
+		var buf bytes.Buffer
+		if _, err := runAccessibleList(&buf, strings.NewReader("1\n"), "标题", options, ListSingle); err != nil {
+			t.Fatalf("err = %v", err)
 		}
-	}
+		out := buf.String()
+		for _, want := range []string{"标题:", "1. soft 保留工作区更改", "2. hard 丢弃所有更改", "3. mixed 保留并暂存更改"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("缺少 %q: %q", want, out)
+			}
+		}
+	})
+
+	t.Run("单选序号", func(t *testing.T) {
+		var buf bytes.Buffer
+		vals, err := runAccessibleList(&buf, strings.NewReader("1\n"), "标题", options, ListSingle)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if len(vals) != 1 || vals[0] != "soft" {
+			t.Errorf("vals = %v, want [soft]", vals)
+		}
+	})
+
+	t.Run("多选逗号序号按输入顺序", func(t *testing.T) {
+		var buf bytes.Buffer
+		vals, err := runAccessibleList(&buf, strings.NewReader("1,3\n"), "标题", options, ListMulti)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if len(vals) != 2 || vals[0] != "soft" || vals[1] != "mixed" {
+			t.Errorf("vals = %v, want [soft mixed]", vals)
+		}
+	})
+
+	t.Run("多选空行 = 全不选", func(t *testing.T) {
+		var buf bytes.Buffer
+		vals, err := runAccessibleList(&buf, strings.NewReader("\n"), "标题", options, ListMulti)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if vals != nil || len(vals) != 0 {
+			t.Errorf("vals = %v, want 空切片", vals)
+		}
+	})
+
+	t.Run("非法输入报错后重试", func(t *testing.T) {
+		var buf bytes.Buffer
+		vals, err := runAccessibleList(&buf, strings.NewReader("abc\n2\n"), "标题", options, ListSingle)
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if len(vals) != 1 || vals[0] != "hard" {
+			t.Errorf("vals = %v, want [hard]", vals)
+		}
+		if !strings.Contains(buf.String(), "Invalid: must be a number between 1 and 3") {
+			t.Errorf("非法输入应输出重试提示: %q", buf.String())
+		}
+	})
+
+	t.Run("EOF 视为取消", func(t *testing.T) {
+		var buf bytes.Buffer
+		_, err := runAccessibleList(&buf, strings.NewReader(""), "标题", options, ListSingle)
+		if err != huh.ErrUserAborted {
+			t.Errorf("err = %v, want ErrUserAborted", err)
+		}
+	})
 }
 
 func (e *validationError) Error() string {
@@ -217,67 +246,15 @@ func TestConfirm_BooleanValue(t *testing.T) {
 	}
 }
 
-// TestFormEscCancels Esc 触发取消:huh 默认 Quit 仅绑 ctrl+c,统一键位将 Esc
-// 并入 Quit,保证帮助栏「Esc 取消」提示与实际行为一致。
+// TestFormEscCancels Esc 触发取消:统一列表模型 esc/ctrl+c 置 quitting 并退出,
+// 与帮助栏「Esc 取消」提示一致。
 func TestFormEscCancels(t *testing.T) {
-	var selected string
-	f := NewSelectForm("标题", []config.Option{{Label: "a", Value: "a"}}, 4, &selected)
-	f.SubmitCmd = tea.Quit
-	f.CancelCmd = tea.Interrupt
-	m, _ := f.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	m, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+	m := NewListModel("标题", []config.Option{{Label: "a", Value: "a"}}, ListSingle)
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc 未触发取消命令")
 	}
-	wrapped, ok := m.(*Form)
-	if !ok {
-		t.Fatalf("更新后模型类型 = %T, want *form.Form", m)
+	if !updated.(*listModel).quitting {
+		t.Error("Esc 后 quitting 应为 true")
 	}
-	if wrapped.State != huh.StateAborted {
-		t.Errorf("Esc 后状态 = %v, want StateAborted", wrapped.State)
-	}
-}
-
-// TestFilterBindingsDisabled 筛选键禁用回归:Esc 在表单级先于字段分发匹配 Quit,
-// 若 "/" 可进入筛选模式,筛选中的 Esc 会误终止表单并丢弃选择。
-// 统一键位在传播前禁用 Select/MultiSelect 的 Filter 键(字段键位按值拷贝),
-// 保证 Esc 始终是「取消表单」语义。
-func TestFilterBindingsDisabled(t *testing.T) {
-	// 单选与多选字段的键位均不得含可用的 "/" 筛选绑定
-	assertNoActiveFilter := func(t *testing.T, f *Form) {
-		t.Helper()
-		for _, b := range f.KeyBinds() {
-			for _, k := range b.Keys() {
-				if k == "/" && b.Enabled() {
-					t.Fatalf("筛选键 / 未被禁用: %+v", b)
-				}
-			}
-		}
-	}
-	t.Run("select", func(t *testing.T) {
-		var selected string
-		f := NewSelectForm("标题", []config.Option{{Label: "a", Value: "a"}}, 1, &selected)
-		assertNoActiveFilter(t, f)
-		// 行为回归:先按 "/" 再按 Esc,表单应正常取消(而非进入筛选模式)
-		f.SubmitCmd = tea.Quit
-		f.CancelCmd = tea.Interrupt
-		m, _ := f.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-		m, _ = m.Update(tea.KeyPressMsg{Code: '/'})
-		m, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
-		if cmd == nil {
-			t.Fatal("Esc 未触发取消命令")
-		}
-		wrapped, ok := m.(*Form)
-		if !ok {
-			t.Fatalf("更新后模型类型 = %T, want *form.Form", m)
-		}
-		if wrapped.State != huh.StateAborted {
-			t.Errorf("Esc 后状态 = %v, want StateAborted", wrapped.State)
-		}
-	})
-	t.Run("multiSelect", func(t *testing.T) {
-		var selected []string
-		f := NewMultiSelectForm("标题", []string{"a"}, 24, &selected)
-		assertNoActiveFilter(t, f)
-	})
 }

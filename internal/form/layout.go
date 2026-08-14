@@ -161,30 +161,6 @@ func CalculateTableHeight(height int, multi bool) int {
 	return max(height-reserved, tableHeightMin)
 }
 
-// formFieldHeight 计算 huh Select/MultiSelect 字段高度。
-// 内容模型:标题 1 + 顶部线 1 + 选项 n + 底部线 1 + 帮助栏 1 = n+4 行;
-// 字段仅含标题 + 选项(huh 字段按 Height 精确渲染,viewpor 余量会补空白行,
-// 故选项全显时字段高度须恰为 n+1,避免选项与底部线之间出现空白行)。
-// 内容不足一屏时按内容高度显示,不渲染底部空白;超出一屏时占满终端高度并滚动;
-// 极小终端(<3 行)退化为实际终端高度,避免渲染越界。
-// 分隔线与帮助栏仅在 ≥6 行终端渲染,故仅在该档位让出 3 行(<6 行零开销)。
-func formFieldHeight(optionCount, termHeight int) int {
-	if termHeight >= HelpBarMinTermHeight {
-		return min(optionCount+1, max(termHeight-3, 1))
-	}
-	return min(optionCount+1, max(termHeight, 1))
-}
-
-// CalculateSelectHeight 计算 huh Select 字段高度,见 formFieldHeight
-func CalculateSelectHeight(optionCount, termHeight int) int {
-	return formFieldHeight(optionCount, termHeight)
-}
-
-// CalculateMultiSelectHeight 计算 huh MultiSelect 字段高度,规则同单选
-func CalculateMultiSelectHeight(optionCount, termHeight int) int {
-	return formFieldHeight(optionCount, termHeight)
-}
-
 // TotalTableWidth 计算表格渲染总宽(列宽之和 + 单元格内边距)
 func TotalTableWidth(columns []table.Column) int {
 	total := 0

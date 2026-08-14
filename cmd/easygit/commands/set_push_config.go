@@ -54,8 +54,8 @@ func setPushConfig() {
 		return
 	}
 
-	// 多选远程仓库，预选当前配置的远程
-	remotes, err := form.MultiSelectForm(i18n.T("git.select.remotes.first"), allRemotes, currentRemotes)
+	// 多选远程仓库,预选当前配置的远程
+	remotes, err := form.ListForm(i18n.T("git.select.remotes.first"), form.StringOptions(allRemotes), form.ListMulti, currentRemotes...)
 	if err != nil {
 		logs.Error(i18n.T("error.select.remote"))
 		return

@@ -89,41 +89,6 @@ func TestCalculateTableHeight(t *testing.T) {
 	}
 }
 
-// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度-3 行分隔线/帮助):
-// 内容不足一屏按内容显示,超出一屏占满终端滚动;分隔线与帮助栏仅在 ≥6 行终端让出 3 行
-func TestCalculateSelectHeight(t *testing.T) {
-	tests := []struct {
-		name       string
-		optionNum  int
-		termHeight int
-		want       int
-	}{
-		{name: "大屏内容不足按内容显示", optionNum: 9, termHeight: 24, want: 10},
-		{name: "大屏少量选项", optionNum: 4, termHeight: 40, want: 5},
-		{name: "大屏海量选项占满让出分隔线+帮助", optionNum: 50, termHeight: 24, want: 21},
-		{name: "恰好一屏让出分隔线+帮助", optionNum: 9, termHeight: 10, want: 7},
-		{name: "矮屏滚动让出分隔线+帮助", optionNum: 9, termHeight: 8, want: 5},
-		{name: "极矮屏触底", optionNum: 50, termHeight: 3, want: 3},
-		{name: "极端 2 行不越界", optionNum: 50, termHeight: 2, want: 2},
-		{name: "极端 1 行不越界", optionNum: 50, termHeight: 1, want: 1},
-		{name: "极端 0 行不 panic", optionNum: 50, termHeight: 0, want: 1},
-		{name: "单选项保底", optionNum: 1, termHeight: 24, want: 2},
-		{name: "矮屏单选项", optionNum: 1, termHeight: 4, want: 2},
-		{name: "零选项不 panic", optionNum: 0, termHeight: 24, want: 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := CalculateSelectHeight(tt.optionNum, tt.termHeight); got != tt.want {
-				t.Errorf("CalculateSelectHeight(%d, %d) = %d, want %d", tt.optionNum, tt.termHeight, got, tt.want)
-			}
-			if got := CalculateMultiSelectHeight(tt.optionNum, tt.termHeight); got != tt.want {
-				t.Errorf("CalculateMultiSelectHeight(%d, %d) = %d, want %d", tt.optionNum, tt.termHeight, got, tt.want)
-			}
-		})
-	}
-}
-
 // TestSafeTruncate 宽度感知截断:不破坏 UTF-8,显示宽度不超限
 func TestSafeTruncate(t *testing.T) {
 	tests := []struct {
@@ -211,6 +176,15 @@ func TestParseCommitInfo(t *testing.T) {
 	}
 	if singleDate != "" || singleAuthor != "" {
 		t.Errorf("单行标签日期作者应为空: date=%q author=%q", singleDate, singleAuthor)
+	}
+
+	// 无空格标签(如 fix/origin/main 等非提交类选项):整体进消息列,hash 留空
+	plainHash, plainMsg, _, _ := parseCommitInfo("origin", 20)
+	if plainHash != "" {
+		t.Errorf("无空格标签 hash = %q, want 空", plainHash)
+	}
+	if plainMsg != "origin" {
+		t.Errorf("无空格标签 message = %q, want origin", plainMsg)
 	}
 }
 

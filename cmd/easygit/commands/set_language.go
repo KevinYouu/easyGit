@@ -41,12 +41,13 @@ func setLanguageInteractive() {
 		},
 	}
 
-	// 使用 TUI 选择语言
-	_, selectedLang, err := form.SelectForm(i18n.T("language.select.title"), options, preselected)
+	// 使用统一列表表单选择语言
+	selectedLangs, err := form.ListForm(i18n.T("language.select.title"), options, form.ListSingle, preselected)
 	if err != nil {
 		logs.Error(i18n.T("language.set.error") + ": " + err.Error())
 		return
 	}
+	selectedLang := selectedLangs[0]
 
 	// 保存语言设置
 	if err := config.SaveLanguage(selectedLang); err != nil {

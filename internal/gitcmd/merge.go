@@ -191,11 +191,11 @@ func getRemoteBranches(currentBranch string) ([]config.Option, error) {
 
 // selectBranchToMerge shows a selection form for available branches
 func selectBranchToMerge(branches []config.Option) (string, error) {
-	_, selectedBranch, err := form.SelectForm(i18n.T("merge.select.target"), branches)
+	selectedBranches, err := form.ListForm(i18n.T("merge.select.target"), branches, form.ListSingle)
 	if err != nil {
 		return "", fmt.Errorf(i18n.T("error.select.form.detail")+": %w", err)
 	}
-	return selectedBranch, nil
+	return selectedBranches[0], nil
 }
 
 // selectMergeStrategy allows user to choose merge strategy
@@ -209,10 +209,11 @@ func selectMergeStrategy() (MergeStrategy, error) {
 		})
 	}
 
-	_, selectedStrategyName, err := form.SelectForm(i18n.T("merge.select.strategy"), strategies)
+	selectedStrategyNames, err := form.ListForm(i18n.T("merge.select.strategy"), strategies, form.ListSingle)
 	if err != nil {
 		return MergeStrategy{}, fmt.Errorf(i18n.T("error.select.form.detail")+": %w", err)
 	}
+	selectedStrategyName := selectedStrategyNames[0]
 
 	// Find the selected strategy
 	for _, strategy := range mergeStrategies {

@@ -116,11 +116,12 @@ func Reset() error {
 		}
 	}
 
-	// 使用表格选择表单
-	_, choose, err := form.TableSelectForm(options)
+	// 使用统一列表选择表单
+	chosen, err := form.ListForm(i18n.T("reset.select.commit"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf(i18n.T("reset.error.select.commit")+" %w", err)
 	}
+	choose := chosen[0]
 
 	// 获取选择的提交完整信息
 	var selectedCommit Commit
@@ -132,10 +133,11 @@ func Reset() error {
 	}
 
 	// 选择重置模式:列表式单选表单,4 项单行选项(名称 + 说明)
-	_, resetMode, err := form.SelectForm(i18n.T("reset.select.mode"), resetModeOptions())
+	resetModes, err := form.ListForm(i18n.T("reset.select.mode"), resetModeOptions(), form.ListSingle)
 	if err != nil {
 		return fmt.Errorf(i18n.T("reset.error.select.mode")+" %w", err)
 	}
+	resetMode := resetModes[0]
 
 	// 获取可读的重置模式名称(default 不传参数,直接取选项名)
 	resetModeReadable := strings.TrimPrefix(resetMode, "--")

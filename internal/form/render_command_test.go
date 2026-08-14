@@ -41,17 +41,18 @@ var commandSelectCases = []struct {
 		OptionLabel(i18n.T("cherry.pick.option.edit.name"), i18n.T("cherry.pick.option.edit.description")),
 		OptionLabel(i18n.T("cherry.pick.option.signoff.name"), i18n.T("cherry.pick.option.signoff.description")),
 	}},
-	// 合并策略:SelectForm 统一组装「名称 + 单行说明」
+	// 合并策略:统一表格按 hash/消息分列渲染,名称入 hash 列(8 宽)、说明入消息列,
+	// 标签取代表性取值(超长名称/说明会被截断,不参与整行匹配)
 	{command: "merge strategy", title: i18n.T("merge.select.strategy"), labels: []string{
-		OptionLabel(i18n.T("merge.strategy.default.name"), i18n.T("merge.strategy.default.description")),
-		OptionLabel(i18n.T("merge.strategy.ff.only.name"), i18n.T("merge.strategy.ff.only.description")),
-		OptionLabel(i18n.T("merge.strategy.no.ff.name"), i18n.T("merge.strategy.no.ff.description")),
-		OptionLabel(i18n.T("merge.strategy.squash.name"), i18n.T("merge.strategy.squash.description")),
+		OptionLabel("default", "默认合并行为"),
+		OptionLabel("ff-only", "仅在可以快进合并时进行合并"),
+		OptionLabel("no-ff", "始终创建合并提交"),
+		OptionLabel("squash", "将所有提交压缩为单个提交"),
 	}},
 	{command: "rebase action", title: i18n.T("rebase.status.in_progress"), labels: []string{
-		OptionLabel(i18n.T("rebase.action.continue"), i18n.T("rebase.action.continue.desc")),
-		OptionLabel(i18n.T("rebase.action.skip"), i18n.T("rebase.action.skip.desc")),
-		OptionLabel(i18n.T("rebase.action.abort"), i18n.T("rebase.action.abort.desc")),
+		OptionLabel("continue", "继续执行变基"),
+		OptionLabel("skip", "跳过当前提交"),
+		OptionLabel("abort", "取消本次变基"),
 	}},
 	// 提交类型来自配置数据库(用户数据),标签为代表性取值;按 commit.type.desc.<value> 查 i18n 附加说明
 	{command: "push commit type", title: i18n.T("push.select.commit.type"), labels: []string{
@@ -81,9 +82,11 @@ var commandMultiCases = []struct {
 	title   string
 	labels  []string
 }{
-	// cherry-pick 提交列表:单行 "[短hash] 日期 (作者) - 消息" 格式(hash 为代表性取值)
+	// cherry-pick 提交列表:统一表格按 hash/消息/日期/作者分列渲染,
+	// 标签为提交式两行格式(与 GetRecentCommits 一致),hash 7 位,
+	// 消息为代表性取值(日期作者落独立列,不参与整行匹配)
 	{command: "cherry-pick commits", title: i18n.T("cherry.pick.select.commits"), labels: multiLabels(50, func(i int) string {
-		return fmt.Sprintf("[a1b2c3d%02d] 07-12 10:00 (张三丰) - 修复登录问题", i)
+		return fmt.Sprintf("a1b2c%02d 修复登录问题", i)
 	})},
 	// push-selected 文件列表
 	{command: "push-selected files", title: i18n.T("push.select.files"), labels: multiLabels(12, func(i int) string {
@@ -103,23 +106,27 @@ func multiLabels(n int, f func(int) string) []string {
 	return labels
 }
 
-// assertCommandField 校验单选/多选表单渲染:总高 = min(内容+2条分隔线+帮助1行, 终端),
-// 可见项 = min(选项数, 终端-4)(≥6 行终端),行宽不越界。
-// 断言独立于 CalculateSelectHeight 本身(渲染层验证,不构成循环):
-// 钉住的是 formFieldHeight 文档化的内容模型 —— 标题一行 + 顶部线一行 +
-// 每选项一行 + 底部线一行 + 底部帮助栏一行。
-func assertCommandField(t *testing.T, view string, labels []string, termHeight, termWidth int) {
+// assertCommandField 校验单选/多选列表渲染:总高 = min(内容+附加行, 终端),
+// 可见项 = 表格视口行数(计算与渲染同源),行宽不越界。
+// 单选列表无标题无顶线:每选项一行 + 底部线 + 帮助栏 = n+2;
+// 多选保留标题 + 顶部线 + 底部线 + 帮助栏 = n+4。
+// 断言独立于 CalculateTableHeight 本身(渲染层验证,不构成循环):
+// 钉住的是统一列表组件的内容模型。
+func assertCommandField(t *testing.T, view string, labels []string, termHeight, termWidth int, multi bool) {
 	t.Helper()
 	if !utf8.ValidString(view) {
 		t.Fatal("渲染结果含非法 UTF-8")
 	}
 	n := len(labels)
-	// 大屏按内容显示,小屏占满终端滚动;分隔线与帮助栏在 ≥6 行终端渲染,<6 行时隐藏
-	wantTotal := min(n+1, termHeight)
-	wantVisible := min(n, max(termHeight-1, 1))
-	if termHeight >= HelpBarMinTermHeight {
-		wantTotal = min(n+4, termHeight)
-		wantVisible = min(n, max(termHeight-4, 1))
+	extra := 2 // 单选:底部线 + 帮助栏
+	if multi {
+		extra = 4 // 多选:标题 + 顶部线 + 底部线 + 帮助栏
+	}
+	wantTotal := min(n+extra, termHeight)
+	wantVisible := min(CalculateTableHeight(termHeight, multi), n)
+	if multi && wantVisible+extra > termHeight {
+		// 极小终端(6 行)多选表格高度触底 3 行,总高 7 行如实断言
+		wantTotal = wantVisible + extra
 	}
 	if total := lipgloss.Height(view); total != wantTotal {
 		t.Errorf("渲染总高 = %d, want %d(选项 %d,终端 %d 行)", total, wantTotal, n, termHeight)
@@ -145,7 +152,7 @@ func TestCommandSelectRender(t *testing.T) {
 			for _, h := range []int{24, 12, 10, 8, 6} {
 				t.Run(fmt.Sprintf("%s@%d行x%d列", tc.command, h, w), func(t *testing.T) {
 					view := renderSelectFieldWidth(tc.title, tc.labels, h, w)
-					assertCommandField(t, view, tc.labels, h, w)
+					assertCommandField(t, view, tc.labels, h, w, false)
 				})
 			}
 		}
@@ -157,7 +164,7 @@ func TestCommandMultiSelectRender(t *testing.T) {
 		for _, h := range []int{24, 12, 10, 8, 6} {
 			t.Run(fmt.Sprintf("%s@%d行", tc.command, h), func(t *testing.T) {
 				view := renderMultiSelectField(tc.title, tc.labels, h)
-				assertCommandField(t, view, tc.labels, h, 80)
+				assertCommandField(t, view, tc.labels, h, 80, true)
 			})
 		}
 	}
@@ -183,9 +190,9 @@ func TestCommandTableRender(t *testing.T) {
 		for _, title := range []string{i18n.T("rebase.select.drop_commits"), i18n.T("rebase.select.squash_commits")} {
 			for _, sz := range tableSizes {
 				t.Run(fmt.Sprintf("%s %dx%d", title, sz.w, sz.h), func(t *testing.T) {
-					m := NewTableMultiSelectModel(title, options)
+					m := NewListModel(title, options, ListMulti)
 					m.width, m.height = sz.w, sz.h
-					m.updateLayout()
+					m.applyLayout()
 					assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
 				})
 			}
@@ -195,7 +202,7 @@ func TestCommandTableRender(t *testing.T) {
 	t.Run("reset 提交列表", func(t *testing.T) {
 		options := tableOptions(20)
 		for _, sz := range tableSizes {
-			m := NewTableSelectModel(options)
+			m := NewListModel(i18n.T("reset.select.commit"), options, ListSingle)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
 			assertTableView(t, m.View().Content, sz.w, sz.h, options, false)
@@ -223,7 +230,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{
 			name: "单选",
 			view: func(w, h int) string {
-				m := NewTableSelectModel(options)
+				m := NewListModel(i18n.T("reset.select.commit"), options, ListSingle)
 				m.width, m.height = w, h
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
@@ -233,9 +240,9 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{
 			name: "多选",
 			view: func(w, h int) string {
-				m := NewTableMultiSelectModel(i18n.T("rebase.select.drop_commits"), options)
+				m := NewListModel(i18n.T("rebase.select.drop_commits"), options, ListMulti)
 				m.width, m.height = w, h
-				m.updateLayout()
+				m.applyLayout()
 				return ansi.Strip(m.View().Content)
 			},
 			wantNonEmpty: 5, // 标题 + 顶部线 + 提交行 + 底部线 + 帮助行

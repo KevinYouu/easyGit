@@ -13,49 +13,53 @@ import (
 )
 
 // 渲染级测试:直接驱动生产表单构造器,按终端尺寸矩阵渲染并断言,
-// 覆盖 SelectForm/MultiSelectForm 高度利用与 TableSelect/TableMultiSelect 溢出问题。
+// 覆盖统一列表组件(ListForm)高度利用与溢出问题。
 // 按测试功能块拆分:
 //   - render_test.go:            基础组件渲染 + 共享辅助函数
-//   - render_command_test.go:    命令 × Select/MultiSelect/Table 表单渲染
+//   - render_command_test.go:    命令 × 列表表单渲染
 //   - render_input_confirm_test.go: 命令 × Input/Confirm 表单渲染
 
-// renderSelectField 经生产构造器 NewSelectForm 渲染单选表单
-// renderSelectField 经生产构造器 NewSelectForm 渲染单选表单(默认 80 列)
+// renderSelectField 经生产构造器 NewListModel 渲染单选列表(默认 80 列)
 func renderSelectField(title string, labels []string, termHeight int) string {
 	return renderSelectFieldWidth(title, labels, termHeight, 80)
 }
 
-// renderSelectFieldWidth 指定终端宽度的单选表单渲染(窄屏折行回归)
+// renderSelectFieldWidth 指定终端宽度的单选列表渲染(窄屏折行回归)
 func renderSelectFieldWidth(title string, labels []string, termHeight, termWidth int) string {
 	opts := make([]config.Option, len(labels))
 	for i, l := range labels {
 		opts[i] = config.Option{Label: l, Value: l}
 	}
-	var selected string
-	form := NewSelectForm(title, opts, termHeight, &selected)
-	form.Init()
-	m, _ := form.Update(tea.WindowSizeMsg{Width: termWidth, Height: termHeight})
-	return m.(*Form).View().Content
+	m := NewListModel(title, opts, ListSingle)
+	m.width, m.height = termWidth, termHeight
+	m.applyLayout()
+	return m.View().Content
 }
 
-// renderMultiSelectField 经生产构造器 NewMultiSelectForm 渲染多选表单
+// renderMultiSelectField 经生产构造器 NewListModel 渲染多选列表
 func renderMultiSelectField(title string, labels []string, termHeight int) string {
-	var selected []string
-	form := NewMultiSelectForm(title, labels, termHeight, &selected)
-	form.Init()
-	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*Form).View().Content
+	opts := make([]config.Option, len(labels))
+	for i, l := range labels {
+		opts[i] = config.Option{Label: l, Value: l}
+	}
+	m := NewListModel(title, opts, ListMulti)
+	m.width, m.height = 80, termHeight
+	m.applyLayout()
+	return m.View().Content
 }
 
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
 // 选项行形如 "❯ fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配;
-// 标签本身也可能内嵌样式(OptionLabel 名称亮 + 说明灰),匹配前同样去样式。
+// 表格分列渲染时单元格间以填充空格相连,匹配前将空白串折叠为单空格,标签同处理。
 func visibleLabels(view string, labels []string) []string {
+	normalize := func(s string) string {
+		return strings.Join(strings.Fields(ansi.Strip(s)), " ")
+	}
 	var got []string
 	for line := range strings.SplitSeq(view, "\n") {
-		plain := ansi.Strip(line)
+		plain := normalize(line)
 		for _, l := range labels {
-			if strings.Contains(plain, ansi.Strip(l)) {
+			if strings.Contains(plain, normalize(l)) {
 				got = append(got, l)
 				break
 			}
@@ -72,15 +76,15 @@ func TestSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度+顶部线+底部线+帮助1行, 终端高度)
+		wantTotal   int // 渲染总高:min(内容高度+底部线+帮助1行, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 4},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 4},
-		{name: "恰好一屏12行", termHeight: 12, wantVisible: n - 1, wantTotal: 12},
-		{name: "余1行仍按内容显示", termHeight: 11, wantVisible: n - 2, wantTotal: 11},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 3, wantTotal: 10},
-		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 4, wantTotal: 9},
-		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 5, wantTotal: 8},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
+		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
+		{name: "大屏12行按内容显示", termHeight: 12, wantVisible: n, wantTotal: n + 2},
+		{name: "恰好一屏11行", termHeight: 11, wantVisible: n, wantTotal: n + 2},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 1, wantTotal: 10},
+		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 2, wantTotal: 9},
+		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 3, wantTotal: 8},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -247,7 +251,7 @@ func TestTableSelectRender(t *testing.T) {
 	options := testOptions()
 	for _, sz := range tableSizes {
 		t.Run(fmt.Sprintf("%dx%d", sz.w, sz.h), func(t *testing.T) {
-			m := NewTableSelectModel(options)
+			m := NewListModel("单选测试", options, ListSingle)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
 			view := m.View().Content
@@ -264,9 +268,9 @@ func TestTableMultiSelectRender(t *testing.T) {
 	options := testOptions()
 	for _, sz := range tableSizes {
 		t.Run(fmt.Sprintf("%dx%d", sz.w, sz.h), func(t *testing.T) {
-			m := NewTableMultiSelectModel("测试多选", options)
+			m := NewListModel("测试多选", options, ListMulti)
 			m.width, m.height = sz.w, sz.h
-			m.updateLayout()
+			m.applyLayout()
 			view := m.View().Content
 			assertTableView(t, view, sz.w, sz.h, options, true)
 			// 光标行复选框列应含 ❯ 指示符(第 0 行初始选中)
@@ -281,7 +285,7 @@ func TestTableMultiSelectRender(t *testing.T) {
 // 非光标行 [ ] 前导空格占位,与光标行 ❯[ ] 同宽,光标移动零抖动
 func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 	options := testOptions()
-	m := NewTableMultiSelectModel("对齐测试", options)
+	m := NewListModel("对齐测试", options, ListMulti)
 	m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
 
 	views := make([]string, 0, len(options))

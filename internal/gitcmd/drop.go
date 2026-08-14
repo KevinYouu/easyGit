@@ -23,8 +23,8 @@ func Drop() error {
 		return err
 	}
 
-	selectedHashes, err := form.TableMultiSelectForm(i18n.T("rebase.select.drop_commits"), options)
-	if err != nil || len(selectedHashes) == 0 {
+	selectedHashes, err := form.ListForm(i18n.T("rebase.select.drop_commits"), options, form.ListMulti)
+	if err != nil {
 		return nil
 	}
 

@@ -29,7 +29,7 @@ func PushSelected() error {
 		}
 	}
 
-	data, err := form.MultiSelectForm(i18n.T("push.select.files"), selectedFiles)
+	data, err := form.ListForm(i18n.T("push.select.files"), form.StringOptions(selectedFiles), form.ListMulti)
 	if err != nil {
 		logs.Error(i18n.T("error.multiselect.form"))
 		return fmt.Errorf("MultiSelectForm: %w", err)
@@ -47,10 +47,11 @@ func PushSelected() error {
 	}
 	options = applyCommitTypeDescriptions(options)
 
-	_, suffix, err := form.SelectForm(i18n.T("push.select.commit.type"), options)
+	suffixes, err := form.ListForm(i18n.T("push.select.commit.type"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("SelectForm: %w", err)
 	}
+	suffix := suffixes[0]
 
 	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
 	if err != nil {

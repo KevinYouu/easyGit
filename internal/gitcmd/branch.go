@@ -79,10 +79,11 @@ func DeleteBranch() error {
 		})
 	}
 
-	_, selectedBranch, err := form.SelectForm(i18n.T("branch.delete.select"), options)
+	selectedBranches, err := form.ListForm(i18n.T("branch.delete.select"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select branch error: %w", err)
 	}
+	selectedBranch := selectedBranches[0]
 
 	confirmMessage := fmt.Sprintf(i18n.T("branch.delete.confirm"), selectedBranch)
 	if !form.Confirm(confirmMessage) {

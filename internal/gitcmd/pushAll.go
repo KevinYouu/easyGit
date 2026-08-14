@@ -32,10 +32,11 @@ func PushAll() error {
 	}
 	options = applyCommitTypeDescriptions(options)
 
-	_, suffix, err := form.SelectForm(i18n.T("push.select.commit.type"), options)
+	suffixes, err := form.ListForm(i18n.T("push.select.commit.type"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select form: %w", err)
 	}
+	suffix := suffixes[0]
 	config.IncrementUsage(suffix)
 
 	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
