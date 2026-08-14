@@ -280,8 +280,14 @@ func (m *ProgressModel) View() tea.View {
 		statusPrefix,
 		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(statusText)))
 
-	// 显示当前执行的步骤列表
-	s.WriteString("\n")
+	// 步骤列表顶部:状态行与步骤列表之间以全宽分隔线代替空行
+	// (≥6 行终端渲染,极矮终端保留空行零开销)
+	if m.height >= form.HelpBarMinTermHeight {
+		s.WriteString(theme.GetHorizontalRule(m.width))
+		s.WriteString("\n")
+	} else {
+		s.WriteString("\n")
+	}
 	for i, cmd := range m.commands {
 		var icon string
 		var iconStyle lipgloss.Style
@@ -344,8 +350,11 @@ func (m *ProgressModel) View() tea.View {
 			textStyle.Render(stepText)))
 	}
 
-	// 执行中底部帮助栏单行(q 退出);完成时保留上方 ui.exiting.* 提示
+	// 执行中底部:帮助栏前插入全宽分隔线(条件同帮助栏);
+	// 完成时保留上方 ui.exiting.* 提示
 	if !m.isCompleted && m.height >= form.HelpBarMinTermHeight {
+		s.WriteString(theme.GetHorizontalRule(m.width))
+		s.WriteString("\n")
 		s.WriteString(form.RenderHelpBar(form.ProgressHelpKeys(), m.width))
 	}
 

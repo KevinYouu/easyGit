@@ -169,6 +169,17 @@ func GetCompactTheme() huh.Theme {
 			Foreground(PrimaryColor).
 			Bold(true)
 
+		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移)
+		theme.Focused.SelectSelector = lipgloss.NewStyle().
+			SetString("❯ ").
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		theme.Focused.MultiSelectSelector = lipgloss.NewStyle().
+			SetString("❯ ").
+			Foreground(PrimaryColor).
+			Bold(true)
+
 		// 错误样式
 		theme.Focused.ErrorIndicator = lipgloss.NewStyle().
 			Foreground(ErrorColor).
@@ -253,6 +264,17 @@ func GetCustomTheme() huh.Theme {
 			Italic(true)
 
 		theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移)
+		theme.Focused.SelectSelector = lipgloss.NewStyle().
+			SetString("❯ ").
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		theme.Focused.MultiSelectSelector = lipgloss.NewStyle().
+			SetString("❯ ").
 			Foreground(PrimaryColor).
 			Bold(true)
 

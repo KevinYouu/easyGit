@@ -49,16 +49,18 @@ func (m *tableMultiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ", "space":
 			cursor := m.table.Cursor()
 			m.selected[cursor] = !m.selected[cursor]
-			m.rebuildRows() // 仅重绘行以显示多选框变化,避免重建表格
+			m.rebuildRows(cursor) // 仅重绘行以显示多选框变化,避免重建表格
 			return m, nil
 		case "up", "k":
 			if m.table.Cursor() > 0 {
 				m.table, cmd = m.table.Update(msg)
+				m.rebuildRows(m.table.Cursor()) // 重绘指示符,让 ❯ 跟随光标
 			}
 			return m, cmd
 		case "down", "j":
 			if m.table.Cursor() < len(m.choices)-1 {
 				m.table, cmd = m.table.Update(msg)
+				m.rebuildRows(m.table.Cursor()) // 重绘指示符,让 ❯ 跟随光标
 			}
 			return m, cmd
 		}
@@ -88,25 +90,29 @@ func (m *tableMultiModel) updateLayout() {
 	t.SetWidth(TotalTableWidth(columns))
 	t.SetStyles(m.styles)
 	m.table = t
-	m.rebuildRows()
+	m.rebuildRows(cursor)
 	// 重建后恢复光标位置
 	m.table.SetCursor(cursor)
 }
 
-// rebuildRows 按当前布局重新生成行数据(含多选框)
-func (m *tableMultiModel) rebuildRows() {
+// rebuildRows 按当前布局重新生成行数据(含多选框与光标指示符)
+func (m *tableMultiModel) rebuildRows(cursorRow int) {
 	var rows []table.Row
 	for i, opt := range m.choices {
-		rows = append(rows, m.optionRow(i, opt))
+		rows = append(rows, m.optionRow(i, cursorRow, opt))
 	}
 	m.table.SetRows(rows)
 }
 
-// optionRow 将单个选项按当前布局模式格式化为表格行(含多选框)
-func (m *tableMultiModel) optionRow(i int, opt config.Option) table.Row {
+// optionRow 将单个选项按当前布局模式格式化为表格行(含多选框);
+// 光标行指示符 ❯ 并入复选框列(列宽 4 恰好容纳 ❯[x],零位移)
+func (m *tableMultiModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
 	checkbox := "[ ]"
 	if m.selected[i] {
 		checkbox = "[x]"
+	}
+	if i == cursorRow {
+		checkbox = "❯" + checkbox
 	}
 
 	switch LayoutMode(m.width) {
@@ -146,12 +152,18 @@ func (m *tableMultiModel) View() tea.View {
 		lines = lines[1:]
 	}
 
-	// 底部帮助行改为 [键位] 前缀式帮助栏(与全局统一风格),结构仍为 标题/空行/帮助 三行
+	// 底部帮助行改为 [键位] 前缀式帮助栏(与全局统一风格);
+	// 视图结构:标题行 + 顶部线 + 表格行 + 底部线 + 帮助行
 	footer := RenderHelpBar(tableMultiHelpKeys(), max(m.width-cellPaddingWidth, footerMinWidth))
 	// 窄屏下帮助文本可能溢出,按终端宽度截断
 	footer = SafeTruncate(footer, max(m.width-cellPaddingWidth, footerMinWidth))
 
-	content := fmt.Sprintf("%s\n\n%s\n%s", titleLine, strings.Join(lines, "\n"), footer)
+	content := fmt.Sprintf("%s\n%s\n%s\n%s\n%s",
+		titleLine,
+		theme.GetHorizontalRule(m.width),
+		strings.Join(lines, "\n"),
+		theme.GetHorizontalRule(m.width),
+		footer)
 	// 宽屏富余时水平居中
 	if ShouldCenterTable(m.width, m.table.Columns()) {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)

@@ -4,6 +4,9 @@ import (
 	"image/color"
 	"strings"
 	"testing"
+
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func TestGetSpinnerFrames(t *testing.T) {
@@ -197,6 +200,26 @@ func TestGetCompactTheme(t *testing.T) {
 	theme := GetCompactTheme()
 	if theme == nil {
 		t.Error("GetCompactTheme should not return nil")
+	}
+}
+
+// TestSelectorIndicators 选中指示符 ❯:两个主题的 Focused 单选/多选指示符
+// 均为 "❯ "(显示宽 2,与 huh 默认 "> " 同宽,零布局位移)
+func TestSelectorIndicators(t *testing.T) {
+	for name, th := range map[string]huh.Theme{"compact": GetCompactTheme(), "custom": GetCustomTheme()} {
+		t.Run(name, func(t *testing.T) {
+			styles := th.Theme(true)
+			selectSel := styles.Focused.SelectSelector.Render()
+			multiSel := styles.Focused.MultiSelectSelector.Render()
+			for field, got := range map[string]string{"SelectSelector": selectSel, "MultiSelectSelector": multiSel} {
+				if !strings.Contains(got, "❯ ") {
+					t.Errorf("%s = %q, want 含 %q", field, got, "❯ ")
+				}
+				if width := lipgloss.Width(got); width != 2 {
+					t.Errorf("%s 显示宽 = %d, want 2(与 huh 默认 > 同宽)", field, width)
+				}
+			}
+		})
 	}
 }
 

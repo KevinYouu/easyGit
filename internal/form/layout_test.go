@@ -46,13 +46,13 @@ func TestCalculateMessageWidth(t *testing.T) {
 	}{
 		{name: "极窄 20 无消息列", width: 20, want: 0},
 		{name: "极窄 35 无消息列", width: 35, want: 0},
-		{name: "三列 60", width: 60, want: 34},
-		{name: "四列 80", width: 80, want: 42},
-		{name: "四列 120", width: 120, want: 82},
-		{name: "超宽 200 封顶", width: 200, want: 160},
-		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 28},
-		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 36},
-		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 156},
+		{name: "三列 60 含指示列", width: 60, want: 30},
+		{name: "四列 80 含指示列", width: 80, want: 38},
+		{name: "四列 120 含指示列", width: 120, want: 78},
+		{name: "超宽 200 封顶", width: 200, want: 158},
+		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 24},
+		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 32},
+		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 152},
 	}
 
 	for _, tt := range tests {
@@ -72,10 +72,10 @@ func TestCalculateTableHeight(t *testing.T) {
 		multi  bool
 		want   int
 	}{
-		{name: "常规 24 行单选让出帮助行", height: 24, multi: false, want: 23},
-		{name: "常规 24 行多选预留标题", height: 24, multi: true, want: 21},
-		{name: "高屏 50 行多选", height: 50, multi: true, want: 47},
-		{name: "矮屏 10 行单选让出帮助行", height: 10, multi: false, want: 9},
+		{name: "常规 24 行单选让出分隔线+帮助行", height: 24, multi: false, want: 22},
+		{name: "常规 24 行多选预留标题+分隔线+帮助行", height: 24, multi: true, want: 20},
+		{name: "高屏 50 行多选", height: 50, multi: true, want: 46},
+		{name: "矮屏 10 行单选让出分隔线+帮助行", height: 10, multi: false, want: 8},
 		{name: "极矮屏 6 行多选触底", height: 6, multi: true, want: 3},
 		{name: "极矮屏 3 行触底", height: 3, multi: false, want: 3},
 	}
@@ -89,8 +89,8 @@ func TestCalculateTableHeight(t *testing.T) {
 	}
 }
 
-// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度-帮助栏1行):
-// 内容不足一屏按内容显示,超出一屏占满终端滚动;帮助栏仅在 ≥6 行终端让出 1 行
+// TestCalculateSelectHeight 表单高度 = min(选项数+标题, 终端高度-3 行分隔线/帮助):
+// 内容不足一屏按内容显示,超出一屏占满终端滚动;分隔线与帮助栏仅在 ≥6 行终端让出 3 行
 func TestCalculateSelectHeight(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -100,9 +100,9 @@ func TestCalculateSelectHeight(t *testing.T) {
 	}{
 		{name: "大屏内容不足按内容显示", optionNum: 9, termHeight: 24, want: 10},
 		{name: "大屏少量选项", optionNum: 4, termHeight: 40, want: 5},
-		{name: "大屏海量选项占满让出帮助行", optionNum: 50, termHeight: 24, want: 23},
-		{name: "恰好一屏让出帮助行", optionNum: 9, termHeight: 10, want: 9},
-		{name: "矮屏滚动让出帮助行", optionNum: 9, termHeight: 8, want: 7},
+		{name: "大屏海量选项占满让出分隔线+帮助", optionNum: 50, termHeight: 24, want: 21},
+		{name: "恰好一屏让出分隔线+帮助", optionNum: 9, termHeight: 10, want: 7},
+		{name: "矮屏滚动让出分隔线+帮助", optionNum: 9, termHeight: 8, want: 5},
 		{name: "极矮屏触底", optionNum: 50, termHeight: 3, want: 3},
 		{name: "极端 2 行不越界", optionNum: 50, termHeight: 2, want: 2},
 		{name: "极端 1 行不越界", optionNum: 50, termHeight: 1, want: 1},
@@ -241,7 +241,7 @@ func TestFormatCompactCommit(t *testing.T) {
 	}
 }
 
-// TestCalculateColumns 列数与消息列宽一致
+// TestCalculateColumns 列数与消息列宽一致;单选模式最左为 2 宽指示列
 func TestCalculateColumns(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -249,11 +249,11 @@ func TestCalculateColumns(t *testing.T) {
 		withCheckbox bool
 		wantCols     int
 	}{
-		{name: "紧凑单列 40", width: 40, wantCols: 1},
+		{name: "紧凑双列 40(指示+消息)", width: 40, wantCols: 2},
 		{name: "紧凑含多选框 40", width: 40, withCheckbox: true, wantCols: 2},
-		{name: "三列 60", width: 60, wantCols: 3},
+		{name: "三列 60 含指示列", width: 60, wantCols: 4},
 		{name: "三列含多选框 60", width: 60, withCheckbox: true, wantCols: 4},
-		{name: "四列 80", width: 80, wantCols: 4},
+		{name: "四列 80 含指示列", width: 80, wantCols: 5},
 		{name: "四列含多选框 80", width: 80, withCheckbox: true, wantCols: 5},
 	}
 
@@ -275,6 +275,10 @@ func TestCalculateColumns(t *testing.T) {
 				if !found {
 					t.Errorf("CalculateColumns(%d, %v) 未包含消息列宽 %d: %+v", tt.width, tt.withCheckbox, msgWidth, cols)
 				}
+			}
+			// 单选模式最左列必须是 2 宽指示列
+			if !tt.withCheckbox && cols[0].Width != indicatorColWidth {
+				t.Errorf("CalculateColumns(%d, false) 首列宽 = %d, want %d", tt.width, cols[0].Width, indicatorColWidth)
 			}
 		})
 	}

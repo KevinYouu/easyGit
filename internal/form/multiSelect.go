@@ -19,7 +19,7 @@ func NewMultiSelectForm(title string, options []string, height int, selected *[]
 
 	// huh v2 已修复 v1 滚动 bug(光标跟随可见区),高屏展示更多选项,
 	// 不再固定默认 8 行
-	return newForm(
+	form := newForm(
 		huh.NewForm(
 			huh.NewGroup(
 				huh.NewMultiSelect[string]().
@@ -32,6 +32,9 @@ func NewMultiSelectForm(title string, options []string, height int, selected *[]
 			WithShowHelp(false),
 		multiSelectHelpKeys(),
 	)
+	// 列表类表单:标题下方渲染分隔线(与表格/进度屏风格统一)
+	form.dividerAfterTitle = true
+	return form
 }
 
 func MultiSelectForm(title string, options []string, preselected ...[]string) (Values []string, err error) {

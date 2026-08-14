@@ -54,12 +54,14 @@ func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// 不循环：检查是否已经在第一行
 			if m.table.Cursor() > 0 {
 				m.table, cmd = m.table.Update(msg)
+				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
 			}
 			return m, cmd
 		case "down", "j":
 			// 不循环：检查是否已经在最后一行
 			if m.table.Cursor() < len(m.choices)-1 {
 				m.table, cmd = m.table.Update(msg)
+				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
 			}
 			return m, cmd
 		}
@@ -86,8 +88,9 @@ func (m tableModel) View() tea.View {
 		content = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
 	}
 	v := tea.NewView(content)
-	// 底部帮助栏一行(≥6 行终端渲染,极小终端零开销);计算高度时已让出该行
+	// 底部:分隔线 + 帮助栏一行(≥6 行终端渲染,极小终端零开销);计算高度时已让出该行
 	if m.height >= HelpBarMinTermHeight {
+		v.SetContent(v.Content + "\n" + theme.GetHorizontalRule(m.width))
 		v = AppendHelpBar(v, tableSelectHelpKeys(), m.width)
 	}
 	// bubbletea v2 全屏模式改为声明式:View 中设置 AltScreen
@@ -116,31 +119,36 @@ func (m *tableModel) applyLayout() {
 	t.SetWidth(TotalTableWidth(columns))
 	t.SetStyles(m.styles)
 	m.table = t
-	m.rebuildRows()
+	m.rebuildRows(cursor)
 	// 重建后恢复光标位置
 	m.table.SetCursor(cursor)
 }
 
-// rebuildRows 按当前布局模式重新生成行数据
-func (m *tableModel) rebuildRows() {
+// rebuildRows 按当前布局模式重新生成行数据;光标行在最左指示列渲染 ❯
+func (m *tableModel) rebuildRows(cursorRow int) {
 	rows := make([]table.Row, 0, len(m.choices))
-	for _, opt := range m.choices {
-		rows = append(rows, m.optionRow(opt))
+	for i, opt := range m.choices {
+		rows = append(rows, m.optionRow(i, cursorRow, opt))
 	}
 	m.table.SetRows(rows)
 }
 
-// optionRow 将单个选项按当前布局模式格式化为表格行
-func (m *tableModel) optionRow(opt config.Option) table.Row {
+// optionRow 将单个选项按当前布局模式格式化为表格行;指示列宽 2,
+// 与 huh 的 "❯ " 指示符同宽,光标行显示 ❯ 其余留空
+func (m *tableModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
+	indicator := ""
+	if i == cursorRow {
+		indicator = "❯"
+	}
 	switch LayoutMode(m.width) {
 	case LayoutCompact:
-		return table.Row{formatCompactCommit(opt.Label, m.width-tableInsetWidth-cellPaddingWidth)}
+		return table.Row{indicator, formatCompactCommit(opt.Label, m.width-indicatorColWidth-tableInsetWidth-cellPaddingWidth)}
 	case LayoutThreeCol:
 		hash, message, date, _ := parseCommitInfo(opt.Label, m.messageWidth)
-		return table.Row{hash, message, date}
+		return table.Row{indicator, hash, message, date}
 	default:
 		hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
-		return table.Row{hash, message, date, author}
+		return table.Row{indicator, hash, message, date, author}
 	}
 }
 

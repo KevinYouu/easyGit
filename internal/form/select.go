@@ -33,7 +33,7 @@ func NewSelectForm(title string, options []config.Option, height int, selected *
 
 	// huh v2 已修复 v1 滚动 bug(光标跟随可见区),高屏展示更多选项,
 	// 不再固定默认 10 行
-	return newForm(
+	form := newForm(
 		huh.NewForm(
 			huh.NewGroup(
 				huh.NewSelect[string]().
@@ -47,6 +47,9 @@ func NewSelectForm(title string, options []config.Option, height int, selected *
 			WithShowHelp(false),
 		selectHelpKeys(),
 	)
+	// 列表类表单:标题下方渲染分隔线(与表格/进度屏风格统一)
+	form.dividerAfterTitle = true
+	return form
 }
 
 func SelectForm(title string, options []config.Option, preselected ...string) (label, value string, err error) {

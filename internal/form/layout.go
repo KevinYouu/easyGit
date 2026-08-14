@@ -24,6 +24,7 @@ const (
 // 表格列宽常量
 const (
 	checkboxColWidth  = 4   // 多选框列宽
+	indicatorColWidth = 2   // 选中指示列宽(❯ + 空格)
 	hashColWidth      = 8   // hash 列宽
 	dateColWidth      = 12  // 日期列宽
 	authorColWidth    = 10  // 作者列宽
@@ -36,8 +37,8 @@ const (
 
 // 表格高度计算常量
 const (
-	multiTableExtraLines = 3 // 多选模式额外固定行数:标题 + 空行 + 底部帮助行
-	singleTableHelpLines = 1 // 单选模式底部帮助栏一行(≥6 行终端)
+	multiTableExtraLines = 4 // 多选模式额外固定行数:标题 + 顶部线 + 底部线 + 底部帮助行
+	singleTableHelpLines = 2 // 单选模式底部固定行数:底部线 + 帮助栏一行(≥6 行终端)
 	tableHeightMin       = 3 // 表格最小高度
 	tableHeaderLines     = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
 )
@@ -55,9 +56,10 @@ const ellipsis = "..."
 const footerMinWidth = 10
 
 // 各模式消息列固定占位 = 固定列宽之和 + 全部列单元格内边距
+// 单选模式含指示列(2 宽 + 2 内边距),多选模式指示符并入复选框列,不额外占位
 const (
-	fixedWidthThree = hashColWidth + dateColWidth + 3*cellPaddingWidth                  // 三列:hash/message/date
-	fixedWidthFull  = hashColWidth + dateColWidth + authorColWidth + 4*cellPaddingWidth // 四列:hash/message/date/author
+	fixedWidthThree = hashColWidth + dateColWidth + 3*cellPaddingWidth + indicatorColWidth + cellPaddingWidth                  // 三列:指示/hash/message/date
+	fixedWidthFull  = hashColWidth + dateColWidth + authorColWidth + 4*cellPaddingWidth + indicatorColWidth + cellPaddingWidth // 四列:指示/hash/message/date/author
 )
 
 // LayoutMode 根据终端宽度判定布局模式
@@ -73,6 +75,7 @@ func LayoutMode(width int) LayoutKind {
 }
 
 // CalculateMessageWidth 计算消息列宽;紧凑模式无消息列,返回 0
+// 单选模式最左为 2 宽指示列,多选模式指示符并入复选框列
 func CalculateMessageWidth(width int, withCheckbox bool) int {
 	mode := LayoutMode(width)
 	var fixed int
@@ -90,7 +93,8 @@ func CalculateMessageWidth(width int, withCheckbox bool) int {
 	return min(max(width-fixed, messageColMin), messageColMax)
 }
 
-// CalculateColumns 根据终端宽度与是否含多选框生成表格列
+// CalculateColumns 根据终端宽度与是否含多选框生成表格列;
+// 单选模式最左为 2 宽选中指示列(光标行显示 ❯)
 func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	mode := LayoutMode(width)
 	switch mode {
@@ -101,7 +105,10 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 				{Title: "", Width: width - checkboxColWidth - tableInsetWidth},
 			}
 		}
-		return []table.Column{{Title: "", Width: width - tableInsetWidth}}
+		return []table.Column{
+			{Title: "", Width: indicatorColWidth},
+			{Title: "", Width: width - indicatorColWidth - tableInsetWidth},
+		}
 	case LayoutThreeCol:
 		messageWidth := CalculateMessageWidth(width, withCheckbox)
 		if withCheckbox {
@@ -113,6 +120,7 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 			}
 		}
 		return []table.Column{
+			{Title: "", Width: indicatorColWidth},
 			{Title: "", Width: hashColWidth},
 			{Title: "", Width: messageWidth},
 			{Title: "", Width: dateColWidth},
@@ -129,6 +137,7 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 			}
 		}
 		return []table.Column{
+			{Title: "", Width: indicatorColWidth},
 			{Title: "", Width: hashColWidth},
 			{Title: "", Width: messageWidth},
 			{Title: "", Width: dateColWidth},
@@ -137,8 +146,8 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	}
 }
 
-// CalculateTableHeight 计算表格可视行数;多选模式额外预留标题/空行/底部帮助行,
-// 单选模式在 ≥6 行终端为底部帮助栏让出 1 行(<6 行帮助栏不渲染,零开销)
+// CalculateTableHeight 计算表格可视行数;多选模式额外预留标题/顶部线/底部线/底部帮助行,
+// 单选模式在 ≥6 行终端为底部线 + 底部帮助栏让出 2 行(<6 行分隔线与帮助栏不渲染,零开销)
 func CalculateTableHeight(height int, multi bool) int {
 	reserved := 0
 	if multi {
@@ -150,20 +159,17 @@ func CalculateTableHeight(height int, multi bool) int {
 }
 
 // formFieldHeight 计算 huh Select/MultiSelect 字段高度。
-// 内容模型:标题一行 + 每选项一行(紧凑主题无边框/帮助,标题按一行计)。
+// 内容模型:标题 1 + 顶部线 1 + 选项 n + 底部线 1 + 帮助栏 1 = n+4 行;
+// 字段仅含标题 + 选项(huh 字段按 Height 精确渲染,viewpor 余量会补空白行,
+// 故选项全显时字段高度须恰为 n+1,避免选项与底部线之间出现空白行)。
 // 内容不足一屏时按内容高度显示,不渲染底部空白;超出一屏时占满终端高度并滚动;
 // 极小终端(<3 行)退化为实际终端高度,避免渲染越界。
-// 底部帮助栏占一行:终端高度 ≥ 6 行时字段上限让出 1 行(帮助栏不渲染时零开销)。
-// 单选项时保底随选项数收缩(标题 + 选项):固定保底 3 会令 huh 视图
-// 多出一个空白行(标题+选项+空行+帮助栏),收紧后恰好标题+选项+帮助栏。
+// 分隔线与帮助栏仅在 ≥6 行终端渲染,故仅在该档位让出 3 行(<6 行零开销)。
 func formFieldHeight(optionCount, termHeight int) int {
-	// 帮助栏仅在 ≥6 行终端渲染,故仅在该档位让出 1 行
 	if termHeight >= HelpBarMinTermHeight {
-		termHeight = termHeight - 1
+		return min(optionCount+1, max(termHeight-3, 1))
 	}
-	floor := max(optionCount+1, 1)
-	height := max(min(optionCount+1, termHeight), floor)
-	return min(height, max(termHeight, 1))
+	return min(optionCount+1, max(termHeight, 1))
 }
 
 // CalculateSelectHeight 计算 huh Select 字段高度,见 formFieldHeight

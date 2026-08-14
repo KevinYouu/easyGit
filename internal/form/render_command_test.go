@@ -103,22 +103,23 @@ func multiLabels(n int, f func(int) string) []string {
 	return labels
 }
 
-// assertCommandField 校验单选/多选表单渲染:总高 = min(内容+帮助1行, 终端),
-// 可见项 = min(选项数, 终端-2)(≥6 行终端),行宽不越界。
+// assertCommandField 校验单选/多选表单渲染:总高 = min(内容+2条分隔线+帮助1行, 终端),
+// 可见项 = min(选项数, 终端-4)(≥6 行终端),行宽不越界。
 // 断言独立于 CalculateSelectHeight 本身(渲染层验证,不构成循环):
-// 钉住的是 formFieldHeight 文档化的内容模型 —— 标题一行 + 每选项一行 + 底部帮助栏一行。
+// 钉住的是 formFieldHeight 文档化的内容模型 —— 标题一行 + 顶部线一行 +
+// 每选项一行 + 底部线一行 + 底部帮助栏一行。
 func assertCommandField(t *testing.T, view string, labels []string, termHeight, termWidth int) {
 	t.Helper()
 	if !utf8.ValidString(view) {
 		t.Fatal("渲染结果含非法 UTF-8")
 	}
 	n := len(labels)
-	// 大屏按内容显示,小屏占满终端滚动;帮助栏在 ≥6 行终端渲染,<6 行时隐藏
+	// 大屏按内容显示,小屏占满终端滚动;分隔线与帮助栏在 ≥6 行终端渲染,<6 行时隐藏
 	wantTotal := min(n+1, termHeight)
-	wantVisible := min(n, termHeight-1)
+	wantVisible := min(n, max(termHeight-1, 1))
 	if termHeight >= HelpBarMinTermHeight {
-		wantTotal = min(n+2, termHeight)
-		wantVisible = min(n, termHeight-2)
+		wantTotal = min(n+4, termHeight)
+		wantVisible = min(n, max(termHeight-4, 1))
 	}
 	if total := lipgloss.Height(view); total != wantTotal {
 		t.Errorf("渲染总高 = %d, want %d(选项 %d,终端 %d 行)", total, wantTotal, n, termHeight)
@@ -213,7 +214,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{Label: fmt.Sprintf("a1b2c3d %s\n07-12 10:00 • 张三丰", full), Value: "v"},
 	}
 
-	// 单选含底部帮助栏一行,多选含标题+底部帮助行
+	// 单选含底部线 + 底部帮助栏两行,多选含标题 + 顶部线 + 底部线 + 帮助行
 	renderCases := []struct {
 		name         string
 		view         func(w, h int) string
@@ -227,7 +228,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
 			},
-			wantNonEmpty: 2, // 一行提交 + 底部帮助栏
+			wantNonEmpty: 3, // 一行提交 + 底部线 + 底部帮助栏
 		},
 		{
 			name: "多选",
@@ -237,7 +238,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 				m.updateLayout()
 				return ansi.Strip(m.View().Content)
 			},
-			wantNonEmpty: 3, // 标题 + 提交行 + 帮助行
+			wantNonEmpty: 5, // 标题 + 顶部线 + 提交行 + 底部线 + 帮助行
 		},
 	}
 

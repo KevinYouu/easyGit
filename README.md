@@ -23,7 +23,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 - 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus
 - 🔧 **Smart Configuration** - Save your push preferences (remote/branch) and language settings
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
-- 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components
+- 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components; full-width divider lines frame every screen, and a `❯` indicator follows your cursor across all selection lists
 - 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
 - ⌨️ **Unified Help Bar** - Every screen shows a single-line shortcut bar with `[Key]` prefix and action text, inline option descriptions (bright name + muted detail), auto-hidden on tiny terminals
 - 💻 **Cross-Platform** - Works seamlessly on Linux, macOS, and Windows

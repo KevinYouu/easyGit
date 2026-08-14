@@ -48,7 +48,7 @@ func renderMultiSelectField(title string, labels []string, termHeight int) strin
 }
 
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
-// 选项行形如 "> fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配;
+// 选项行形如 "❯ fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配;
 // 标签本身也可能内嵌样式(OptionLabel 名称亮 + 说明灰),匹配前同样去样式。
 func visibleLabels(view string, labels []string) []string {
 	var got []string
@@ -72,21 +72,25 @@ func TestSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度+帮助1行, 终端高度)
+		wantTotal   int // 渲染总高:min(内容高度+顶部线+底部线+帮助1行, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
-		{name: "恰好一屏12行", termHeight: 12, wantVisible: n, wantTotal: n + 2},
-		{name: "余1行仍按内容显示", termHeight: 11, wantVisible: n, wantTotal: n + 2},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 1, wantTotal: 10},
-		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 2, wantTotal: 9},
-		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 3, wantTotal: 8},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 4},
+		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 4},
+		{name: "恰好一屏12行", termHeight: 12, wantVisible: n - 1, wantTotal: 12},
+		{name: "余1行仍按内容显示", termHeight: 11, wantVisible: n - 2, wantTotal: 11},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 3, wantTotal: 10},
+		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 4, wantTotal: 9},
+		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 5, wantTotal: 8},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			view := renderSelectField("Choose a commit type", labels, tt.termHeight)
 			if !utf8.ValidString(view) {
 				t.Fatal("渲染结果含非法 UTF-8")
+			}
+			// 选中指示符 ❯ 应出现在视图中(光标行)
+			if !strings.Contains(view, "❯") {
+				t.Errorf("渲染结果缺少 ❯ 选中指示符: %q", view)
 			}
 			got := visibleLabels(view, labels)
 			if len(got) != tt.wantVisible {
@@ -98,7 +102,7 @@ func TestSelectRenderUsesAllSpace(t *testing.T) {
 				}
 			}
 			if h := lipgloss.Height(view); h != tt.wantTotal {
-				t.Errorf("渲染总高 %d, want %d(终端 %d 行,内容 %d 行)", h, tt.wantTotal, tt.termHeight, n+1)
+				t.Errorf("渲染总高 %d, want %d(终端 %d 行,内容 %d 行)", h, tt.wantTotal, tt.termHeight, n+4)
 			}
 		})
 	}
@@ -128,13 +132,13 @@ func TestMultiSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度+帮助1行, 终端高度)
+		wantTotal   int // 渲染总高:min(内容高度+顶部线+底部线+帮助1行, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
-		{name: "恰好一屏13行", termHeight: 13, wantVisible: n - 1, wantTotal: 13},
-		{name: "矮屏12行占满滚动", termHeight: 12, wantVisible: n - 2, wantTotal: 12},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 4, wantTotal: 10},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 4},
+		{name: "大屏14行占满滚动", termHeight: 14, wantVisible: n - 2, wantTotal: 14},
+		{name: "恰好一屏13行", termHeight: 13, wantVisible: n - 3, wantTotal: 13},
+		{name: "矮屏12行占满滚动", termHeight: 12, wantVisible: n - 4, wantTotal: 12},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 6, wantTotal: 10},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,12 +146,16 @@ func TestMultiSelectRenderUsesAllSpace(t *testing.T) {
 			if !utf8.ValidString(view) {
 				t.Fatal("渲染结果含非法 UTF-8")
 			}
+			// 选中指示符 ❯ 应出现在视图中(光标行)
+			if !strings.Contains(view, "❯") {
+				t.Errorf("渲染结果缺少 ❯ 选中指示符: %q", view)
+			}
 			got := visibleLabels(view, labels)
 			if len(got) != tt.wantVisible {
 				t.Fatalf("可见选项 %d 个: %v, want %d 个(终端 %d 行)", len(got), got, tt.wantVisible, tt.termHeight)
 			}
 			if h := lipgloss.Height(view); h != tt.wantTotal {
-				t.Errorf("渲染总高 %d, want %d(终端 %d 行,内容 %d 行)", h, tt.wantTotal, tt.termHeight, n+1)
+				t.Errorf("渲染总高 %d, want %d(终端 %d 行,内容 %d 行)", h, tt.wantTotal, tt.termHeight, n+4)
 			}
 		})
 	}
@@ -193,11 +201,11 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 	n := len(options)
 	expectRows := min(CalculateTableHeight(h, multi), n)
 	extraRows := 0
-	// 单选在 ≥6 行终端含底部帮助栏一行;多选固定 标题/count 行 + 底部帮助行(空行不计)
+	// 多选:标题 + 顶部线 + 底部线 + 底部帮助行;单选在 ≥6 行终端:底部线 + 帮助行
 	if multi {
-		extraRows = 2
+		extraRows = 4
 	} else if h >= HelpBarMinTermHeight {
-		extraRows = 1
+		extraRows = 2
 	}
 
 	nonEmpty := 0
@@ -217,7 +225,7 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 	// 总高策略:内容不足一屏(含附加行)时按内容显示,否则占满终端
 	contentHeight := n + extraRows
 	if multi {
-		contentHeight = n + 3 // 标题 + 空行 + 底部帮助行
+		contentHeight = n + 4 // 标题 + 顶部线 + 底部线 + 底部帮助行
 	}
 	wantTotal := min(contentHeight, h)
 	if total := lipgloss.Height(view); total != wantTotal {
@@ -242,7 +250,12 @@ func TestTableSelectRender(t *testing.T) {
 			m := NewTableSelectModel(options)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
-			assertTableView(t, m.View().Content, sz.w, sz.h, options, false)
+			view := m.View().Content
+			assertTableView(t, view, sz.w, sz.h, options, false)
+			// 光标行最左指示列应显示 ❯(第 0 行初始选中)
+			if !strings.Contains(view, "❯") {
+				t.Errorf("视图缺少 ❯ 选中指示符: %q", view)
+			}
 		})
 	}
 }
@@ -254,7 +267,12 @@ func TestTableMultiSelectRender(t *testing.T) {
 			m := NewTableMultiSelectModel("测试多选", options)
 			m.width, m.height = sz.w, sz.h
 			m.updateLayout()
-			assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
+			view := m.View().Content
+			assertTableView(t, view, sz.w, sz.h, options, true)
+			// 光标行复选框列应含 ❯ 指示符(第 0 行初始选中)
+			if !strings.Contains(view, "❯") {
+				t.Errorf("视图缺少 ❯ 选中指示符: %q", view)
+			}
 		})
 	}
 }

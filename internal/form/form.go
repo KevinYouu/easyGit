@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	key "charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 // Form 是 huh.Form 的薄包装:视图末尾附加统一帮助栏。
@@ -16,9 +18,10 @@ import (
 // 共用同一构造路径,防止配置漂移。
 type Form struct {
 	*huh.Form
-	helpKeys []HelpKey
-	width    int // 最近一次窗口宽度
-	height   int // 最近一次窗口高度
+	helpKeys          []HelpKey
+	dividerAfterTitle bool // 标题下方渲染全宽分隔线(列表类表单,见 newForm 子类设置)
+	width             int  // 最近一次窗口宽度
+	height            int  // 最近一次窗口高度
 }
 
 // newForm 包装 huh 表单并绑定帮助栏键位。
@@ -53,20 +56,31 @@ func (f *Form) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m, cmd := f.Form.Update(msg)
 	if mf, ok := m.(*huh.Form); ok {
-		return &Form{Form: mf, helpKeys: f.helpKeys, width: f.width, height: f.height}, cmd
+		return &Form{Form: mf, helpKeys: f.helpKeys, dividerAfterTitle: f.dividerAfterTitle, width: f.width, height: f.height}, cmd
 	}
 	return f, cmd
 }
 
-// View 实现 tea.Model:表单视图末尾附加帮助栏;极小终端(<6 行)不渲染,
-// 退出中的表单不再渲染(与 huh 原生行为一致)。
+// View 实现 tea.Model:列表类表单在标题下方渲染分隔线,视图末尾先渲染
+// 底部分隔线再附加帮助栏;极小终端(<6 行)不渲染,退出中的表单不再渲染
+// (与 huh 原生行为一致)。
 func (f *Form) View() tea.View {
 	content := f.Form.View()
 	if content == "" {
 		return tea.NewView("")
 	}
+	// 标题下方分隔线:短标题不折行,首行即标题行;多行标题(动态消息)
+	// 只在首行后插线,与列表类表单(固定标题)行为一致
+	if f.dividerAfterTitle && f.height >= HelpBarMinTermHeight {
+		if head, tail, found := strings.Cut(content, "\n"); found {
+			content = head + "\n" + theme.GetHorizontalRule(f.width) + "\n" + tail
+		} else {
+			content = content + "\n" + theme.GetHorizontalRule(f.width)
+		}
+	}
 	v := tea.NewView(content)
 	if f.height >= HelpBarMinTermHeight {
+		v.SetContent(v.Content + "\n" + theme.GetHorizontalRule(f.width))
 		v = AppendHelpBar(v, f.helpKeys, f.width)
 	}
 	return v
