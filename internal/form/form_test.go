@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/cursor"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
 // 注意: form 包的函数依赖于交互式终端输入,
@@ -52,6 +54,129 @@ func TestInput_Validation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// pumpForm 模拟 tea 程序消息循环:消息送入模型后递归执行返回的命令链,
+// 直到无更多命令;返回最新模型。
+// 光标闪烁是周期性命令(tea 程序中由事件循环节流),测试中不喂回
+// BlinkMsg,避免命令链无限循环。
+func pumpForm(t *testing.T, model tea.Model, msg tea.Msg) tea.Model {
+	t.Helper()
+	m, cmd := model.Update(msg)
+	for cmd != nil {
+		msg := cmd()
+		cmd = nil
+		if msg == nil {
+			break
+		}
+		if batch, ok := msg.(tea.BatchMsg); ok {
+			for _, c := range batch {
+				if c != nil {
+					m = pumpForm(t, m, c())
+				}
+			}
+			continue
+		}
+		if _, ok := msg.(cursor.BlinkMsg); ok {
+			continue
+		}
+		m, cmd = m.Update(msg)
+	}
+	return m
+}
+
+// TestMultiInput_Construction 单页多输入表单构造断言:
+// 空 specs 直接返回空;默认值写入字段;Enter 逐字段推进(空值校验不推进)、
+// shift+tab 回退、末字段 Enter 提交,与帮助栏「继续/提交、上一步、取消」键位语义一致。
+func TestMultiInput_Construction(t *testing.T) {
+	t.Run("空 specs 返回空结果", func(t *testing.T) {
+		vals, err := MultiInput(nil)
+		if err != nil {
+			t.Fatalf("err = %v, want nil", err)
+		}
+		if vals != nil {
+			t.Errorf("vals = %v, want nil", vals)
+		}
+	})
+
+	t.Run("空值校验阻挡推进", func(t *testing.T) {
+		// 字段 1 无默认值:Enter 触发非空校验,错误提示且不推进到字段 2
+		specs := []InputSpec{
+			{Title: "版本号"},
+			{Title: "提交消息"},
+		}
+		values := make([]string, len(specs))
+		ptrs := make([]*string, len(values))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		f := pumpForm(t, NewMultiInputForm(specs, ptrs), tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateNormal {
+			t.Fatalf("空值 Enter 后 State = %v, want StateNormal(不应推进)", f.State)
+		}
+		if got := f.GetFocusedField().GetValue(); got != "" {
+			t.Errorf("应仍聚焦字段 1,当前值 = %q", got)
+		}
+		errs := f.Errors()
+		if len(errs) != 1 || errs[0].Error() != i18n.T("form.input.empty.error") {
+			t.Errorf("Errors() = %v, want [%q]", errs, i18n.T("form.input.empty.error"))
+		}
+	})
+
+	t.Run("Enter 推进、shift+tab 回退、末字段提交", func(t *testing.T) {
+		specs := []InputSpec{
+			{Title: "版本号", Default: "v1.1.0"},
+			{Title: "提交消息"},
+		}
+		// 模拟 MultiInput 的播种:默认值先写入调用方指针,字段值来自指针
+		values := []string{specs[0].Default, ""}
+		ptrs := make([]*string, len(values))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		f := pumpForm(t, NewMultiInputForm(specs, ptrs), tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+
+		// 初始聚焦字段 1,默认值已显示
+		if got := f.GetFocusedField().GetValue(); got != "v1.1.0" {
+			t.Errorf("字段 1 值 = %q, want v1.1.0", got)
+		}
+
+		// Enter → 推进到字段 2(默认值非空,校验通过)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateNormal {
+			t.Fatalf("字段 1 Enter 后 State = %v, want StateNormal", f.State)
+		}
+		if got := f.GetFocusedField().GetValue(); got != "" {
+			t.Errorf("应聚焦字段 2,当前值 = %q", got)
+		}
+
+		// 向字段 2 输入文本(推进后字段 2 已获得焦点)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "feat: 打标签"}).(*Form)
+		if got := f.GetFocusedField().GetValue(); got != "feat: 打标签" {
+			t.Errorf("字段 2 输入值 = %q, want feat: 打标签", got)
+		}
+		if values[1] != "feat: 打标签" {
+			t.Errorf("values[1] = %q, want feat: 打标签(指针应同步)", values[1])
+		}
+
+		// shift+tab → 回退到字段 1
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}).(*Form)
+		if got := f.GetFocusedField().GetValue(); got != "v1.1.0" {
+			t.Errorf("shift+tab 后应聚焦字段 1,当前值 = %q", got)
+		}
+
+		// 字段 1 Enter → 字段 2;字段 2(末字段)Enter → 提交
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateCompleted {
+			t.Fatalf("末字段 Enter 后 State = %v, want StateCompleted", f.State)
+		}
+		if values[0] != "v1.1.0" || values[1] != "feat: 打标签" {
+			t.Errorf("values = %v, want [v1.1.0 feat: 打标签]", values)
+		}
+	})
 }
 
 var ErrEmptyInput = &validationError{msg: "input cannot be empty"}

@@ -21,15 +21,16 @@ func CreateAndPushTag() error {
 	}
 	newVersion := incrementVersion(latestVersion)
 
-	version, err := form.Input(i18n.T("tag.input.version"), newVersion)
+	// 版本号与提交消息同一页输入:连续内联表单会在主屏残留堆叠,
+	// 单页多输入(单 tea 程序)由渲染器整体重绘,无残留
+	values, err := form.MultiInput([]form.InputSpec{
+		{Title: i18n.T("tag.input.version"), Default: newVersion, Desc: i18n.T("tag.input.version.desc")},
+		{Title: i18n.T("tag.input.commit.message"), Desc: i18n.T("tag.input.commit.message.desc")},
+	})
 	if err != nil {
-		return fmt.Errorf("get version error: %w", err)
+		return fmt.Errorf("get version and commit message error: %w", err)
 	}
-
-	commitMessage, err := form.Input(i18n.T("tag.input.commit.message"), "")
-	if err != nil {
-		return fmt.Errorf("get commit message error: %w", err)
-	}
+	version, commitMessage := values[0], values[1]
 
 	// 使用新的命令执行器
 	commands := []command.CommandInfo{

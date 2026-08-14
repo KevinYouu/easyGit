@@ -14,12 +14,28 @@ import (
 
 // 命令 × Input/Confirm 表单渲染覆盖。
 // 经生产构造器 NewInputForm/NewConfirmForm 驱动渲染,与命令实际执行的
-// 构造路径一致;两类表单均无 Height 设置,内容高度固定,任何终端高度下不填充不裁剪。
+// 构造路径一致;单字段表单无 Height 设置,内容高度固定,任何终端高度下不填充不裁剪。
+// 单页多输入表单自然高度 7 行(聚焦字段 2 行 + 空行 + 带边框字段 4 行)+ 帮助栏 2 行,
+// 终端高度不足时 huh 裁剪视图(正常行为),高度 ≥9 时同样不填充不裁剪。
 
 // renderInputField 经生产构造器 NewInputForm 渲染输入表单
 func renderInputField(title, defaultValue string, termHeight int) string {
 	value := defaultValue
 	form := NewInputForm(title, &value)
+	form.Init()
+	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
+	return m.(*Form).View().Content
+}
+
+// renderMultiInputForm 经生产构造器 NewMultiInputForm 渲染单页多输入表单
+// (所有字段同页堆叠,单帧视图含全部标题)
+func renderMultiInputForm(specs []InputSpec, termHeight int) string {
+	values := make([]string, len(specs))
+	ptrs := make([]*string, len(values))
+	for i := range values {
+		ptrs[i] = &values[i]
+	}
+	form := NewMultiInputForm(specs, ptrs)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*Form).View().Content
@@ -34,21 +50,25 @@ func renderConfirmField(title string, termHeight int) string {
 	return m.(*Form).View().Content
 }
 
-// commandInputCases 各命令的输入表单(标题取命令实际 i18n 键;默认值为代表性数据)
+// commandInputCases 各命令的输入表单(标题取命令实际 i18n 键;默认值为代表性数据)。
+// multi 非空时该命令经 NewMultiInputForm 单页多输入渲染(多字段同页共用一帧)。
 var commandInputCases = []struct {
 	command      string
 	title        string
 	defaultValue string
+	multi        []InputSpec
 }{
 	// push-all / push-selected:提交类型前缀作默认值
 	{command: "push-all message", title: i18n.T("push.input.commit.message"), defaultValue: "fix: "},
 	{command: "push-selected message", title: i18n.T("push.input.commit.message"), defaultValue: "feat: "},
 	// squash:最早选中提交的消息作默认值(用户数据,代表性取值)
 	{command: "squash message", title: i18n.T("squash.input.message"), defaultValue: "修复登录问题"},
-	// tag:版本号自动递增作默认值
-	{command: "tag version", title: i18n.T("tag.input.version"), defaultValue: "v1.1.0"},
-	// tag:提交消息无默认值,显示占位符
-	{command: "tag message", title: i18n.T("tag.input.commit.message"), defaultValue: ""},
+	// tag:版本号自动递增作默认值,与提交消息同页输入(单页多输入,
+	// 修复连续内联表单主屏残留堆叠);描述与 tag.go 生产调用一致
+	{command: "tag version", multi: []InputSpec{
+		{Title: i18n.T("tag.input.version"), Default: "v1.1.0", Desc: i18n.T("tag.input.version.desc")},
+		{Title: i18n.T("tag.input.commit.message"), Desc: i18n.T("tag.input.commit.message.desc")},
+	}},
 }
 
 // commandConfirmCases 各命令的确认表单(标题按命令实际 i18n 键与
@@ -104,13 +124,84 @@ func assertCompactField(t *testing.T, view, title string, termHeight, termWidth 
 	}
 }
 
+// assertCroppedField 小终端下被裁剪视图的轻量断言:UTF-8 合法、内容非空、
+// 行宽不越界。高度裁剪(huh 只渲染放得下的行)属正常行为,不校验高度。
+func assertCroppedField(t *testing.T, view string, termWidth int) {
+	t.Helper()
+	if !utf8.ValidString(view) {
+		t.Fatal("渲染结果含非法 UTF-8")
+	}
+	if strings.TrimSpace(ansi.Strip(view)) == "" {
+		t.Fatal("小终端渲染结果不应为空")
+	}
+	for line := range strings.SplitSeq(view, "\n") {
+		if lw := lipgloss.Width(ansi.Strip(line)); lw > termWidth {
+			t.Errorf("行宽 %d 溢出终端 %d", lw, termWidth)
+		}
+	}
+}
+
 func TestCommandInputRender(t *testing.T) {
 	for _, tc := range commandInputCases {
 		for _, h := range []int{24, 12, 10, 8, 6, 4} {
 			t.Run(fmt.Sprintf("%s@%d行", tc.command, h), func(t *testing.T) {
+				// 单页多输入:一帧视图须同时含每个字段标题,逐标题校验。
+				// 卡片化后自然高度 13 行(2×5 卡片 + 空行 + 分隔线 + 帮助栏),
+				// 终端 ≥13 行时不填充不裁剪;高度不足时 huh 自底部裁剪(正常行为),
+				// 仅校验合法性 + 行宽;裁剪不丢标题的阈值为 ≥8 行,
+				// 再矮只保证首个字段标题可见(裁剪自底部)
+				if tc.multi != nil {
+					view := renderMultiInputForm(tc.multi, h)
+					if h >= 13 {
+						for _, spec := range tc.multi {
+							assertCompactField(t, view, spec.Title, h, 80)
+						}
+						return
+					}
+					assertCroppedField(t, view, 80)
+					if h >= 8 {
+						for _, spec := range tc.multi {
+							if !strings.Contains(ansi.Strip(view), spec.Title) {
+								t.Errorf("标题行 %q 未出现在视图中", spec.Title)
+							}
+						}
+					} else if h >= 4 {
+						if !strings.Contains(ansi.Strip(view), tc.multi[0].Title) {
+							t.Errorf("标题行 %q 未出现在视图中", tc.multi[0].Title)
+						}
+					}
+					return
+				}
 				view := renderInputField(tc.title, tc.defaultValue, h)
 				assertCompactField(t, view, tc.title, h, 80)
 			})
+		}
+	}
+}
+
+// TestMultiInputHelpBar 单页多输入帮助栏:键位与动作文案齐全
+// (Enter 继续/提交、shift+tab 上一步、Esc 取消),高度足够时随视图渲染。
+func TestMultiInputHelpBar(t *testing.T) {
+	bar := RenderHelpBar(multiInputHelpKeys(), 80)
+	for _, want := range []string{
+		i18n.T("form.help.next"), i18n.T("form.help.prev"), i18n.T("form.help.cancel"),
+	} {
+		if !strings.Contains(bar, want) {
+			t.Errorf("帮助栏缺少 %q: %q", want, bar)
+		}
+	}
+
+	specs := []InputSpec{{Title: "版本号", Default: "v1.1.0"}, {Title: "提交消息"}}
+	for _, h := range []int{24, 6} {
+		view := renderMultiInputForm(specs, h)
+		if h >= HelpBarMinTermHeight {
+			if !strings.Contains(ansi.Strip(view), i18n.T("form.help.next")) {
+				t.Errorf("终端 %d 行:帮助栏未随视图渲染", h)
+			}
+		} else {
+			if strings.Contains(ansi.Strip(view), i18n.T("form.help.next")) {
+				t.Errorf("终端 %d 行:帮助栏不应渲染", h)
+			}
 		}
 	}
 }

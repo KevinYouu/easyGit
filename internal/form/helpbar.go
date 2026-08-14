@@ -52,6 +52,16 @@ func inputHelpKeys() []HelpKey {
 	}
 }
 
+// multiInputHelpKeys 单页多输入表单帮助栏:Enter 在非末字段为「继续」、
+// 末字段为「提交」,静态文案统一显示「继续/提交」;shift+tab 回退到上一字段
+func multiInputHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "Enter", Action: i18n.T("form.help.next")},
+		{Key: "Shift+Tab", Action: i18n.T("form.help.prev")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
 func confirmHelpKeys() []HelpKey {
 	return []HelpKey{
 		{Key: "←/→", Action: i18n.T("form.help.switch")},
@@ -67,7 +77,7 @@ func ProgressHelpKeys() []HelpKey {
 	}
 }
 
-// RenderHelpBar 渲染单行帮助栏:`[键位]` 前缀 + 动作说明,键值对间两空格分隔;
+// RenderHelpBar 渲染单行帮助栏:`[键位]` 前缀 + 动作说明,键值对间以 · 分隔;
 // 超宽时整行 SafeTruncate 防止折行;空键位或负宽度返回空串。
 func RenderHelpBar(keys []HelpKey, width int) string {
 	if len(keys) == 0 || width < 0 {
@@ -77,7 +87,7 @@ func RenderHelpBar(keys []HelpKey, width int) string {
 	for _, k := range keys {
 		parts = append(parts, keyStyle.Render("["+k.Key+"]")+" "+helpActionStyle.Render(k.Action))
 	}
-	return SafeTruncate(strings.Join(parts, "  "), width)
+	return SafeTruncate(strings.Join(parts, " · "), width)
 }
 
 // AppendHelpBar 将帮助栏追加到视图末尾(单行);键位为空、视图为空或宽度无效时不附加。

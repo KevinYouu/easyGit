@@ -1,5 +1,27 @@
 # TODO
 
+## 已完成:MultiInput 卡片化 UI 优化(焦点/模糊统一容器、序号标题、描述行)
+
+- [x] 新增 `GetMultiInputTheme`:所有字段统一带边框卡片(边框 + Padding(0,1)),焦点边框 `PrimaryColor` 高亮 + 标题加粗,模糊边框 `BorderColor` + 标题弱化;两态同尺寸,Enter 切换焦点零布局跳变(修复旧版焦点无框/模糊有框割裂)→ `internal/theme/theme.go`
+- [x] 提示符统一 `❯`(`newInputField` 加 `Prompt("❯ ")`,与列表选中指示符一致);`InputSpec` 新增 `Desc` 字段(标题下弱化描述行);标题自动加标准数字序号前缀(`stepTitle`,如 `1.` `2.`)→ `internal/form/input.go`
+- [x] 错误提示红色加粗 + ✗ 图标(ErrorMessage/ErrorIndicator SetString)→ 多输入主题
+- [x] 帮助栏键值对分隔符 `  ` → ` · `(全局统一)→ `internal/form/helpbar.go`
+- [x] i18n:标题去冒号精简(版本号 / 提交信息、Version / Commit message)+ 新增 `tag.input.version.desc`、`tag.input.commit.message.desc` → `internal/i18n/zh.go` / `en.go`
+- [x] 调用方 `tag.go` 传入描述(与测试 specs 一致);渲染测试阈值重测:自然高度 13 行,≥13 完整断言、≥8 标题齐全、≥4 仅首字段 → `make all` 全绿
+- [x] docs/features/单页多输入表单.md 渲染/测试/注意事项同步 + TODO 登记
+- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
+
+## 已完成:tc 连续输入表单堆叠修复(单页多输入 MultiInput)
+
+- [x] 新增 `InputSpec` / `NewMultiInputForm` / `MultiInput`:所有字段放入单个 `huh.NewGroup`,单页堆叠渲染,单 tea 程序单渲染器消除主屏残留堆叠;空 specs 前置守卫返回空 → `internal/form/input.go`
+- [x] 输入字段统一 `newInputField` 构造闭包(占位符 + 非空校验),`NewInputForm` 与 `NewMultiInputForm` 共用防漂移
+- [x] `CreateAndPushTag` 改用一次 `form.MultiInput` 收集版本号 + 提交消息 → `internal/gitcmd/tag.go`
+- [x] i18n 新增 `form.help.next`(继续/提交 / Next/Submit)、`form.help.prev`(上一步 / Back) → `internal/i18n/zh.go` / `en.go`
+- [x] 帮助栏键位 `multiInputHelpKeys`:Enter 继续/提交、Shift+Tab 上一步、Esc 取消 → `internal/form/helpbar.go`
+- [x] 测试:构造断言(空 specs/空值校验阻挡推进/Enter 推进、shift+tab 回退、末字段提交)+ 单帧渲染双标题 + 帮助栏渲染,`pumpForm` 跳过 `cursor.BlinkMsg` 防命令链死循环 → `make all` 全绿
+- [x] docs/features/单页多输入表单.md + TODO 登记
+- [ ] 提交:代码 + i18n + 测试 + docs/features + TODO.md 单一 commit,不推送
+
 ## 已完成:列表消息完整显示(移除固定上限与仓库层预截断)
 
 - [x] `CalculateMessageWidth` 删除 `messageColMax=160` 封顶:消息列 = `max(width-fixed, 20)`,终端越宽显示越完整 → `internal/form/layout.go`
