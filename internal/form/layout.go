@@ -23,8 +23,8 @@ const (
 
 // 表格列宽常量
 const (
-	checkboxColWidth  = 4   // 多选框列宽
-	indicatorColWidth = 2   // 选中指示列宽(❯ + 空格)
+	checkboxColWidth  = 3   // 多选框列宽([x] / [ ])
+	indicatorColWidth = 2   // 选中指示列宽(❯ 或空,间距由列填充与内边距产生)
 	hashColWidth      = 8   // hash 列宽
 	dateColWidth      = 12  // 日期列宽
 	authorColWidth    = 10  // 作者列宽
@@ -55,8 +55,8 @@ const ellipsis = "..."
 // 多选表格底部帮助行最小宽度
 const footerMinWidth = 10
 
-// 各模式消息列固定占位 = 固定列宽之和 + 全部列单元格内边距
-// 单选模式含指示列(2 宽 + 2 内边距),多选模式指示符并入复选框列,不额外占位
+// 各模式消息列固定占位 = 固定列宽之和 + 全部列单元格内边距;
+// 单选/多选最左均为指示列(2 宽 + 2 内边距),多选另加复选框列
 const (
 	fixedWidthThree = hashColWidth + dateColWidth + 3*cellPaddingWidth + indicatorColWidth + cellPaddingWidth                  // 三列:指示/hash/message/date
 	fixedWidthFull  = hashColWidth + dateColWidth + authorColWidth + 4*cellPaddingWidth + indicatorColWidth + cellPaddingWidth // 四列:指示/hash/message/date/author
@@ -75,7 +75,7 @@ func LayoutMode(width int) LayoutKind {
 }
 
 // CalculateMessageWidth 计算消息列宽;紧凑模式无消息列,返回 0
-// 单选模式最左为 2 宽指示列,多选模式指示符并入复选框列
+// 单选/多选最左均为 2 宽指示列,多选另加复选框列(3 宽),间距由列填充与内边距产生
 func CalculateMessageWidth(width int, withCheckbox bool) int {
 	mode := LayoutMode(width)
 	var fixed int
@@ -88,21 +88,22 @@ func CalculateMessageWidth(width int, withCheckbox bool) int {
 		fixed = fixedWidthFull
 	}
 	if withCheckbox {
-		fixed += checkboxColWidth + cellPaddingWidth
+		fixed += indicatorColWidth + checkboxColWidth + 2*cellPaddingWidth
 	}
 	return min(max(width-fixed, messageColMin), messageColMax)
 }
 
 // CalculateColumns 根据终端宽度与是否含多选框生成表格列;
-// 单选模式最左为 2 宽选中指示列(光标行显示 ❯)
+// 最左为 2 宽选中指示列(光标行显示 ❯),多选模式其后为 3 宽复选框列
 func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	mode := LayoutMode(width)
 	switch mode {
 	case LayoutCompact:
 		if withCheckbox {
 			return []table.Column{
+				{Title: "", Width: indicatorColWidth},
 				{Title: "", Width: checkboxColWidth},
-				{Title: "", Width: width - checkboxColWidth - tableInsetWidth},
+				{Title: "", Width: width - indicatorColWidth - checkboxColWidth - tableInsetWidth - cellPaddingWidth},
 			}
 		}
 		return []table.Column{
@@ -113,6 +114,7 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 		messageWidth := CalculateMessageWidth(width, withCheckbox)
 		if withCheckbox {
 			return []table.Column{
+				{Title: "", Width: indicatorColWidth},
 				{Title: "", Width: checkboxColWidth},
 				{Title: "", Width: hashColWidth},
 				{Title: "", Width: messageWidth},
@@ -129,6 +131,7 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 		messageWidth := CalculateMessageWidth(width, withCheckbox)
 		if withCheckbox {
 			return []table.Column{
+				{Title: "", Width: indicatorColWidth},
 				{Title: "", Width: checkboxColWidth},
 				{Title: "", Width: hashColWidth},
 				{Title: "", Width: messageWidth},

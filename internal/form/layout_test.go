@@ -50,9 +50,9 @@ func TestCalculateMessageWidth(t *testing.T) {
 		{name: "四列 80 含指示列", width: 80, want: 38},
 		{name: "四列 120 含指示列", width: 120, want: 78},
 		{name: "超宽 200 封顶", width: 200, want: 158},
-		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 24},
-		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 32},
-		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 152},
+		{name: "三列含多选框 60", width: 60, withCheckbox: true, want: 21},
+		{name: "四列含多选框 80", width: 80, withCheckbox: true, want: 29},
+		{name: "超宽含多选框 200", width: 200, withCheckbox: true, want: 149},
 	}
 
 	for _, tt := range tests {
@@ -241,7 +241,8 @@ func TestFormatCompactCommit(t *testing.T) {
 	}
 }
 
-// TestCalculateColumns 列数与消息列宽一致;单选模式最左为 2 宽指示列
+// TestCalculateColumns 列数与消息列宽一致;最左均为 2 宽指示列,
+// 多选模式次列为 3 宽复选框列
 func TestCalculateColumns(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -250,11 +251,11 @@ func TestCalculateColumns(t *testing.T) {
 		wantCols     int
 	}{
 		{name: "紧凑双列 40(指示+消息)", width: 40, wantCols: 2},
-		{name: "紧凑含多选框 40", width: 40, withCheckbox: true, wantCols: 2},
+		{name: "紧凑含多选框 40", width: 40, withCheckbox: true, wantCols: 3},
 		{name: "三列 60 含指示列", width: 60, wantCols: 4},
-		{name: "三列含多选框 60", width: 60, withCheckbox: true, wantCols: 4},
+		{name: "三列含多选框 60", width: 60, withCheckbox: true, wantCols: 5},
 		{name: "四列 80 含指示列", width: 80, wantCols: 5},
-		{name: "四列含多选框 80", width: 80, withCheckbox: true, wantCols: 5},
+		{name: "四列含多选框 80", width: 80, withCheckbox: true, wantCols: 6},
 	}
 
 	for _, tt := range tests {
@@ -276,9 +277,13 @@ func TestCalculateColumns(t *testing.T) {
 					t.Errorf("CalculateColumns(%d, %v) 未包含消息列宽 %d: %+v", tt.width, tt.withCheckbox, msgWidth, cols)
 				}
 			}
-			// 单选模式最左列必须是 2 宽指示列
-			if !tt.withCheckbox && cols[0].Width != indicatorColWidth {
-				t.Errorf("CalculateColumns(%d, false) 首列宽 = %d, want %d", tt.width, cols[0].Width, indicatorColWidth)
+			// 最左列必须是 2 宽指示列
+			if cols[0].Width != indicatorColWidth {
+				t.Errorf("CalculateColumns(%d, %v) 首列宽 = %d, want %d", tt.width, tt.withCheckbox, cols[0].Width, indicatorColWidth)
+			}
+			// 多选模式次列为 3 宽复选框列
+			if tt.withCheckbox && cols[1].Width != checkboxColWidth {
+				t.Errorf("CalculateColumns(%d, true) 次列宽 = %d, want %d", tt.width, cols[1].Width, checkboxColWidth)
 			}
 		})
 	}

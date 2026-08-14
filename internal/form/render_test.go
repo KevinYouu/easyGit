@@ -292,7 +292,7 @@ func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 	}
 
 	// 收集所有渲染行中复选框 [ 的显示位置(跳过标题/分隔线/帮助栏等不含复选框的行;
-	// 帮助栏 [Esc]/[Enter] 的 [ 在 pos 0,复选框列在表格行行首,合法位置仅 1/2)
+	// 帮助栏 [Esc]/[Enter] 的 [ 在 pos 0,复选框 [ 由指示列宽 + 内边距布局决定,恒为 5)
 	var positions []int
 	for _, view := range views {
 		for line := range strings.SplitSeq(view, "\n") {
@@ -301,7 +301,7 @@ func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 				continue
 			}
 			pos := lipgloss.Width(before)
-			if pos < 1 || pos > 2 {
+			if pos < 1 {
 				continue
 			}
 			positions = append(positions, pos)
@@ -310,14 +310,9 @@ func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 	if len(positions) == 0 {
 		t.Fatal("未找到任何复选框行")
 	}
-	// 位置 1(非光标行 [ ])与 2(光标行 ❯[ ])各自恒定即可,光标移动前后同一行两者互换
-	seen := map[int]bool{}
-	for _, pos := range positions {
-		seen[pos] = true
-	}
-	for pos := range seen {
-		if pos != 1 && pos != 2 {
-			t.Errorf("复选框 [ 位置非法: %d(应为 1 或 2)", pos)
+	for i, pos := range positions {
+		if pos != positions[0] {
+			t.Errorf("复选框 [ 显示位置跳动: pos %d != %d(第 %d 处)", pos, positions[0], i)
 		}
 	}
 }

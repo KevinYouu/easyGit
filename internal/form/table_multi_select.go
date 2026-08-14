@@ -104,29 +104,29 @@ func (m *tableMultiModel) rebuildRows(cursorRow int) {
 	m.table.SetRows(rows)
 }
 
-// optionRow 将单个选项按当前布局模式格式化为表格行(含多选框);
-// 复选框列恒为 4 字符:光标行 ❯[x]/❯[ ],非光标行 [x]/[ ] 前导空格占位,
-// 使 [ 的位置在所有行恒定,光标移动零位移不抖动(与 huh 光标槽同构)
+// optionRow 将单个选项按当前布局模式格式化为表格行;
+// 结构:指示列(2 宽,光标行 ❯)+ 复选框列([x]/[ ]),
+// 两列间间距由列填充与单元格内边距产生,❯ 与 [ 位置在所有行恒定,
+// 光标移动零位移不抖动(与单选表格、huh 光标槽同构)
 func (m *tableMultiModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
+	indicator := ""
+	if i == cursorRow {
+		indicator = "❯"
+	}
 	checkbox := "[ ]"
 	if m.selected[i] {
 		checkbox = "[x]"
 	}
-	if i == cursorRow {
-		checkbox = "❯" + checkbox
-	} else {
-		checkbox = " " + checkbox // 预留指示符位,保持 4 字符恒定
-	}
 
 	switch LayoutMode(m.width) {
 	case LayoutCompact:
-		return table.Row{checkbox, formatCompactCommit(opt.Label, m.width-checkboxColWidth-tableInsetWidth-cellPaddingWidth)}
+		return table.Row{indicator, checkbox, formatCompactCommit(opt.Label, m.width-indicatorColWidth-checkboxColWidth-tableInsetWidth-cellPaddingWidth)}
 	case LayoutThreeCol:
 		hash, message, date, _ := parseCommitInfo(opt.Label, m.messageWidth)
-		return table.Row{checkbox, hash, message, date}
+		return table.Row{indicator, checkbox, hash, message, date}
 	default:
 		hash, message, date, author := parseCommitInfo(opt.Label, m.messageWidth)
-		return table.Row{checkbox, hash, message, date, author}
+		return table.Row{indicator, checkbox, hash, message, date, author}
 	}
 }
 

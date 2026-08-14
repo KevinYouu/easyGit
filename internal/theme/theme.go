@@ -169,14 +169,17 @@ func GetCompactTheme() huh.Theme {
 			Foreground(PrimaryColor).
 			Bold(true)
 
-		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移)
+		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移);
+		// ❯ 与选项的间距由 PaddingRight 布局产生,不用字面空格
 		theme.Focused.SelectSelector = lipgloss.NewStyle().
-			SetString("❯ ").
+			SetString("❯").
+			PaddingRight(1).
 			Foreground(PrimaryColor).
 			Bold(true)
 
 		theme.Focused.MultiSelectSelector = lipgloss.NewStyle().
-			SetString("❯ ").
+			SetString("❯").
+			PaddingRight(1).
 			Foreground(PrimaryColor).
 			Bold(true)
 
@@ -267,14 +270,17 @@ func GetCustomTheme() huh.Theme {
 			Foreground(PrimaryColor).
 			Bold(true)
 
-		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移)
+		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移);
+		// ❯ 与选项的间距由 PaddingRight 布局产生,不用字面空格
 		theme.Focused.SelectSelector = lipgloss.NewStyle().
-			SetString("❯ ").
+			SetString("❯").
+			PaddingRight(1).
 			Foreground(PrimaryColor).
 			Bold(true)
 
 		theme.Focused.MultiSelectSelector = lipgloss.NewStyle().
-			SetString("❯ ").
+			SetString("❯").
+			PaddingRight(1).
 			Foreground(PrimaryColor).
 			Bold(true)
 
