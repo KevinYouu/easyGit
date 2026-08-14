@@ -108,8 +108,8 @@ func multiLabels(n int, f func(int) string) []string {
 
 // assertCommandField 校验单选/多选列表渲染:总高 = min(内容+附加行, 终端),
 // 可见项 = 表格视口行数(计算与渲染同源),行宽不越界。
-// 单选列表无标题无顶线:每选项一行 + 底部线 + 帮助栏 = n+2;
-// 多选保留标题 + 顶部线 + 底部线 + 帮助栏 = n+4。
+// 单选/多选结构相同:标题 + 顶部线 + 表格行 + 底部线 + 帮助栏 = n+4;
+// 仅单选在 <6 行终端不渲染附加行。
 // 断言独立于 CalculateTableHeight 本身(渲染层验证,不构成循环):
 // 钉住的是统一列表组件的内容模型。
 func assertCommandField(t *testing.T, view string, labels []string, termHeight, termWidth int, multi bool) {
@@ -118,14 +118,14 @@ func assertCommandField(t *testing.T, view string, labels []string, termHeight, 
 		t.Fatal("渲染结果含非法 UTF-8")
 	}
 	n := len(labels)
-	extra := 2 // 单选:底部线 + 帮助栏
-	if multi {
-		extra = 4 // 多选:标题 + 顶部线 + 底部线 + 帮助栏
+	extra := 4 // 标题 + 顶部线 + 底部线 + 帮助栏
+	if !multi && termHeight < HelpBarMinTermHeight {
+		extra = 0 // 极小终端单选:仅表格行
 	}
 	wantTotal := min(n+extra, termHeight)
-	wantVisible := min(CalculateTableHeight(termHeight, multi), n)
-	if multi && wantVisible+extra > termHeight {
-		// 极小终端(6 行)多选表格高度触底 3 行,总高 7 行如实断言
+	wantVisible := min(CalculateTableHeight(termHeight), n)
+	if wantVisible+extra > termHeight {
+		// 极小终端(6 行)表格高度触底 3 行,附加行溢出 1 行,如实断言
 		wantTotal = wantVisible + extra
 	}
 	if total := lipgloss.Height(view); total != wantTotal {
@@ -221,7 +221,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{Label: fmt.Sprintf("a1b2c3d %s\n07-12 10:00 • 张三丰", full), Value: "v"},
 	}
 
-	// 单选含底部线 + 底部帮助栏两行,多选含标题 + 顶部线 + 底部线 + 帮助行
+	// 单选/多选结构相同:标题 + 顶部线 + 提交行 + 底部线 + 帮助行
 	renderCases := []struct {
 		name         string
 		view         func(w, h int) string
@@ -235,7 +235,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
 			},
-			wantNonEmpty: 3, // 一行提交 + 底部线 + 底部帮助栏
+			wantNonEmpty: 5, // 标题 + 顶部线 + 提交行 + 底部线 + 帮助行
 		},
 		{
 			name: "多选",

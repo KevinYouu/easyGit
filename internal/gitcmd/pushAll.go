@@ -32,7 +32,8 @@ func PushAll() error {
 	}
 	options = applyCommitTypeDescriptions(options)
 
-	suffixes, err := form.ListForm(i18n.T("push.select.commit.type"), options, form.ListSingle)
+	// pa 提交类型选择开启循环导航(选项固定且多,循环提升操作效率)
+	suffixes, err := form.ListFormWrap(i18n.T("push.select.commit.type"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select form: %w", err)
 	}

@@ -258,3 +258,47 @@ func TestFormEscCancels(t *testing.T) {
 		t.Error("Esc 后 quitting 应为 true")
 	}
 }
+
+// TestListWrap 循环导航:wrap 开启时顶部 ↑/底部 ↓ 循环到另一端,
+// 默认(未开启)边界不动;空选项列表循环导航不 panic。
+func TestListWrap(t *testing.T) {
+	options := []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}
+
+	t.Run("wrap 开启时顶部↑跳末尾、底部↓跳回顶部", func(t *testing.T) {
+		m := NewListModelWrap("标题", options, ListSingle)
+		if got := m.table.Cursor(); got != 0 {
+			t.Fatalf("初始光标 = %d, want 0", got)
+		}
+		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
+		if got := m.table.Cursor(); got != len(options)-1 {
+			t.Errorf("顶部 ↑ 后光标 = %d, want %d", got, len(options)-1)
+		}
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+		if got := m.table.Cursor(); got != 0 {
+			t.Errorf("底部 ↓ 后光标 = %d, want 0", got)
+		}
+	})
+
+	t.Run("默认不循环:边界按键不动", func(t *testing.T) {
+		m := NewListModel("标题", options, ListSingle)
+		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
+		if got := m.table.Cursor(); got != 0 {
+			t.Errorf("顶部 ↑ 后光标 = %d, want 0(默认不循环)", got)
+		}
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+		if got := m.table.Cursor(); got != len(options)-1 {
+			t.Errorf("底部 ↓ 后光标 = %d, want %d(默认不循环)", got, len(options)-1)
+		}
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+		if got := m.table.Cursor(); got != len(options)-1 {
+			t.Errorf("底部再 ↓ 后光标 = %d, want %d(默认不循环)", got, len(options)-1)
+		}
+	})
+
+	t.Run("空选项列表循环导航不 panic", func(t *testing.T) {
+		m := NewListModelWrap("标题", nil, ListSingle)
+		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	})
+}

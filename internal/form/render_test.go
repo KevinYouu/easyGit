@@ -76,21 +76,25 @@ func TestSelectRenderUsesAllSpace(t *testing.T) {
 		name        string
 		termHeight  int
 		wantVisible int // 可见选项数:内容不足一屏时全部可见,超出时占满终端滚动
-		wantTotal   int // 渲染总高:min(内容高度+底部线+帮助1行, 终端高度)
+		wantTotal   int // 渲染总高:min(标题+顶线+内容+底线+帮助栏, 终端高度)
 	}{
-		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 2},
-		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 2},
-		{name: "大屏12行按内容显示", termHeight: 12, wantVisible: n, wantTotal: n + 2},
-		{name: "恰好一屏11行", termHeight: 11, wantVisible: n, wantTotal: n + 2},
-		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 1, wantTotal: 10},
-		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 2, wantTotal: 9},
-		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 3, wantTotal: 8},
+		{name: "大屏24行按内容显示", termHeight: 24, wantVisible: n, wantTotal: n + 4},
+		{name: "大屏14行按内容显示", termHeight: 14, wantVisible: n, wantTotal: n + 4},
+		{name: "大屏12行按内容显示", termHeight: 12, wantVisible: n - 1, wantTotal: 12},
+		{name: "恰好一屏11行", termHeight: 11, wantVisible: n - 2, wantTotal: 11},
+		{name: "矮屏10行占满滚动", termHeight: 10, wantVisible: n - 3, wantTotal: 10},
+		{name: "矮屏9行占满滚动", termHeight: 9, wantVisible: n - 4, wantTotal: 9},
+		{name: "矮屏8行占满滚动", termHeight: 8, wantVisible: n - 5, wantTotal: 8},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			view := renderSelectField("Choose a commit type", labels, tt.termHeight)
 			if !utf8.ValidString(view) {
 				t.Fatal("渲染结果含非法 UTF-8")
+			}
+			// 单选列表统一渲染标题行
+			if !strings.Contains(view, "Choose a commit type") {
+				t.Errorf("渲染结果缺少标题: %q", view)
 			}
 			// 选中指示符 ❯ 应出现在视图中(光标行)
 			if !strings.Contains(view, "❯") {
@@ -203,13 +207,12 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 		t.Fatal("渲染结果含非法 UTF-8")
 	}
 	n := len(options)
-	expectRows := min(CalculateTableHeight(h, multi), n)
+	expectRows := min(CalculateTableHeight(h), n)
 	extraRows := 0
-	// 多选:标题 + 顶部线 + 底部线 + 底部帮助行;单选在 ≥6 行终端:底部线 + 帮助行
-	if multi {
+	// 单选/多选完整结构:标题 + 顶部线 + 底部线 + 底部帮助行;
+	// 仅单选在 <6 行终端不渲染附加行(零开销)
+	if multi || h >= HelpBarMinTermHeight {
 		extraRows = 4
-	} else if h >= HelpBarMinTermHeight {
-		extraRows = 2
 	}
 
 	nonEmpty := 0
@@ -228,9 +231,6 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 
 	// 总高策略:内容不足一屏(含附加行)时按内容显示,否则占满终端
 	contentHeight := n + extraRows
-	if multi {
-		contentHeight = n + 4 // 标题 + 顶部线 + 底部线 + 底部帮助行
-	}
 	wantTotal := min(contentHeight, h)
 	if total := lipgloss.Height(view); total != wantTotal {
 		t.Errorf("渲染总高 = %d, want %d(内容 %d 行,终端 %d 行)", total, wantTotal, contentHeight, h)

@@ -37,8 +37,7 @@ const (
 
 // 表格高度计算常量
 const (
-	multiTableExtraLines = 4 // 多选模式额外固定行数:标题 + 顶部线 + 底部线 + 底部帮助行
-	singleTableHelpLines = 2 // 单选模式底部固定行数:底部线 + 帮助栏一行(≥6 行终端)
+	multiTableExtraLines = 4 // 列表模式额外固定行数:标题 + 顶部线 + 底部线 + 底部帮助行
 	tableHeightMin       = 3 // 表格最小高度
 	tableHeaderLines     = 1 // 表格模型自带 header 行,SetHeight 内部会扣除
 )
@@ -149,16 +148,11 @@ func CalculateColumns(width int, withCheckbox bool) []table.Column {
 	}
 }
 
-// CalculateTableHeight 计算表格可视行数;多选模式额外预留标题/顶部线/底部线/底部帮助行,
-// 单选模式在 ≥6 行终端为底部线 + 底部帮助栏让出 2 行(<6 行分隔线与帮助栏不渲染,零开销)
-func CalculateTableHeight(height int, multi bool) int {
-	reserved := 0
-	if multi {
-		reserved = multiTableExtraLines
-	} else if height >= HelpBarMinTermHeight {
-		reserved = singleTableHelpLines
-	}
-	return max(height-reserved, tableHeightMin)
+// CalculateTableHeight 计算表格可视行数;单选与多选均预留 4 行
+// (标题 + 顶部线 + 底部线 + 底部帮助行),<6 行终端附加行不渲染但
+// 统一按 4 行预留,保证滚动一致
+func CalculateTableHeight(height int) int {
+	return max(height-multiTableExtraLines, tableHeightMin)
 }
 
 // TotalTableWidth 计算表格渲染总宽(列宽之和 + 单元格内边距)

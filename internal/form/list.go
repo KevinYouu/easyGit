@@ -34,6 +34,7 @@ type listModel struct {
 	styles       table.Styles
 	choices      []config.Option
 	kind         ListKind
+	wrap         bool         // 光标到顶端/底端时是否循环到另一端
 	selected     map[int]bool // 仅多选使用
 	confirmed    bool
 	quitting     bool
@@ -80,17 +81,23 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "up", "k":
-			// 不循环:检查是否已经在第一行
 			if m.table.Cursor() > 0 {
 				m.table, cmd = m.table.Update(msg)
 				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
+			} else if m.wrap && len(m.choices) > 0 {
+				// 循环导航:顶部按 ↑ 跳到最后一个选项
+				m.table.SetCursor(len(m.choices) - 1)
+				m.rebuildRows(len(m.choices) - 1)
 			}
 			return m, cmd
 		case "down", "j":
-			// 不循环:检查是否已经在最后一行
 			if m.table.Cursor() < len(m.choices)-1 {
 				m.table, cmd = m.table.Update(msg)
 				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
+			} else if m.wrap && len(m.choices) > 0 {
+				// 循环导航:底部按 ↓ 跳到第一个选项
+				m.table.SetCursor(0)
+				m.rebuildRows(0)
 			}
 			return m, cmd
 		}
@@ -112,30 +119,33 @@ func (m *listModel) View() tea.View {
 	}
 
 	content := strings.Join(lines, "\n")
-	if m.kind == ListMulti {
-		// 多选:标题 + 顶部线 + 表格行 + 底部线 + 帮助栏
+	// 多选始终渲染完整结构;单选在 <6 行终端零开销(无标题/分隔线/帮助栏)
+	if m.kind == ListMulti || m.height >= HelpBarMinTermHeight {
+		// 标题行:多选拼已选计数,单选仅标题
 		titleView := lipgloss.NewStyle().
 			Foreground(theme.PrimaryColor).
 			Bold(true).
 			Render(m.title)
-		count := 0
-		for _, selected := range m.selected {
-			if selected {
-				count++
+		if m.kind == ListMulti {
+			count := 0
+			for _, selected := range m.selected {
+				if selected {
+					count++
+				}
 			}
+			countView := lipgloss.NewStyle().
+				Foreground(theme.MutedForeground).
+				Render(fmt.Sprintf(i18n.T("table.multi.selected.count"), count))
+			titleView += countView
 		}
-		countView := lipgloss.NewStyle().
-			Foreground(theme.MutedForeground).
-			Render(fmt.Sprintf(i18n.T("table.multi.selected.count"), count))
-		titleLine := SafeTruncate(titleView+countView, max(m.width-cellPaddingWidth, footerMinWidth))
-		footer := SafeTruncate(RenderHelpBar(multiSelectHelpKeys(), max(m.width-cellPaddingWidth, footerMinWidth)), max(m.width-cellPaddingWidth, footerMinWidth))
+		titleLine := SafeTruncate(titleView, max(m.width-cellPaddingWidth, footerMinWidth))
+		// 帮助栏:多选含 Space 切换,单选仅导航键
+		helpKeys := selectHelpKeys()
+		if m.kind == ListMulti {
+			helpKeys = multiSelectHelpKeys()
+		}
+		footer := SafeTruncate(RenderHelpBar(helpKeys, max(m.width-cellPaddingWidth, footerMinWidth)), max(m.width-cellPaddingWidth, footerMinWidth))
 		content = fmt.Sprintf("%s\n%s\n%s\n%s\n%s", titleLine, theme.GetHorizontalRule(m.width), content, theme.GetHorizontalRule(m.width), footer)
-	} else if m.height >= HelpBarMinTermHeight {
-		// 单选:表格行 + 底部线 + 帮助栏(≥6 行终端渲染,极小终端零开销)
-		v := tea.NewView(content)
-		v.SetContent(v.Content + "\n" + theme.GetHorizontalRule(m.width))
-		v = AppendHelpBar(v, selectHelpKeys(), m.width)
-		content = v.Content
 	}
 	// 宽屏富余时水平居中
 	if ShouldCenterTable(m.width, m.table.Columns()) {
@@ -152,13 +162,12 @@ func (m *listModel) View() tea.View {
 // 布局参数统一由 kind 决定(多选含复选框列并预留标题行)
 func (m *listModel) applyLayout() {
 	withCheckbox := m.kind == ListMulti
-	multi := m.kind == ListMulti
 	columns := CalculateColumns(m.width, withCheckbox)
 	m.messageWidth = CalculateMessageWidth(m.width, withCheckbox)
 	cursor := m.table.Cursor()
 	// 表格高度不超过内容行数:内容不足一屏时按内容显示,
 	// 超出时占满终端由 viewport 滚动
-	height := min(CalculateTableHeight(m.height, multi), max(len(m.choices), 1))
+	height := min(CalculateTableHeight(m.height), max(len(m.choices), 1))
 	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
 	height += tableHeaderLines
 
@@ -236,8 +245,20 @@ func optionDisplayText(opt config.Option) string {
 }
 
 // NewListModel 构造统一列表模型(生产与渲染测试共用同一构造路径,
-// 防止生产配置与测试复刻漂移);单选光标落预选项,多选预填选中集。
+// 防止生产配置与测试复刻漂移);默认不循环导航,仅个别命令
+// 经 ListFormWrap/NewListModelWrap 显式开启;单选光标落预选项,多选预填选中集。
 func NewListModel(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
+	return newListModel(title, options, kind, false, preselected...)
+}
+
+// NewListModelWrap 同 NewListModel,开启循环导航:光标在顶部按 ↑/k 跳至末尾,
+// 在底部按 ↓/j 跳回顶部。
+func NewListModelWrap(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
+	return newListModel(title, options, kind, true, preselected...)
+}
+
+// newListModel 构造逻辑实现;wrap 为内部参数,导出入口默认 false。
+func newListModel(title string, options []config.Option, kind ListKind, wrap bool, preselected ...string) *listModel {
 	// 检测终端尺寸
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
@@ -248,6 +269,7 @@ func NewListModel(title string, options []config.Option, kind ListKind, preselec
 	m := &listModel{
 		choices: options,
 		kind:    kind,
+		wrap:    wrap,
 		width:   width,
 		height:  height,
 		title:   title,
@@ -307,9 +329,20 @@ func defaultTableStyles() table.Styles {
 var stdinBuf = bufio.NewReader(os.Stdin)
 
 // ListForm 列表选择入口:单选返回 1 个值,多选返回全部选中值(按选项顺序)。
-// TERM=dumb 时走无障碍纯文本路径(脚本管道兼容)。
+// 默认不循环导航;TERM=dumb 时走无障碍纯文本路径(脚本管道兼容)。
 func ListForm(title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
-	m := NewListModel(title, options, kind, preselected...)
+	return runListForm(title, options, kind, false, preselected...)
+}
+
+// ListFormWrap 同 ListForm,开启循环导航:光标在顶部按 ↑/k 跳至末尾,
+// 在底部按 ↓/j 跳回顶部。
+func ListFormWrap(title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
+	return runListForm(title, options, kind, true, preselected...)
+}
+
+// runListForm 列表入口共享实现;wrap 为内部参数,导出入口默认 false。
+func runListForm(title string, options []config.Option, kind ListKind, wrap bool, preselected ...string) ([]string, error) {
+	m := newListModel(title, options, kind, wrap, preselected...)
 
 	if isAccessibleMode() {
 		return runAccessibleList(os.Stdout, stdinBuf, title, options, kind)

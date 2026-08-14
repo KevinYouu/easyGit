@@ -64,26 +64,24 @@ func TestCalculateMessageWidth(t *testing.T) {
 	}
 }
 
-// TestCalculateTableHeight 表格高度计算
+// TestCalculateTableHeight 表格高度计算:单选/多选统一预留 4 行
 func TestCalculateTableHeight(t *testing.T) {
 	tests := []struct {
 		name   string
 		height int
-		multi  bool
 		want   int
 	}{
-		{name: "常规 24 行单选让出分隔线+帮助行", height: 24, multi: false, want: 22},
-		{name: "常规 24 行多选预留标题+分隔线+帮助行", height: 24, multi: true, want: 20},
-		{name: "高屏 50 行多选", height: 50, multi: true, want: 46},
-		{name: "矮屏 10 行单选让出分隔线+帮助行", height: 10, multi: false, want: 8},
-		{name: "极矮屏 6 行多选触底", height: 6, multi: true, want: 3},
-		{name: "极矮屏 3 行触底", height: 3, multi: false, want: 3},
+		{name: "常规 24 行", height: 24, want: 20},
+		{name: "高屏 50 行", height: 50, want: 46},
+		{name: "矮屏 10 行", height: 10, want: 6},
+		{name: "极矮屏 6 行触底", height: 6, want: 3},
+		{name: "极矮屏 3 行触底", height: 3, want: 3},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CalculateTableHeight(tt.height, tt.multi); got != tt.want {
-				t.Errorf("CalculateTableHeight(%d, %v) = %d, want %d", tt.height, tt.multi, got, tt.want)
+			if got := CalculateTableHeight(tt.height); got != tt.want {
+				t.Errorf("CalculateTableHeight(%d) = %d, want %d", tt.height, got, tt.want)
 			}
 		})
 	}
