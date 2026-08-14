@@ -105,7 +105,8 @@ func (m *tableMultiModel) rebuildRows(cursorRow int) {
 }
 
 // optionRow 将单个选项按当前布局模式格式化为表格行(含多选框);
-// 光标行指示符 ❯ 并入复选框列(列宽 4 恰好容纳 ❯[x],零位移)
+// 复选框列恒为 4 字符:光标行 ❯[x]/❯[ ],非光标行 [x]/[ ] 前导空格占位,
+// 使 [ 的位置在所有行恒定,光标移动零位移不抖动(与 huh 光标槽同构)
 func (m *tableMultiModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
 	checkbox := "[ ]"
 	if m.selected[i] {
@@ -113,6 +114,8 @@ func (m *tableMultiModel) optionRow(i, cursorRow int, opt config.Option) table.R
 	}
 	if i == cursorRow {
 		checkbox = "❯" + checkbox
+	} else {
+		checkbox = " " + checkbox // 预留指示符位,保持 4 字符恒定
 	}
 
 	switch LayoutMode(m.width) {

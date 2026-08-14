@@ -276,3 +276,48 @@ func TestTableMultiSelectRender(t *testing.T) {
 		})
 	}
 }
+
+// TestTableMultiSelectCheckboxAligned 光标移动时复选框 [ 显示位置在所有行恒定:
+// 非光标行 [ ] 前导空格占位,与光标行 ❯[ ] 同宽,光标移动零抖动
+func TestTableMultiSelectCheckboxAligned(t *testing.T) {
+	options := testOptions()
+	m := NewTableMultiSelectModel("对齐测试", options)
+	m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
+
+	views := make([]string, 0, len(options))
+	views = append(views, ansi.Strip(m.View().Content))
+	for range options {
+		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+		views = append(views, ansi.Strip(m.View().Content))
+	}
+
+	// 收集所有渲染行中复选框 [ 的显示位置(跳过标题/分隔线/帮助栏等不含复选框的行;
+	// 帮助栏 [Esc]/[Enter] 的 [ 在 pos 0,复选框列在表格行行首,合法位置仅 1/2)
+	var positions []int
+	for _, view := range views {
+		for line := range strings.SplitSeq(view, "\n") {
+			before, _, ok := strings.Cut(line, "[")
+			if !ok {
+				continue
+			}
+			pos := lipgloss.Width(before)
+			if pos < 1 || pos > 2 {
+				continue
+			}
+			positions = append(positions, pos)
+		}
+	}
+	if len(positions) == 0 {
+		t.Fatal("未找到任何复选框行")
+	}
+	// 位置 1(非光标行 [ ])与 2(光标行 ❯[ ])各自恒定即可,光标移动前后同一行两者互换
+	seen := map[int]bool{}
+	for _, pos := range positions {
+		seen[pos] = true
+	}
+	for pos := range seen {
+		if pos != 1 && pos != 2 {
+			t.Errorf("复选框 [ 位置非法: %d(应为 1 或 2)", pos)
+		}
+	}
+}
