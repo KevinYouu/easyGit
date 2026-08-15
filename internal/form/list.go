@@ -45,6 +45,11 @@ type listModel struct {
 	height       int
 	messageWidth int
 	title        string
+
+	// 光标与滚动由本模型自持控制(见 rebuildRows/adjustScroll 注释):
+	cursor       int // 选中项下标
+	scrollTop    int // 可见窗口首行下标
+	viewportRows int // 可见窗口行数(= 表格视口高度,applyLayout 计算)
 }
 
 func (m *listModel) Init() tea.Cmd { return nil }
@@ -78,31 +83,30 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ", "space":
 			// 仅多选支持空格切换选中
 			if m.kind == ListMulti {
-				cursor := m.table.Cursor()
-				m.selected[cursor] = !m.selected[cursor]
-				m.rebuildRows(cursor)
+				m.selected[m.cursor] = !m.selected[m.cursor]
+				m.rebuildRows()
 			}
 			return m, nil
 		case "up", "k":
-			if m.table.Cursor() > 0 {
-				m.table, cmd = m.table.Update(msg)
-				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
+			if m.cursor > 0 {
+				m.cursor--
 			} else if m.wrap && len(m.choices) > 0 {
 				// 循环导航:顶部按 ↑ 跳到最后一个选项
-				m.table.SetCursor(len(m.choices) - 1)
-				m.rebuildRows(len(m.choices) - 1)
+				m.cursor = len(m.choices) - 1
 			}
-			return m, cmd
+			m.adjustScroll()
+			m.rebuildRows()
+			return m, nil
 		case "down", "j":
-			if m.table.Cursor() < len(m.choices)-1 {
-				m.table, cmd = m.table.Update(msg)
-				m.rebuildRows(m.table.Cursor()) // 重绘指示列,让 ❯ 跟随光标
+			if m.cursor < len(m.choices)-1 {
+				m.cursor++
 			} else if m.wrap && len(m.choices) > 0 {
 				// 循环导航:底部按 ↓ 跳到第一个选项
-				m.table.SetCursor(0)
-				m.rebuildRows(0)
+				m.cursor = 0
 			}
-			return m, cmd
+			m.adjustScroll()
+			m.rebuildRows()
+			return m, nil
 		}
 	}
 	m.table, cmd = m.table.Update(msg)
@@ -164,6 +168,7 @@ func (m *listModel) View() tea.View {
 // 避免 bubbles/table 在行列数量不一致时渲染越界(renderRow 按下标取列);
 // 布局参数统一由 kind 决定(多选含复选框列并预留标题行);
 // 自适应多列模式在非紧凑终端按 ColumnSpec 分列,紧凑终端走单列合并。
+// 表格视口高度固定 = viewportRows,窗口内行数与之相等,表格内部永不滚动。
 func (m *listModel) applyLayout() {
 	withCheckbox := m.kind == ListMulti
 	var columns []table.Column
@@ -182,12 +187,11 @@ func (m *listModel) applyLayout() {
 		columns = CalculateColumns(m.width, withCheckbox)
 		m.messageWidth = CalculateMessageWidth(m.width, withCheckbox)
 	}
-	cursor := m.table.Cursor()
-	// 表格高度不超过内容行数:内容不足一屏时按内容显示,
-	// 超出时占满终端由 viewport 滚动
-	height := min(CalculateTableHeight(m.height), max(len(m.choices), 1))
+	// 可视行数 = min(计算高度, 选项数):内容不足一屏时按内容显示,
+	// 超出时占满终端(滚动由本模型窗口控制)
+	m.viewportRows = min(CalculateTableHeight(m.height), max(len(m.choices), 1))
 	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
-	height += tableHeaderLines
+	height := m.viewportRows + tableHeaderLines
 
 	t := table.New(
 		table.WithColumns(columns),
@@ -198,9 +202,8 @@ func (m *listModel) applyLayout() {
 	t.SetWidth(TotalTableWidth(columns))
 	t.SetStyles(m.styles)
 	m.table = t
-	m.rebuildRows(cursor)
-	// 重建后恢复光标位置
-	m.table.SetCursor(cursor)
+	m.clampScroll()
+	m.rebuildRows()
 }
 
 // cellRows 自适应多列模式的行单元格矩阵(按列索引取值)
@@ -224,13 +227,37 @@ func optionCells(opt config.Option) []string {
 	return cells
 }
 
-// rebuildRows 按当前布局模式重新生成行数据;光标行在最左指示列渲染 ❯
-func (m *listModel) rebuildRows(cursorRow int) {
-	rows := make([]table.Row, 0, len(m.choices))
-	for i, opt := range m.choices {
-		rows = append(rows, m.optionRow(i, cursorRow, opt))
+// rebuildRows 按当前滚动窗口重建表格行:只向表格喂入可见窗口内的行,
+// 窗口行数恒等于视口高度(表格内部 offset 恒为 0,永不自行滚动),
+// 光标与滚动完全由本模型控制——避免 bubbles/table 在内容居中渲染的
+// 区域边界处(顶部/底部锚定区)视口偏移跳变导致选中效果跳行。
+// 表格光标同步为选中项在窗口内的相对行,同时驱动高亮样式。
+func (m *listModel) rebuildRows() {
+	rows := make([]table.Row, 0, m.viewportRows)
+	for i := m.scrollTop; i < m.scrollTop+m.viewportRows && i < len(m.choices); i++ {
+		rows = append(rows, m.optionRow(i, m.cursor, m.choices[i]))
 	}
 	m.table.SetRows(rows)
+	m.table.SetCursor(m.cursor - m.scrollTop)
+}
+
+// adjustScroll 光标移动后收敛滚动窗口:光标滑出窗口时窗口跟随平移
+// (窗口每次至多移动一行),窗口内光标位置保持稳定——每按一次键,
+// 光标视觉位置恰好移动一格,不存在跳变。
+func (m *listModel) adjustScroll() {
+	n := m.viewportRows
+	if m.cursor < m.scrollTop {
+		m.scrollTop = m.cursor
+	} else if m.cursor >= m.scrollTop+n {
+		m.scrollTop = m.cursor - n + 1
+	}
+	m.clampScroll()
+}
+
+// clampScroll 将滚动窗口首行钳制到 [0, len-vp] 内(列表不足一屏时窗口=列表)
+func (m *listModel) clampScroll() {
+	maxTop := max(len(m.choices)-m.viewportRows, 0)
+	m.scrollTop = min(max(m.scrollTop, 0), maxTop)
 }
 
 // optionRow 将单个选项按当前布局模式格式化为表格行;指示列宽 2,
@@ -360,12 +387,13 @@ func newListModel(title string, options []config.Option, kind ListKind, wrap boo
 
 	if len(preselected) > 0 {
 		if kind == ListSingle {
-			// 单选:光标落到预选值所在行
+			// 单选:光标落到预选值所在行(窗口随之滚动,保证可见)
 			if preselected[0] != "" {
 				for i, opt := range options {
 					if opt.Value == preselected[0] {
-						m.rebuildRows(i)
-						m.table.SetCursor(i)
+						m.cursor = i
+						m.adjustScroll()
+						m.rebuildRows()
 						break
 					}
 				}
@@ -380,7 +408,7 @@ func newListModel(title string, options []config.Option, kind ListKind, wrap boo
 					}
 				}
 			}
-			m.rebuildRows(m.table.Cursor())
+			m.rebuildRows()
 		}
 	}
 	return m
@@ -481,7 +509,7 @@ func runListForm(title string, options []config.Option, kind ListKind, wrap bool
 	if listModel.confirmed {
 		if listModel.kind == ListSingle {
 			// 单选:取光标所在选项
-			selectedRow := listModel.table.Cursor()
+			selectedRow := listModel.cursor
 			if selectedRow >= 0 && selectedRow < len(options) {
 				return []string{options[selectedRow].Value}, nil
 			}
