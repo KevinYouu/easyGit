@@ -16,6 +16,7 @@ const (
 	ConfigKeyTagPatch       = "tag-patch"
 	ConfigKeyTheme          = "theme"
 	ConfigKeyConflictEditor = "conflict-editor"
+	ConfigKeyPullBeforePush = "pull-before-push"
 )
 
 type Option struct {
@@ -42,6 +43,7 @@ func BuildConfigOptions() []Option {
 		{Label: i18n.T("config.option.tag.patch"), Value: ConfigKeyTagPatch},
 		{Label: i18n.T("config.option.theme"), Value: ConfigKeyTheme},
 		{Label: i18n.T("config.option.conflict.editor"), Value: ConfigKeyConflictEditor},
+		{Label: i18n.T("config.option.pull"), Value: ConfigKeyPullBeforePush},
 	}
 
 	// 摘要按分派键定位写入,避免硬编码索引在增项时错位
@@ -101,6 +103,14 @@ func BuildConfigOptions() []Option {
 		summary[ConfigKeyConflictEditor].Description = i18n.T("config.summary.conflict.editor.auto")
 	} else {
 		summary[ConfigKeyConflictEditor].Description = editorSetting
+	}
+
+	// 推送前 pull 摘要(默认 always)
+	pullSetting, _ := GetPullBeforePush()
+	if pullSetting == PullBeforePushNever {
+		summary[ConfigKeyPullBeforePush].Description = i18n.T("config.summary.pull.never")
+	} else {
+		summary[ConfigKeyPullBeforePush].Description = i18n.T("config.summary.pull.always")
 	}
 
 	return options

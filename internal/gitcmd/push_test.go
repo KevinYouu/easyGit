@@ -1,6 +1,7 @@
 package gitcmd
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -32,5 +33,21 @@ func TestValidateCommitMessage(t *testing.T) {
 				t.Fatalf("error message should hint at subject, got: %v", err)
 			}
 		})
+	}
+}
+
+// TestShouldPullBeforePush 推送前 pull 决策:无 upstream 时跳过
+// (真实仓库验证,避免无参数 git pull 失败终止流程)。
+func TestShouldPullBeforePush(t *testing.T) {
+	dir := setupTestRepo(t)
+	oldWD, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWD)
+
+	// 无远程:无 upstream,应跳过
+	if shouldPullBeforePush() {
+		t.Error("无上游分支时应跳过 pull")
 	}
 }

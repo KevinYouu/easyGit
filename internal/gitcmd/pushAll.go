@@ -2,6 +2,7 @@ package gitcmd
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/KevinYouu/easyGit/internal/command"
@@ -32,6 +33,20 @@ func validateCommitMessage(msg string) error {
 		return fmt.Errorf("%s", i18n.T("form.input.commit.subject.empty"))
 	}
 	return nil
+}
+
+// shouldPullBeforePush 判断推送前是否执行 pull:
+// 配置 never 时跳过;当前分支未设上游分支时跳过
+// (无参数 git pull 必然失败,提前跳过避免终止整个流程)。
+func shouldPullBeforePush() bool {
+	if v, err := config.GetPullBeforePush(); err == nil && v == config.PullBeforePushNever {
+		return false
+	}
+	if _, err := exec.Command("git", "rev-parse", "--abbrev-ref", "@{u}").Output(); err != nil {
+		logs.Info(i18n.T("push.pull.skipped.no.upstream"))
+		return false
+	}
+	return true
 }
 
 func PushAll() error {
@@ -65,6 +80,9 @@ func PushAll() error {
 	remotes, remotesErr := GetAllRemotes()
 	hasRemote := remotesErr == nil && len(remotes) > 0
 
+	// 是否需要 pull(在 hasRemote 块内赋值;未设 upstream 或配置 never 时跳过)
+	pullBefore := false
+
 	if !hasRemote {
 		logs.Info(i18n.T("push.no.remote.commit.only"))
 	}
@@ -95,6 +113,9 @@ func PushAll() error {
 			return fmt.Errorf("select remote: %w", err)
 		}
 
+		// 是否需要 pull:未设 upstream 或配置 never 时跳过
+		pullBefore = shouldPullBeforePush()
+
 		// 如果需要保存配置(首次选择或配置变更)
 		if needSave {
 			err = config.SavePushConfig(remotes)
@@ -111,13 +132,15 @@ func PushAll() error {
 		}
 
 		// 添加 pull 步骤
-		allCommands = append(allCommands, command.CommandInfo{
-			Command:     "git",
-			Args:        []string{"pull"},
-			Description: i18n.T("git.pull.description"),
-			LoadingMsg:  i18n.T("git.pull.loading"),
-			SuccessMsg:  i18n.T("git.pull.success"),
-		})
+		if pullBefore {
+			allCommands = append(allCommands, command.CommandInfo{
+				Command:     "git",
+				Args:        []string{"pull"},
+				Description: i18n.T("git.pull.description"),
+				LoadingMsg:  i18n.T("git.pull.loading"),
+				SuccessMsg:  i18n.T("git.pull.success"),
+			})
+		}
 
 		// 添加每个远程的推送命令
 		for _, remote := range remotes {
@@ -131,9 +154,13 @@ func PushAll() error {
 		}
 	}
 
-	// 使用统一的进度条执行所有命令:add → commit → pull 串行,
-	// 随后所有远程推送一次性并行启动
-	err = command.RunMultipleCommandsParallel(allCommands, 3)
+	// 使用统一的进度条执行所有命令:add → commit → (pull) 串行,
+	// 随后所有远程推送一次性并行启动;parallelFrom = 串行步数
+	parallelFrom := 2
+	if pullBefore {
+		parallelFrom = 3
+	}
+	err = command.RunMultipleCommandsParallel(allCommands, parallelFrom)
 	if err != nil {
 		return err
 	}

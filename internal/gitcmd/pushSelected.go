@@ -77,6 +77,9 @@ func PushSelected() error {
 	remotes, remotesErr := GetAllRemotes()
 	hasRemote := remotesErr == nil && len(remotes) > 0
 
+	// 是否需要 pull(在 hasRemote 块内赋值;未设 upstream 或配置 never 时跳过)
+	pullBefore := false
+
 	if !hasRemote {
 		logs.Info(i18n.T("push.no.remote.commit.only"))
 	}
@@ -114,6 +117,9 @@ func PushSelected() error {
 			return fmt.Errorf("select remote: %w", err)
 		}
 
+		// 是否需要 pull:未设 upstream 或配置 never 时跳过
+		pullBefore = shouldPullBeforePush()
+
 		// 如果需要保存配置(首次选择或配置变更)
 		if needSave {
 			err = config.SavePushConfig(remotes)
@@ -130,13 +136,15 @@ func PushSelected() error {
 		}
 
 		// 添加 pull 步骤
-		allCommands = append(allCommands, command.CommandInfo{
-			Command:     "git",
-			Args:        []string{"pull"},
-			Description: i18n.T("git.pull.description"),
-			LoadingMsg:  i18n.T("git.pull.loading"),
-			SuccessMsg:  i18n.T("git.pull.success"),
-		})
+		if pullBefore {
+			allCommands = append(allCommands, command.CommandInfo{
+				Command:     "git",
+				Args:        []string{"pull"},
+				Description: i18n.T("git.pull.description"),
+				LoadingMsg:  i18n.T("git.pull.loading"),
+				SuccessMsg:  i18n.T("git.pull.success"),
+			})
+		}
 
 		// 添加每个远程的推送命令
 		for _, remote := range remotes {
@@ -150,9 +158,13 @@ func PushSelected() error {
 		}
 	}
 
-	// 使用统一的进度条执行所有命令:add → commit → pull 串行,
-	// 随后所有远程推送一次性并行启动
-	err = command.RunMultipleCommandsParallel(allCommands, 3)
+	// 使用统一的进度条执行所有命令:add → commit → (pull) 串行,
+	// 随后所有远程推送一次性并行启动;parallelFrom = 串行步数
+	parallelFrom := 2
+	if pullBefore {
+		parallelFrom = 3
+	}
+	err = command.RunMultipleCommandsParallel(allCommands, parallelFrom)
 	if err != nil {
 		return err
 	}

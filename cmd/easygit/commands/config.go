@@ -55,6 +55,8 @@ func runConfigCenter() {
 			configTheme()
 		case config.ConfigKeyConflictEditor:
 			configConflictEditor()
+		case config.ConfigKeyPullBeforePush:
+			configPull()
 		}
 	}
 }
