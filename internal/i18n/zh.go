@@ -5,6 +5,7 @@ var zhTranslations = map[string]string{
 	// Root command
 	"root.short":       "easyGit 是一个帮助您快速提交代码的命令行工具。",
 	"root.description": "快速高效的 Git 工作流工具",
+	"menu.title":       "选择操作",
 
 	// Version command
 	"version.short":   "显示 easyGit 版本信息",

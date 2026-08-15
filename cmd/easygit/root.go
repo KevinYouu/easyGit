@@ -13,7 +13,8 @@ var rootCmd = &cobra.Command{
 	Use:   "easyGit",
 	Short: "", // Will be set dynamically
 	Run: func(cmd *cobra.Command, args []string) {
-		commands.VersionCommand().Run(cmd, args)
+		// 无参数:进入交互式主菜单(新手零记忆成本)
+		commands.RunMenu()
 	},
 }
 

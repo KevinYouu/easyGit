@@ -5,6 +5,7 @@ var enTranslations = map[string]string{
 	// Root command
 	"root.short":       "easyGit is a tool that helps you quickly submit code with a command line interface.",
 	"root.description": "A fast and efficient Git workflow tool",
+	"menu.title":       "Select an action",
 
 	// Version command
 	"version.short":   "Show easyGit version",
