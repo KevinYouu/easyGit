@@ -19,13 +19,16 @@ type HelpKey struct {
 	Action string // 动作说明(调用方已 i18n)
 }
 
-// keyStyle 键位前缀样式:主色加粗文本,无背景色(终端友好,括号本身即视觉边界)
-var keyStyle = lipgloss.NewStyle().
-	Foreground(theme.PrimaryColor).
-	Bold(true)
+// keyStyle 键位前缀样式:主色加粗文本,无背景色(终端友好,括号本身即视觉边界)。
+// 函数化:样式构建时捕获色值,包级 var 会在主题切换后固化过期色。
+func keyStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.PrimaryColor).
+		Bold(true)
+}
 
 // helpActionStyle 动作说明:弱化前景色
-var helpActionStyle = lipgloss.NewStyle().Foreground(theme.MutedForeground)
+func helpActionStyle() lipgloss.Style { return lipgloss.NewStyle().Foreground(theme.MutedForeground) }
 
 // 预置键位集合:各交互形态的统一帮助栏内容,全部单行紧凑
 func selectHelpKeys() []HelpKey {
@@ -86,7 +89,7 @@ func RenderHelpBar(keys []HelpKey, width int) string {
 	}
 	parts := make([]string, 0, len(keys))
 	for _, k := range keys {
-		parts = append(parts, keyStyle.Render("["+k.Key+"]")+" "+helpActionStyle.Render(k.Action))
+		parts = append(parts, keyStyle().Render("["+k.Key+"]")+" "+helpActionStyle().Render(k.Action))
 	}
 	return SafeTruncate(strings.Join(parts, " · "), width)
 }

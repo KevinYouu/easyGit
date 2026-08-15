@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 	"strings"
@@ -182,25 +183,25 @@ func (m *multiInputModel) View() tea.View {
 	m.layoutInputs()
 
 	if m.preview != nil {
-		sb.WriteString(mutedStyle.Render(m.preview(m.currentValues())))
+		sb.WriteString(mutedStyle().Render(m.preview(m.currentValues())))
 		sb.WriteString("\n")
 	}
 
 	for i, spec := range m.specs {
 		focused := i == m.focused
 		var line strings.Builder
-		titleStyle := blurredTitleStyle
+		titleStyle := blurredTitleStyle()
 		if focused {
-			titleStyle = focusedTitleStyle.Background(focusedRowBg)
+			titleStyle = focusedTitleStyle().Background(focusedRowBg())
 		}
 		// 输入框样式:textinput 样式私有,每帧 SetStyles 整组替换——
 		// 聚焦行 Prompt/Text/Placeholder 均带背景(右填充空格用 Text 样式,
 		// 占位符用 Placeholder 样式,缺一即"露底");非聚焦行恢复默认
 		if focused {
 			s := textinput.DefaultStyles(true)
-			s.Focused.Prompt = s.Focused.Prompt.Background(focusedRowBg).Foreground(theme.SelectionFg)
-			s.Focused.Text = s.Focused.Text.Background(focusedRowBg).Foreground(theme.SelectionFg)
-			s.Focused.Placeholder = s.Focused.Placeholder.Background(focusedRowBg).Foreground(lipgloss.Color("#d4d4d4"))
+			s.Focused.Prompt = s.Focused.Prompt.Background(focusedRowBg()).Foreground(theme.SelectionFg)
+			s.Focused.Text = s.Focused.Text.Background(focusedRowBg()).Foreground(theme.SelectionFg)
+			s.Focused.Placeholder = s.Focused.Placeholder.Background(focusedRowBg()).Foreground(theme.SelectionMuted)
 			m.inputs[i].SetStyles(s)
 		} else {
 			m.inputs[i].SetStyles(textinput.DefaultStyles(true))
@@ -213,17 +214,17 @@ func (m *multiInputModel) View() tea.View {
 		// 行尾:校验错误(红)优先,否则弱化简介;聚焦行分隔空格/简介带背景
 		tail := ""
 		if focused && m.errMsg != "" {
-			tail = errorStyle.Background(focusedRowBg).Render("✗ " + m.errMsg)
+			tail = errorStyle().Background(focusedRowBg()).Render("✗ " + m.errMsg)
 		} else if spec.Desc != "" {
 			if focused {
-				tail = focusedDescStyle.Background(focusedRowBg).Render(spec.Desc)
+				tail = focusedDescStyle().Background(focusedRowBg()).Render(spec.Desc)
 			} else {
-				tail = mutedStyle.Render(spec.Desc)
+				tail = mutedStyle().Render(spec.Desc)
 			}
 		}
 		if tail != "" {
 			if focused {
-				line.WriteString(focusedPadStyle.Render(" "))
+				line.WriteString(focusedPadStyle().Render(" "))
 			} else {
 				line.WriteString(" ")
 			}
@@ -233,7 +234,7 @@ func (m *multiInputModel) View() tea.View {
 		// 聚焦行行尾补白:背景只在有字符处显示,补带背景空格铺满终端宽
 		if focused {
 			if pad := m.width - lipgloss.Width(line.String()); pad > 0 {
-				line.WriteString(focusedPadStyle.Render(strings.Repeat(" ", pad)))
+				line.WriteString(focusedPadStyle().Render(strings.Repeat(" ", pad)))
 			}
 		}
 		sb.WriteString(line.String())
@@ -337,27 +338,45 @@ var (
 	prevBinding = key.NewBinding(key.WithKeys("shift+tab", "up", "k"))
 )
 
-var (
-	focusedTitleStyle = lipgloss.NewStyle().
-				Foreground(theme.PrimaryColor).
-				Bold(true)
-	blurredTitleStyle = lipgloss.NewStyle().
-				Foreground(theme.MutedForeground)
-	mutedStyle = lipgloss.NewStyle().
-			Foreground(theme.MutedForeground)
-	errorStyle = lipgloss.NewStyle().
-			Foreground(theme.ErrorColor).
-			Bold(true)
+// 聚焦行样式函数:lipgloss 样式不可变且构建时捕获色值,
+// 包级 var 会在 init 时固化导致主题切换后不更新,故改为每次调用现建。
+func focusedTitleStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.PrimaryColor).
+		Bold(true)
+}
 
-	// 聚焦行整行背景(参考列表 Selected 样式):标题/输入框/简介/分隔空格/
-	// 行尾补白逐段携带同一背景,避免内层 ANSI reset 清掉外层背景导致"打洞"
-	focusedRowBg = theme.SelectionBg
-	// 聚焦行简介提亮色:深灰底(#404040)上 muted(#a3a3a3)对比不足,提亮至中性 300
-	focusedDescStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#d4d4d4"))
-	// 聚焦行行尾补白(铺满终端宽,整行背景)与分隔空格
-	focusedPadStyle = lipgloss.NewStyle().
-			Background(theme.SelectionBg)
-)
+func blurredTitleStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.MutedForeground)
+}
+
+func mutedStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.MutedForeground)
+}
+
+func errorStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.ErrorColor).
+		Bold(true)
+}
+
+// focusedRowBg 聚焦行整行背景(参考列表 Selected 样式):标题/输入框/简介/分隔空格/
+// 行尾补白逐段携带同一背景,避免内层 ANSI reset 清掉外层背景导致"打洞"
+func focusedRowBg() color.Color { return theme.SelectionBg }
+
+// focusedDescStyle 聚焦行简介提亮色:深灰底(#404040)上 muted(#a3a3a3)对比不足,
+// 提亮至中性 300(浅色主题下由 theme.SelectionMuted 自动切换为深灰,保证对比度)
+func focusedDescStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(theme.SelectionMuted)
+}
+
+// focusedPadStyle 聚焦行行尾补白(铺满终端宽,整行背景)与分隔空格
+func focusedPadStyle() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Background(theme.SelectionBg)
+}
 
 // lipglossWidth 字符显示宽度(CJK 按 2 列计算)

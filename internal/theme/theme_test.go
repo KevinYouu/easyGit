@@ -7,6 +7,7 @@ import (
 
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -255,5 +256,113 @@ func TestRenderBadge(t *testing.T) {
 		if result == "" {
 			t.Errorf("RenderBadge(%q) should not return empty string", v)
 		}
+	}
+}
+
+// ─── 主题模式 ────────────────────────────────────────────────────────────────
+
+func TestValidMode(t *testing.T) {
+	for _, mode := range []Mode{ModeAuto, ModeDark, ModeLight} {
+		if !ValidMode(mode) {
+			t.Errorf("ValidMode(%q) = false, want true", mode)
+		}
+	}
+	if ValidMode(Mode("invalid")) {
+		t.Error("ValidMode(invalid) = true, want false")
+	}
+}
+
+// TestResolveMode dark/light 直通;auto/非法值解析为 dark/light
+// (终端背景检测结果不可控,仅断言不返回 auto/非法值)
+func TestResolveMode(t *testing.T) {
+	if got := ResolveMode(ModeDark); got != ModeDark {
+		t.Errorf("ResolveMode(dark) = %q, want dark", got)
+	}
+	if got := ResolveMode(ModeLight); got != ModeLight {
+		t.Errorf("ResolveMode(light) = %q, want light", got)
+	}
+	for _, mode := range []Mode{ModeAuto, Mode("invalid")} {
+		got := ResolveMode(mode)
+		if got != ModeDark && got != ModeLight {
+			t.Errorf("ResolveMode(%q) = %q, want dark or light", mode, got)
+		}
+	}
+}
+
+// TestApplyModeLight 浅色模式切换:令牌切到浅色板,样式重建后渲染新色
+func TestApplyModeLight(t *testing.T) {
+	// 无论测试顺序如何,结束后恢复深色(其他测试依赖默认深色)
+	t.Cleanup(func() { ApplyMode(ModeDark) })
+
+	if got := ApplyMode(ModeLight); got != ModeLight {
+		t.Fatalf("ApplyMode(light) = %q, want light", got)
+	}
+	if CurrentMode() != ModeLight || IsDark() {
+		t.Error("CurrentMode/IsDark 未切换到浅色")
+	}
+
+	// 浅色板精确色值断言(RGBA 逐通道)
+	tests := []struct {
+		name string
+		got  color.Color
+		want color.RGBA
+	}{
+		{"PrimaryColor", PrimaryColor, color.RGBA{R: 0x18, G: 0x18, B: 0x1b, A: 0xff}},       // Neutral 900
+		{"MutedForeground", MutedForeground, color.RGBA{R: 0x73, G: 0x73, B: 0x73, A: 0xff}}, // Neutral 500
+		{"BorderColor", BorderColor, color.RGBA{R: 0xe4, G: 0xe4, B: 0xe7, A: 0xff}},         // Neutral 200
+		{"SelectionBg", SelectionBg, color.RGBA{R: 0xe4, G: 0xe4, B: 0xe7, A: 0xff}},         // Neutral 200
+		{"SelectionFg", SelectionFg, color.RGBA{R: 0x18, G: 0x18, B: 0x1b, A: 0xff}},         // Neutral 900
+		{"SelectionMuted", SelectionMuted, color.RGBA{R: 0x52, G: 0x52, B: 0x52, A: 0xff}},   // Neutral 600
+		{"DiffAddedBg", DiffAddedBg, color.RGBA{R: 0xdc, G: 0xfc, B: 0xe7, A: 0xff}},         // Green 100
+		{"DiffRemovedBg", DiffRemovedBg, color.RGBA{R: 0xfe, G: 0xe2, B: 0xe2, A: 0xff}},     // Red 100
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r, g, b, a := tc.got.RGBA()
+			want := tc.want
+			if r != uint32(want.R)*0x101 || g != uint32(want.G)*0x101 ||
+				b != uint32(want.B)*0x101 || a != uint32(want.A)*0x101 {
+				t.Errorf("%s = #%02x%02x%02x, want #%02x%02x%02x",
+					tc.name, r>>8, g>>8, b>>8, want.R, want.G, want.B)
+			}
+		})
+	}
+
+	// 样式已重建:渲染输出含浅色主色 SGR(38;2;24;24;27)
+	rendered := SpinnerStyle.Render("x")
+	if !strings.Contains(rendered, "38;2;24;24;27") {
+		t.Errorf("SpinnerStyle 未重建为浅色主色: %q", rendered)
+	}
+
+	// 语义色不随模式变化
+	r, g, b, _ := ErrorColor.RGBA()
+	if r != 0xef*0x101 || g != 0x44*0x101 || b != 0x44*0x101 {
+		t.Errorf("ErrorColor 不应随模式变化: #%02x%02x%02x", r>>8, g>>8, b>>8)
+	}
+}
+
+// TestApplyModeDark 切回深色后令牌恢复
+func TestApplyModeDark(t *testing.T) {
+	ApplyMode(ModeLight)
+	t.Cleanup(func() { ApplyMode(ModeDark) })
+
+	if got := ApplyMode(ModeDark); got != ModeDark {
+		t.Fatalf("ApplyMode(dark) = %q, want dark", got)
+	}
+	if CurrentMode() != ModeDark || !IsDark() {
+		t.Error("CurrentMode/IsDark 未切回深色")
+	}
+	r, g, b, _ := PrimaryColor.RGBA()
+	if r != 0xfa*0x101 || g != 0xfa*0x101 || b != 0xfa*0x101 {
+		t.Errorf("PrimaryColor 未恢复深色: #%02x%02x%02x", r>>8, g>>8, b>>8)
+	}
+}
+
+// TestModesAlignWithConfig 主题模式字符串与 config 常量防漂移
+func TestModesAlignWithConfig(t *testing.T) {
+	if string(ModeAuto) != config.ThemeAuto ||
+		string(ModeDark) != config.ThemeDark ||
+		string(ModeLight) != config.ThemeLight {
+		t.Error("theme.Mode 与 config.Theme* 常量不一致")
 	}
 }

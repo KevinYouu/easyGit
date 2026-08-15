@@ -153,12 +153,12 @@ func TestBuildConfigOptions(t *testing.T) {
 	newTestDB(t)
 
 	opts := BuildConfigOptions()
-	if len(opts) != 4 {
-		t.Fatalf("expected 4 config options, got %d", len(opts))
+	if len(opts) != 5 {
+		t.Fatalf("expected 5 config options, got %d", len(opts))
 	}
 
 	// 分派键唯一且正确
-	expectedKeys := []string{ConfigKeyLanguage, ConfigKeyPush, ConfigKeyCommitTypes, ConfigKeyTagPatch}
+	expectedKeys := []string{ConfigKeyLanguage, ConfigKeyPush, ConfigKeyCommitTypes, ConfigKeyTagPatch, ConfigKeyTheme}
 	seen := make(map[string]bool)
 	for i, opt := range opts {
 		if opt.Value != expectedKeys[i] {

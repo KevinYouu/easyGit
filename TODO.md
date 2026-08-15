@@ -1,5 +1,16 @@
 # TODO
 
+## 已完成:主题双色板(默认自动 + 手动切换)
+
+- [x] `internal/theme` 双色板:Neutral Dark / Neutral Light 两套令牌(primary/muted/border/selection/diff 背景,新增 SelectionMuted),`ApplyMode(auto|dark|light)` 切换并重建包级样式;`DetectDarkBackground`(lipgloss HasDarkBackground,OSC 11 查询,失败/非 TTY 回退深色);huh 主题 `ThemeBase(current.isDark)` 动态适配
+- [x] 启动优先级:`--theme` 标志(运行时) > 配置中心设置(settings 表) > 自动检测 → `cmd/easygit/main.go` / `root.go`(注册 `--theme` 持久标志)
+- [x] 配置中心新增「界面主题」项(auto/dark/light),保存后立即应用 → `internal/config/theme.go`(GetTheme/SaveTheme,ErrInvalidTheme 哨兵) / `cmd/easygit/commands/config_theme.go`
+- [x] 清理硬编码色:`multi_input.go` 两处 `#d4d4d4` → theme.SelectionMuted;捕获色值的包级样式函数化(helpbar keyStyle/helpActionStyle、multi_input 7 个样式),主题切换即时生效
+- [x] i18n:config.option/summary.theme.* + theme.option.*(zh/en)
+- [x] 测试:浅色板精确色值断言、样式重建(渲染 SGR 含浅色主色)、dark/light 往返、ResolveMode/ValidMode、config Get/SaveTheme(含非法值 errors.Is)、Mode 与 config 常量防漂移、BuildConfigOptions 5 项 → `make all` 全绿
+- [x] 文档:README/README-ZH 主题章节、docs/ui-shadcn-tui-refactor.md 双色板与模式机制
+- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
+
 ## 已完成:多远程并行推送(pa/ps/tc/td/bd)
 
 - [x] 进度模型并行段支持:`ProgressModel` 新增 `parallelFrom`/`inFlight`/`pendingStart`/`failedSteps`,

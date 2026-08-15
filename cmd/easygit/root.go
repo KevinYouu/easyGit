@@ -56,6 +56,8 @@ func updateRootCommandDescriptions() {
 func init() {
 	// Add language flag support
 	i18n.AddLanguageFlag(rootCmd)
+	// Add theme flag support (runtime priority, pre-parsed in main.go)
+	rootCmd.PersistentFlags().String("theme", "", "Set theme (auto/dark/light)")
 
 	rootCmd.AddCommand(
 		commands.PushAllCommand(),

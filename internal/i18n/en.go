@@ -74,6 +74,17 @@ var enTranslations = map[string]string{
 	"language.option.en.desc":   "English interface",
 	"language.option.zh.desc":   "Chinese interface",
 
+	// Theme option
+	"theme.select.title":      "Select Theme",
+	"theme.option.auto":       "Auto",
+	"theme.option.auto.desc":  "Follow terminal background automatically",
+	"theme.option.dark":       "Dark",
+	"theme.option.dark.desc":  "Always use dark theme",
+	"theme.option.light":      "Light",
+	"theme.option.light.desc": "Always use light theme",
+	"theme.set.success":       "Theme setting saved",
+	"theme.set.error":         "Failed to set theme",
+
 	// Config command
 	"config.short":                       "Open configuration center",
 	"config.select.title":                "Configuration Center",
@@ -81,6 +92,10 @@ var enTranslations = map[string]string{
 	"config.option.push":                 "Push Config",
 	"config.option.commit.types":         "Commit Types",
 	"config.option.tag.patch":            "Tag Version Cap",
+	"config.option.theme":                "Interface Theme",
+	"config.summary.theme.auto":          "Current: auto-detect (terminal background)",
+	"config.summary.theme.dark":          "Current: Dark",
+	"config.summary.theme.light":         "Current: Light",
 	"config.summary.language.en":         "Current: English",
 	"config.summary.language.zh":         "Current: 简体中文",
 	"config.summary.language.auto":       "Current: auto-detect (system)",

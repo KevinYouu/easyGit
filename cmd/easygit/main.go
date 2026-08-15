@@ -7,6 +7,7 @@ import (
 
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 func main() {
@@ -38,6 +39,27 @@ func main() {
 			}
 			break
 		}
+	}
+
+	// Pre-parse theme flag before executing the command (Priority 1: Runtime)
+	themeMode := ""
+	for i, arg := range os.Args {
+		if arg == "--theme" && i+1 < len(os.Args) {
+			themeMode = strings.ToLower(os.Args[i+1])
+			break
+		} else if after, ok := strings.CutPrefix(arg, "--theme="); ok {
+			themeMode = strings.ToLower(after)
+			break
+		}
+	}
+
+	// Initialize theme (Priority 1: --theme flag; Priority 2: Database; Priority 3: auto-detect)
+	if themeMode != "" {
+		theme.ApplyMode(theme.Mode(themeMode))
+	} else if dbTheme, err := config.GetTheme(); err == nil && dbTheme != "" {
+		theme.ApplyMode(theme.Mode(dbTheme))
+	} else {
+		theme.ApplyMode(theme.ModeAuto)
 	}
 
 	// Update command descriptions after language is set

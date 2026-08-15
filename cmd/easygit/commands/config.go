@@ -51,6 +51,8 @@ func runConfigCenter() {
 			configCommitTypes()
 		case config.ConfigKeyTagPatch:
 			configTagPatch()
+		case config.ConfigKeyTheme:
+			configTheme()
 		}
 	}
 }

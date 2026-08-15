@@ -14,6 +14,7 @@ const (
 	ConfigKeyPush        = "push"
 	ConfigKeyCommitTypes = "commit-types"
 	ConfigKeyTagPatch    = "tag-patch"
+	ConfigKeyTheme       = "theme"
 )
 
 type Option struct {
@@ -38,6 +39,7 @@ func BuildConfigOptions() []Option {
 		{Label: i18n.T("config.option.push"), Value: ConfigKeyPush},
 		{Label: i18n.T("config.option.commit.types"), Value: ConfigKeyCommitTypes},
 		{Label: i18n.T("config.option.tag.patch"), Value: ConfigKeyTagPatch},
+		{Label: i18n.T("config.option.theme"), Value: ConfigKeyTheme},
 	}
 
 	// 界面语言摘要(未设置时显示自动检测)
@@ -74,6 +76,17 @@ func BuildConfigOptions() []Option {
 	// 标签版本上限摘要(读取失败回退默认值)
 	patch, _ := GetTagPatch()
 	options[3].Description = fmt.Sprintf(i18n.T("config.summary.tag.patch"), FormatPatch(patch))
+
+	// 界面主题摘要(未设置时显示自动检测)
+	themeSetting, _ := GetTheme()
+	switch themeSetting {
+	case ThemeDark:
+		options[4].Description = i18n.T("config.summary.theme.dark")
+	case ThemeLight:
+		options[4].Description = i18n.T("config.summary.theme.light")
+	default:
+		options[4].Description = i18n.T("config.summary.theme.auto")
+	}
 
 	return options
 }

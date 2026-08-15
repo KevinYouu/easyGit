@@ -177,12 +177,27 @@ easyGit squash  # or: easyGit sq
 # Drop/Delete specific commits
 easyGit drop  # or: easyGit d
 
-# Configure easyGit (language, push settings, commit types, tag version cap)
+# Configure easyGit (language, theme, push settings, commit types, tag version cap)
 easyGit config
 
 # Update easyGit
 easyGit update
 ```
+
+### Theme (Light/Dark)
+
+- **Auto (default)**: detects the terminal background (OSC 11 query) on startup; falls back to dark when the query is unsupported or in non-TTY environments.
+- **Manual**: force a mode with the `--theme` flag (runtime, highest priority) or persist a preference via the config center.
+
+```bash
+# One-time override (runtime priority)
+easyGit --theme light commit
+
+# Persist a preference (takes effect on next startup)
+easyGit config   # → Interface Theme → Auto / Dark / Light
+```
+
+Priority: `--theme` flag > config center setting > auto-detect.
 
 ## 📖 Command Reference
 
@@ -217,7 +232,7 @@ easyGit update
 | Command           | Alias | Description                                              | Use Case                                            |
 | ----------------- | ----- | -------------------------------------------------------- | --------------------------------------------------- |
 | `init`            | -     | Initialize easyGit configuration                         | First-time setup (usually automatic)                |
-| `config`          | -     | Open the interactive configuration center                | Change language, push settings, commit types, tag version cap |
+| `config`          | -     | Open the interactive configuration center                | Change language, theme, push settings, commit types, tag version cap |
 | `update`          | -     | Update easyGit to latest version                         | Get new features and bug fixes                      |
 | `version`         | `v`   | Show current version information                         | Check installed version                             |
 

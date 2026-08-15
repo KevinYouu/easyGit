@@ -74,6 +74,17 @@ var zhTranslations = map[string]string{
 	"language.option.en.desc":   "英文界面",
 	"language.option.zh.desc":   "简体中文界面",
 
+	// Theme option
+	"theme.select.title":      "选择主题",
+	"theme.option.auto":       "自动",
+	"theme.option.auto.desc":  "跟随终端背景自动切换",
+	"theme.option.dark":       "深色",
+	"theme.option.dark.desc":  "始终使用深色主题",
+	"theme.option.light":      "浅色",
+	"theme.option.light.desc": "始终使用浅色主题",
+	"theme.set.success":       "主题设置已保存",
+	"theme.set.error":         "主题设置失败",
+
 	// Config command
 	"config.short":                       "打开配置中心",
 	"config.select.title":                "配置中心",
@@ -81,6 +92,10 @@ var zhTranslations = map[string]string{
 	"config.option.push":                 "推送配置",
 	"config.option.commit.types":         "提交类型",
 	"config.option.tag.patch":            "标签版本上限",
+	"config.option.theme":                "界面主题",
+	"config.summary.theme.auto":          "当前: 自动检测(跟随终端背景)",
+	"config.summary.theme.dark":          "当前: 深色",
+	"config.summary.theme.light":         "当前: 浅色",
 	"config.summary.language.en":         "当前: English",
 	"config.summary.language.zh":         "当前: 简体中文",
 	"config.summary.language.auto":       "当前: 自动检测(跟随系统)",

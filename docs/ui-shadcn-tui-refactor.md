@@ -10,7 +10,7 @@
 
 ### 2.1 设计令牌 (Design Tokens)
 
-统一定义了全局样式令牌，并严格遵循 Neutral Dark 色系：
+统一定义了全局样式令牌，并支持 Neutral Dark / Neutral Light 双色板（默认跟随终端背景自动切换，可经 `--theme` 标志或配置中心强制）：
 
 核心颜色令牌 (Neutral Dark)：
 `foreground`: `#fafafa` (高亮白文字，Neutral 50)
@@ -19,16 +19,27 @@
 `border`: `#404040` (边框/分隔线，Neutral 700，增强可见度)
 `input`: `#404040` (输入边界色)
 `selection`: `#404040` (选中项/焦点行背景色) \* `selectionForeground`: `#fafafa` (选中项文字前景色)
+`selectionMuted`: `#d4d4d4` (选中/聚焦行上的弱化前景，Neutral 300)
+
+核心颜色令牌 (Neutral Light)：
+`foreground`: `#18181b` (主文字，Neutral 900)
+`primary`: `#18181b` (主操作/高亮文字)
+`mutedForeground`: `#737373` (弱化提示文本，Neutral 500)
+`border`: `#e4e4e7` (边框/分隔线，Neutral 200)
+`selection`: `#e4e4e7` (选中项/焦点行背景色) \* `selectionForeground`: `#18181b` (选中项文字前景色)
+`selectionMuted`: `#525252` (选中/聚焦行上的弱化前景，Neutral 600)
 
 Diff 颜色令牌：
-`diffAddedBg`: `#1a3a1a` (暗绿色背景)
-`diffRemovedBg`: `#4a1515` (暗红色背景)
+暗色: `diffAddedBg`: `#1a3a1a` (暗绿色背景) / `diffRemovedBg`: `#4a1515` (暗红色背景)
+亮色: `diffAddedBg`: `#dcfce7` (Green 100) / `diffRemovedBg`: `#fee2e2` (Red 100)
 
-语义别名：
+语义别名(两模式一致)：
 `success`: `#10b981` (Emerald 500)
 `warning`: `#f59e0b` (Amber 500)
 `destructive`: `#ef4444` (Shadcn Red)
 `info`: `#3b82f6` (Blue 500)
+
+模式机制：`theme.ApplyMode(auto|dark|light)` 切换色板并重建包级样式；令牌调用时求值自动生效。自动检测使用 lipgloss `HasDarkBackground`(OSC 11 查询，失败回退深色)。优先级：`--theme` 标志 > 配置中心(settings 表) > 自动检测。
 
 ### 2.2 基础排版组件 (`<Text />`)
 
