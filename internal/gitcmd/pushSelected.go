@@ -2,7 +2,6 @@ package gitcmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/config"
@@ -110,30 +109,14 @@ func PushSelected() error {
 			return fmt.Errorf("get current branch: %w", err)
 		}
 
-		// 选择远程仓库(支持配置持久化和多选)
-		var needSave bool
-		remotes, needSave, err = SelectRemoteWithConfig()
+		// 选择远程仓库(支持配置持久化和多选,输出保存/使用日志)
+		remotes, err = SelectAndSaveRemotes()
 		if err != nil {
 			return fmt.Errorf("select remote: %w", err)
 		}
 
 		// 是否需要 pull:未设 upstream 或配置 never 时跳过
 		pullBefore = shouldPullBeforePush()
-
-		// 如果需要保存配置(首次选择或配置变更)
-		if needSave {
-			err = config.SavePushConfig(remotes)
-			if err != nil {
-				logs.Error(i18n.T("error.save.push.config"))
-			} else {
-				remotesStr := strings.Join(remotes, ", ")
-				logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
-			}
-		} else {
-			// 显示当前使用的配置
-			remotesStr := strings.Join(remotes, ", ")
-			logs.Info(fmt.Sprintf(i18n.T("push.using.config.remotes"), remotesStr))
-		}
 
 		// 添加 pull 步骤
 		if pullBefore {

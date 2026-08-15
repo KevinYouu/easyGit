@@ -118,6 +118,30 @@ func SelectRemoteWithConfig() ([]string, bool, error) {
 	return selectedRemotes, true, nil
 }
 
+// SelectAndSaveRemotes 选择远程仓库(支持配置持久化和多选)并输出
+// 保存/使用日志,返回远程列表。pa/ps/tc/td/bd 共用,收敛重复的
+// needSave 判断与日志输出。
+func SelectAndSaveRemotes() ([]string, error) {
+	selectedRemotes, needSave, err := SelectRemoteWithConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if needSave {
+		if err := config.SavePushConfig(selectedRemotes); err != nil {
+			logs.Error(i18n.T("error.save.push.config"))
+		} else {
+			remotesStr := strings.Join(selectedRemotes, ", ")
+			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
+		}
+	} else {
+		remotesStr := strings.Join(selectedRemotes, ", ")
+		logs.Info(fmt.Sprintf(i18n.T("push.using.config.remotes"), remotesStr))
+	}
+
+	return selectedRemotes, nil
+}
+
 // GetRemoteBranches 获取指定远程的分支列表
 func GetRemoteBranches(remote string) ([]string, error) {
 	cmd := exec.Command("git", "branch", "-r")

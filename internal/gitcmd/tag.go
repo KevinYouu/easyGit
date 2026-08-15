@@ -53,23 +53,10 @@ func CreateAndPushTag() error {
 		return command.RunMultipleCommands(commands)
 	}
 
-	// 选择远程仓库(支持配置持久化和多选)
-	selectedRemotes, needSave, err := SelectRemoteWithConfig()
+	// 选择远程仓库(支持配置持久化和多选,输出保存/使用日志)
+	selectedRemotes, err := SelectAndSaveRemotes()
 	if err != nil {
 		return fmt.Errorf("select remote: %w", err)
-	}
-
-	// 如果需要保存配置(首次选择或配置变更)
-	if needSave {
-		if err := config.SavePushConfig(selectedRemotes); err != nil {
-			logs.Error(i18n.T("error.save.push.config"))
-		} else {
-			remotesStr := strings.Join(selectedRemotes, ", ")
-			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
-		}
-	} else {
-		remotesStr := strings.Join(selectedRemotes, ", ")
-		logs.Info(fmt.Sprintf(i18n.T("push.using.config.remotes"), remotesStr))
 	}
 
 	// 添加每个远程的推送命令(并行段)
@@ -224,19 +211,10 @@ func DeleteAndPushTag() error {
 		return command.RunMultipleCommands(commands)
 	}
 
-	// 选择远程仓库(支持配置持久化和多选)
-	selectedRemotes, needSave, err := SelectRemoteWithConfig()
+	// 选择远程仓库(支持配置持久化和多选,输出保存/使用日志)
+	selectedRemotes, err := SelectAndSaveRemotes()
 	if err != nil {
 		return fmt.Errorf("select remote: %w", err)
-	}
-
-	if needSave {
-		if err := config.SavePushConfig(selectedRemotes); err != nil {
-			logs.Error(i18n.T("error.save.push.config"))
-		} else {
-			remotesStr := strings.Join(selectedRemotes, ", ")
-			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
-		}
 	}
 
 	// 添加每个远程的删除推送命令(并行段)
