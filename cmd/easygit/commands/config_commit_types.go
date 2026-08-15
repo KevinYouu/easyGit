@@ -1,17 +1,14 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
-	"regexp"
 
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
 )
-
-// commitTypePattern 提交类型合法格式(与 internal/config 校验一致,错误文案本地化)
-var commitTypePattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 // configCommitTypes 提交类型管理子流程:子菜单「添加 / 删除 / 返回」。
 func configCommitTypes() {
@@ -33,7 +30,7 @@ func configCommitTypes() {
 		},
 	}
 
-	selected, err := form.ListForm(i18n.T("config.commit.types.title"), options, form.ListSingle)
+	selected, err := form.ListFormColumns(i18n.T("config.commit.types.title"), configListSpecs(), options, form.ListSingle)
 	if err != nil {
 		// 取消:返回配置中心
 		return
@@ -47,7 +44,10 @@ func configCommitTypes() {
 	}
 }
 
-// addCommitType 添加提交类型:输入 → 格式校验 → 重复校验 → 保存
+// addCommitType 添加提交类型:输入 → 格式校验 → 保存;
+// 格式与重复校验由 config.AddCommitType 统一判定(单一事实来源),
+// 此处先经 config.CommitTypePattern 预校验以输出本地化文案,
+// 再按哨兵错误映射重复文案,真实错误(如 DB 故障)原样带出。
 func addCommitType() {
 	label, err := form.Input(i18n.T("config.commit.types.input.title"), "")
 	if err != nil {
@@ -55,28 +55,19 @@ func addCommitType() {
 		return
 	}
 
-	// 格式校验:小写字母、数字、连字符
-	if !commitTypePattern.MatchString(label) {
+	// 格式校验:小写字母、数字、连字符(表单层之后的第一道防线,文案本地化)
+	if !config.CommitTypePattern.MatchString(label) {
 		logs.Error(i18n.T("config.commit.types.invalid"))
 		return
 	}
 
-	// 重复校验
-	existing, err := config.GetOptions()
-	if err != nil {
-		logs.Error(i18n.T("error.get.options"))
-		return
-	}
-	for _, opt := range existing {
-		if opt.Value == label {
+	// 保存(内部含重复校验)
+	if err := config.AddCommitType(label); err != nil {
+		if errors.Is(err, config.ErrCommitTypeExists) {
 			logs.Error(fmt.Sprintf(i18n.T("config.commit.types.duplicate"), label))
 			return
 		}
-	}
-
-	// 保存
-	if err := config.AddCommitType(label); err != nil {
-		logs.Error(i18n.T("error.get.options"))
+		logs.Error(i18n.T("error.add.commit.type") + ": " + err.Error())
 		return
 	}
 	logs.Success(fmt.Sprintf(i18n.T("config.commit.types.add.success"), label))
@@ -100,7 +91,7 @@ func deleteCommitTypes() {
 		}
 	}
 
-	selected, err := form.ListForm(i18n.T("config.commit.types.delete.select"), options, form.ListMulti)
+	selected, err := form.ListFormColumns(i18n.T("config.commit.types.delete.select"), configListSpecs(), options, form.ListMulti)
 	if err != nil {
 		// 取消:返回管理页
 		return
@@ -121,7 +112,7 @@ func deleteCommitTypes() {
 	}
 
 	if err := config.DeleteCommitTypes(selected); err != nil {
-		logs.Error(i18n.T("error.get.options"))
+		logs.Error(i18n.T("error.delete.commit.type") + ": " + err.Error())
 		return
 	}
 	logs.Success(fmt.Sprintf(i18n.T("config.commit.types.delete.success"), len(selected)))

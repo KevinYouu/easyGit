@@ -7,6 +7,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// configListSpecs 配置中心列表的列定义:名称列自动宽度(上限引用
+// form.MaxAutoColumnWidth,单一事实来源),说明/摘要列弹性占满剩余宽度。
+// 列数不硬编码,后续新增列(如使用次数、时间)追加 spec 即可。
+func configListSpecs() []form.ColumnSpec {
+	return []form.ColumnSpec{
+		{Kind: form.ColumnAuto, MaxWidth: form.MaxAutoColumnWidth},
+		{Kind: form.ColumnFlex},
+	}
+}
+
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: i18n.T("config.short"),
@@ -26,7 +36,7 @@ func ConfigCommand() *cobra.Command {
 func runConfigCenter() {
 	for {
 		options := config.BuildConfigOptions()
-		selected, err := form.ListForm(i18n.T("config.select.title"), options, form.ListSingle)
+		selected, err := form.ListFormColumns(i18n.T("config.select.title"), configListSpecs(), options, form.ListSingle)
 		if err != nil {
 			// Esc / 取消:退出配置中心
 			return

@@ -31,7 +31,7 @@ func configPush() {
 		},
 	}
 
-	selected, err := form.ListForm(i18n.T("config.push.menu.title"), options, form.ListSingle)
+	selected, err := form.ListFormColumns(i18n.T("config.push.menu.title"), configListSpecs(), options, form.ListSingle)
 	if err != nil {
 		// 取消:返回配置中心
 		return

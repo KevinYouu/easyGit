@@ -60,6 +60,76 @@ const (
 	fixedWidthFull  = hashColWidth + dateColWidth + authorColWidth + 4*cellPaddingWidth + indicatorColWidth + cellPaddingWidth // 四列:指示/hash/message/date/author
 )
 
+// 自适应多列布局常量(配置中心等「名称 + 单行说明」列表)
+const (
+	// MaxAutoColumnWidth Auto 列推荐宽度上限:超过的极长内容截断,防止挤占弹性列。
+	// 调用方未在 ColumnSpec.MaxWidth 显式指定时的推荐取值(单一事实来源)。
+	MaxAutoColumnWidth = 24
+)
+
+// ColumnKind 自适应多列布局的列宽策略
+// 列数不硬编码:调用方以 ColumnSpec 声明任意列,每列独立宽度策略。
+type ColumnKind int
+
+const (
+	ColumnAuto ColumnKind = iota // 自动宽度:按该列最长内容,可设 MaxWidth 上限
+	ColumnFlex                   // 弹性宽度:占满剩余,可设 MinWidth 下限
+)
+
+// ColumnSpec 自适应多列布局的列定义;Title 仅文档用途(表头隐藏)
+type ColumnSpec struct {
+	Title    string
+	Kind     ColumnKind
+	MaxWidth int // ColumnAuto 上限(0 = 不限)
+	MinWidth int // ColumnFlex 下限(0 = messageColMin)
+}
+
+// CalculateAdaptiveColumns 计算自适应多列布局的列宽(不含单元格内边距):
+// Auto 列 = 该列最长内容的显示宽度(上限 MaxWidth);剩余宽度平均分配给
+// Flex 列(各自不低于 MinWidth 或 messageColMin)。调用方保证 spec 与
+// 单元格数一致,行不足时缺列补空。仅在非紧凑模式(>= minColumnWidth)
+// 下使用,紧凑模式走单列合并。
+func CalculateAdaptiveColumns(width int, specs []ColumnSpec, rows [][]string, withCheckbox bool) []int {
+	widths := make([]int, len(specs))
+	fixed := indicatorColWidth + cellPaddingWidth + len(specs)*cellPaddingWidth
+	if withCheckbox {
+		fixed += checkboxColWidth + cellPaddingWidth
+	}
+	flexCount := 0
+	for i, spec := range specs {
+		switch spec.Kind {
+		case ColumnAuto:
+			maxW := 0
+			for _, row := range rows {
+				if i < len(row) {
+					maxW = max(maxW, ansi.StringWidth(ansi.Strip(row[i])))
+				}
+			}
+			if spec.MaxWidth > 0 {
+				maxW = min(maxW, spec.MaxWidth)
+			}
+			widths[i] = maxW
+			fixed += maxW
+		case ColumnFlex:
+			flexCount++
+		}
+	}
+	if flexCount > 0 {
+		remaining := max(width-fixed, 0)
+		per := remaining / flexCount
+		for i, spec := range specs {
+			if spec.Kind == ColumnFlex {
+				minW := spec.MinWidth
+				if minW == 0 {
+					minW = messageColMin
+				}
+				widths[i] = max(per, minW)
+			}
+		}
+	}
+	return widths
+}
+
 // LayoutMode 根据终端宽度判定布局模式
 func LayoutMode(width int) LayoutKind {
 	switch {

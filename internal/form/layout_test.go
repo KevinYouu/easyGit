@@ -294,3 +294,84 @@ func TestShouldCenterTable(t *testing.T) {
 		t.Error("200 列终端富余不足不应居中")
 	}
 }
+
+// TestCalculateAdaptiveColumns 自适应多列宽度:Auto 列按最长内容(上限截断),
+// Flex 列占满剩余;多选复选框与指示列计入固定占位;表格总宽不越终端。
+func TestCalculateAdaptiveColumns(t *testing.T) {
+	rows := [][]string{
+		{"Interface Language", "Current: English"},
+		{"Push Config", "Current: origin, upstream"},
+		{"Commit Types", "Current: fix, feat, …"},
+		{"Tag Version Cap", "Current: 999.9.9"},
+	}
+	specs := []ColumnSpec{
+		{Kind: ColumnAuto, MaxWidth: 24},
+		{Kind: ColumnFlex},
+	}
+
+	t.Run("单选 80 宽:名称自动宽,描述占满剩余", func(t *testing.T) {
+		widths := CalculateAdaptiveColumns(80, specs, rows, false)
+		// 名称列 = 最长名称 "Interface Language"(18),不截断
+		if widths[0] != 18 {
+			t.Errorf("名称列宽 = %d, want 18(完整显示不截断)", widths[0])
+		}
+		// 描述列 = 剩余宽度:80 - 1(indicator) - 3*2(三列内边距) - 18
+		if want := 80 - 1 - 6 - 18; widths[1] != want {
+			t.Errorf("描述列宽 = %d, want %d", widths[1], want)
+		}
+		// 总宽恰好 = 终端宽(含单元格内边距)
+		total := 1 + 18 + widths[1] + 3*2
+		if total != 80 {
+			t.Errorf("总宽 %d, want 80", total)
+		}
+	})
+
+	t.Run("多选 80 宽:复选框列计入固定占位", func(t *testing.T) {
+		widths := CalculateAdaptiveColumns(80, specs, rows, true)
+		if widths[0] != 18 {
+			t.Errorf("名称列宽 = %d, want 18", widths[0])
+		}
+		if want := 80 - 1 - 2 - 3 - 2 - 4 - 18; widths[1] != want {
+			t.Errorf("描述列宽 = %d, want %d(多选多占 6)", widths[1], want)
+		}
+	})
+
+	t.Run("Auto 上限截断极长名称", func(t *testing.T) {
+		longRows := [][]string{{"A Very Long Name That Exceeds The Cap", "x"}}
+		widths := CalculateAdaptiveColumns(80, specs, longRows, false)
+		if widths[0] != 24 {
+			t.Errorf("名称列宽 = %d, want 24(上限截断)", widths[0])
+		}
+	})
+
+	t.Run("多 Auto 列与多 Flex 列", func(t *testing.T) {
+		multi := []ColumnSpec{
+			{Kind: ColumnAuto, MaxWidth: 24},
+			{Kind: ColumnAuto, MaxWidth: 8},
+			{Kind: ColumnFlex},
+			{Kind: ColumnFlex},
+		}
+		rows := [][]string{{"fix", "12", "Bug fixes", "2024-01-01"}}
+		widths := CalculateAdaptiveColumns(100, multi, rows, false)
+		if widths[0] != 3 || widths[1] != 2 {
+			t.Errorf("Auto 列宽 = [%d %d], want [3 2](按内容)", widths[0], widths[1])
+		}
+		// Flex 平分剩余:100 - 1(ind) - 2*2(指示列边距) - 4*2(四列内边距) - 3 - 2
+		remain := 100 - 1 - 2 - 8 - 3 - 2
+		if widths[2] != remain/2 || widths[3] != remain/2 {
+			t.Errorf("Flex 列宽 = [%d %d], want [%d %d](平分剩余)", widths[2], widths[3], remain/2, remain/2)
+		}
+	})
+
+	t.Run("Flex 下限保护", func(t *testing.T) {
+		narrow := []ColumnSpec{
+			{Kind: ColumnAuto, MaxWidth: 24},
+			{Kind: ColumnFlex, MinWidth: 30},
+		}
+		// 宽度不足以满足下限时取下限
+		widths := CalculateAdaptiveColumns(60, narrow, rows, false)
+		if widths[1] < 30 {
+			t.Errorf("Flex 列宽 = %d, want >= 30(下限)", widths[1])
+		}
+	})
+}

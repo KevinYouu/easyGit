@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -35,6 +36,8 @@ type listModel struct {
 	choices      []config.Option
 	kind         ListKind
 	wrap         bool         // 光标到顶端/底端时是否循环到另一端
+	specs        []ColumnSpec // 非 nil 时启用自适应多列布局(任意列数,宽度策略见 ColumnSpec)
+	colWidths    []int        // 自适应多列布局各列宽(applyLayout 计算)
 	selected     map[int]bool // 仅多选使用
 	confirmed    bool
 	quitting     bool
@@ -159,11 +162,26 @@ func (m *listModel) View() tea.View {
 
 // applyLayout 按当前终端尺寸重建表格:列与行在同一代码路径构建,
 // 避免 bubbles/table 在行列数量不一致时渲染越界(renderRow 按下标取列);
-// 布局参数统一由 kind 决定(多选含复选框列并预留标题行)
+// 布局参数统一由 kind 决定(多选含复选框列并预留标题行);
+// 自适应多列模式在非紧凑终端按 ColumnSpec 分列,紧凑终端走单列合并。
 func (m *listModel) applyLayout() {
 	withCheckbox := m.kind == ListMulti
-	columns := CalculateColumns(m.width, withCheckbox)
-	m.messageWidth = CalculateMessageWidth(m.width, withCheckbox)
+	var columns []table.Column
+	if m.specs != nil && LayoutMode(m.width) != LayoutCompact {
+		rows := m.cellRows()
+		m.colWidths = CalculateAdaptiveColumns(m.width, m.specs, rows, withCheckbox)
+		if withCheckbox {
+			columns = append(columns, table.Column{Title: "", Width: indicatorColWidth}, table.Column{Title: "", Width: checkboxColWidth})
+		} else {
+			columns = append(columns, table.Column{Title: "", Width: indicatorColWidth})
+		}
+		for i := range m.specs {
+			columns = append(columns, table.Column{Title: "", Width: m.colWidths[i]})
+		}
+	} else {
+		columns = CalculateColumns(m.width, withCheckbox)
+		m.messageWidth = CalculateMessageWidth(m.width, withCheckbox)
+	}
 	cursor := m.table.Cursor()
 	// 表格高度不超过内容行数:内容不足一屏时按内容显示,
 	// 超出时占满终端由 viewport 滚动
@@ -185,6 +203,27 @@ func (m *listModel) applyLayout() {
 	m.table.SetCursor(cursor)
 }
 
+// cellRows 自适应多列模式的行单元格矩阵(按列索引取值)
+func (m *listModel) cellRows() [][]string {
+	rows := make([][]string, len(m.choices))
+	for i, opt := range m.choices {
+		rows[i] = optionCells(opt)
+	}
+	return rows
+}
+
+// optionCells 多列模式单元格:Option.Cells 非空时按列索引取值,否则取 [Label, Description]。
+func optionCells(opt config.Option) []string {
+	if len(opt.Cells) > 0 {
+		return opt.Cells
+	}
+	cells := []string{opt.Label}
+	if opt.Description != "" {
+		cells = append(cells, opt.Description)
+	}
+	return cells
+}
+
 // rebuildRows 按当前布局模式重新生成行数据;光标行在最左指示列渲染 ❯
 func (m *listModel) rebuildRows(cursorRow int) {
 	rows := make([]table.Row, 0, len(m.choices))
@@ -195,11 +234,35 @@ func (m *listModel) rebuildRows(cursorRow int) {
 }
 
 // optionRow 将单个选项按当前布局模式格式化为表格行;指示列宽 2,
-// 与 huh 的 "❯ " 指示符同宽,光标行显示 ❯ 其余留空;多选额外含复选框列
+// 与 huh 的 "❯ " 指示符同宽,光标行显示 ❯ 其余留空;多选额外含复选框列。
+// 两列模式(非紧凑):名称列自动宽度不截断(仅超上限截断),描述列占满剩余。
 func (m *listModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
 	indicator := ""
 	if i == cursorRow {
 		indicator = "❯"
+	}
+	if m.specs != nil && LayoutMode(m.width) != LayoutCompact {
+		row := make(table.Row, 0, len(m.specs)+2)
+		row = append(row, indicator)
+		cells := optionCells(opt)
+		if m.kind == ListMulti {
+			checkbox := "[ ]"
+			if m.selected[i] {
+				checkbox = "[x]"
+			}
+			row = append(row, checkbox)
+		}
+		for ci := range m.specs {
+			text := ""
+			if ci < len(cells) {
+				text = cells[ci]
+			}
+			if ci < len(m.colWidths) {
+				text = SafeTruncate(text, m.colWidths[ci])
+			}
+			row = append(row, text)
+		}
+		return row
 	}
 	label := m.rowLabel(opt)
 	if m.kind == ListMulti {
@@ -231,8 +294,13 @@ func (m *listModel) optionRow(i, cursorRow int, opt config.Option) table.Row {
 }
 
 // rowLabel 选项显示文本:有说明时按「名称 + 说明」纯文本拼接(不嵌 ANSI,
-// 与表格单元格渲染兼容;accessible 模式直接复用同一文本)
+// 与表格单元格渲染兼容);自适应多列模式返回全部单元格空格连接
+// (紧凑单列降级)。注意:accessible 纯文本列表已统一改走 optionCells
+// 合并(runAccessibleList),此处仅服务表格渲染路径。
 func (m *listModel) rowLabel(opt config.Option) string {
+	if m.specs != nil {
+		return strings.Join(optionCells(opt), " ")
+	}
 	return optionDisplayText(opt)
 }
 
@@ -248,17 +316,25 @@ func optionDisplayText(opt config.Option) string {
 // 防止生产配置与测试复刻漂移);默认不循环导航,仅个别命令
 // 经 ListFormWrap/NewListModelWrap 显式开启;单选光标落预选项,多选预填选中集。
 func NewListModel(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
-	return newListModel(title, options, kind, false, preselected...)
+	return newListModel(title, options, kind, false, nil, preselected...)
 }
 
 // NewListModelWrap 同 NewListModel,开启循环导航:光标在顶部按 ↑/k 跳至末尾,
 // 在底部按 ↓/j 跳回顶部。
 func NewListModelWrap(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
-	return newListModel(title, options, kind, true, preselected...)
+	return newListModel(title, options, kind, true, nil, preselected...)
 }
 
-// newListModel 构造逻辑实现;wrap 为内部参数,导出入口默认 false。
-func newListModel(title string, options []config.Option, kind ListKind, wrap bool, preselected ...string) *listModel {
+// NewListModelColumns 构造自适应多列布局列表(列数不硬编码,由 specs 声明):
+// 每行按 ColumnSpec 分列渲染,宽度策略见 CalculateAdaptiveColumns;
+// 单元格来源:Option.Cells 非空时按列索引取值,否则取 [Label, Description];
+// 极窄终端(< minColumnWidth)自动降级为单列(单元格空格连接后截断)。
+func NewListModelColumns(title string, specs []ColumnSpec, options []config.Option, kind ListKind, preselected ...string) *listModel {
+	return newListModel(title, options, kind, false, specs, preselected...)
+}
+
+// newListModel 构造逻辑实现;wrap 与 specs 为内部参数,导出入口默认零值。
+func newListModel(title string, options []config.Option, kind ListKind, wrap bool, specs []ColumnSpec, preselected ...string) *listModel {
 	// 检测终端尺寸
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
@@ -270,6 +346,7 @@ func newListModel(title string, options []config.Option, kind ListKind, wrap boo
 		choices: options,
 		kind:    kind,
 		wrap:    wrap,
+		specs:   specs,
 		width:   width,
 		height:  height,
 		title:   title,
@@ -362,21 +439,27 @@ func (l *lineReader) Read(p []byte) (int, error) {
 // ListForm 列表选择入口:单选返回 1 个值,多选返回全部选中值(按选项顺序)。
 // 默认不循环导航;TERM=dumb 时走无障碍纯文本路径(脚本管道兼容)。
 func ListForm(title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
-	return runListForm(title, options, kind, false, preselected...)
+	return runListForm(title, options, kind, false, nil, preselected...)
 }
 
 // ListFormWrap 同 ListForm,开启循环导航:光标在顶部按 ↑/k 跳至末尾,
 // 在底部按 ↓/j 跳回顶部。
 func ListFormWrap(title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
-	return runListForm(title, options, kind, true, preselected...)
+	return runListForm(title, options, kind, true, nil, preselected...)
 }
 
-// runListForm 列表入口共享实现;wrap 为内部参数,导出入口默认 false。
-func runListForm(title string, options []config.Option, kind ListKind, wrap bool, preselected ...string) ([]string, error) {
-	m := newListModel(title, options, kind, wrap, preselected...)
+// ListFormColumns 同 ListForm,启用自适应多列布局(列数不硬编码,由 specs
+// 声明;宽度策略见 ColumnSpec)。用于配置中心等「名称 + 单行说明」列表。
+func ListFormColumns(title string, specs []ColumnSpec, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
+	return runListForm(title, options, kind, false, specs, preselected...)
+}
+
+// runListForm 列表入口共享实现;wrap 与 specs 为内部参数,导出入口默认零值。
+func runListForm(title string, options []config.Option, kind ListKind, wrap bool, specs []ColumnSpec, preselected ...string) ([]string, error) {
+	m := newListModel(title, options, kind, wrap, specs, preselected...)
 
 	if isAccessibleMode() {
-		return runAccessibleList(os.Stdout, stdinBuf, title, options, kind)
+		return runAccessibleList(os.Stdout, stdinBuf, title, options, kind, preselected...)
 	}
 
 	p := tea.NewProgram(m)
@@ -422,10 +505,19 @@ func runListForm(title string, options []config.Option, kind ListKind, wrap bool
 // runAccessibleList 无障碍纯文本列表(TERM=dumb 替代 TUI):
 // 打印「标题 + 编号. 标签」行,从 r 读序号——单选一个序号,
 // 多选逗号分隔序号(空行 = 全不选);EOF 视为取消。
-func runAccessibleList(w io.Writer, r io.Reader, title string, options []config.Option, kind ListKind) ([]string, error) {
+// 行文本 = 全部单元格空格连接(自适应多列模式兼容);单选预选项
+// 在标签后附加 (current) 标记(替代 TUI 光标落位)。
+func runAccessibleList(w io.Writer, r io.Reader, title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {
 	fmt.Fprintf(w, "%s:\n", title)
 	for i, opt := range options {
-		fmt.Fprintf(w, "%d. %s\n", i+1, ansi.Strip(optionDisplayText(opt)))
+		var line strings.Builder
+		line.WriteString(ansi.Strip(strings.Join(optionCells(opt), " ")))
+		if kind == ListSingle {
+			if slices.Contains(preselected, opt.Value) {
+				line.WriteString(" " + i18n.T("form.accessible.current"))
+			}
+		}
+		fmt.Fprintf(w, "%d. %s\n", i+1, line.String())
 	}
 
 	// 用 ReadString 而非 bufio.Scanner:共享 *bufio.Reader 时其内部缓冲必须保留,

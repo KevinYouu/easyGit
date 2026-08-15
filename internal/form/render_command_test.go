@@ -68,14 +68,6 @@ var commandSelectCases = []struct {
 	}},
 	// 分支选项无装饰前缀
 	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
-	// 配置中心主列表:Label 为配置项名称 + 当前值单行摘要(代表值;
-	// 首词 ≤8 字符落入 hash 列不截断,其余入消息列,整行匹配)
-	{command: "config center", title: i18n.T("config.select.title"), labels: []string{
-		"Language " + i18n.T("config.summary.language.en"),
-		"Push " + i18n.T("config.summary.push.not.set"),
-		"Commit Types " + fmt.Sprintf(i18n.T("config.summary.commit.types"), "fix, feat, …"),
-		"Tag Version " + fmt.Sprintf(i18n.T("config.summary.tag.patch"), "999.9.9"),
-	}},
 	{command: "remote select", title: i18n.T("git.select.remote"), labels: []string{"origin", "upstream", "github"}},
 	{command: "remote branch", title: i18n.T("git.select.branch"), labels: []string{"main", "develop", "feature/login", "release/v2.0"}},
 	{command: "merge target", title: i18n.T("merge.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
@@ -175,6 +167,88 @@ func TestCommandMultiSelectRender(t *testing.T) {
 				assertCommandField(t, view, tc.labels, h, 80, true)
 			})
 		}
+	}
+}
+
+// TestCommandColumnsRender 自适应多列布局渲染:列数由 ColumnSpec 声明,
+// 名称/单元格列自动宽度不截断(仅超上限截断),弹性列占满剩余宽度。
+// 配置中心主列表(2 列:名称 + 摘要)与提交类型删除列表(多选)走此路径。
+func TestCommandColumnsRender(t *testing.T) {
+	// 配置中心列定义与生产一致:名称列 Auto(上限 24),摘要列 Flex
+	specs := []ColumnSpec{
+		{Kind: ColumnAuto, MaxWidth: 24},
+		{Kind: ColumnFlex},
+	}
+
+	// 配置中心主列表(单选):名称 + 当前值摘要;整行 = 两列内容拼接
+	configOptions := []config.Option{
+		{Label: "Interface Language", Description: i18n.T("config.summary.language.en"), Value: "language"},
+		{Label: "Push Config", Description: i18n.T("config.summary.push.not.set"), Value: "push"},
+		{Label: "Commit Types", Description: fmt.Sprintf(i18n.T("config.summary.commit.types"), "fix, feat, …"), Value: "commit-types"},
+		{Label: "Tag Version Cap", Description: fmt.Sprintf(i18n.T("config.summary.tag.patch"), "999.9.9"), Value: "tag-patch"},
+	}
+	configLabels := make([]string, len(configOptions))
+	for i, o := range configOptions {
+		configLabels[i] = o.Label + " " + o.Description
+	}
+
+	for _, w := range []int{80, 60} {
+		for _, h := range []int{24, 12, 10, 8, 6} {
+			t.Run(fmt.Sprintf("config center@%d行x%d列", h, w), func(t *testing.T) {
+				view := renderColumnsField(i18n.T("config.select.title"), specs, configOptions, h, w)
+				assertCommandField(t, view, configLabels, h, w, false)
+				// 名称列自动宽度:名称完整显示不截断(6 行终端表格仅 3 行可视,
+				// 第 4 项不在视口内,名称断言仅在全量可见时进行)
+				if h >= 8 {
+					for _, name := range []string{"Interface Language", "Tag Version Cap"} {
+						if !strings.Contains(view, name) {
+							t.Errorf("名称 %q 被截断或缺失:\n%s", name, view)
+						}
+					}
+				}
+			})
+		}
+	}
+
+	// 三列场景(如未来「名称 | 使用次数 | 摘要」):Auto + Auto + Flex
+	threeColSpecs := []ColumnSpec{
+		{Kind: ColumnAuto, MaxWidth: 24},
+		{Kind: ColumnAuto, MaxWidth: 8},
+		{Kind: ColumnFlex},
+	}
+	threeColOptions := []config.Option{
+		{Label: "fix", Cells: []string{"fix", "12", "Bug fixes"}, Value: "fix"},
+		{Label: "feat", Cells: []string{"feat", "3", "New features"}, Value: "feat"},
+	}
+	threeColLabels := []string{"fix 12 Bug fixes", "feat 3 New features"}
+	for _, w := range []int{80, 60} {
+		t.Run(fmt.Sprintf("three columns@%d列", w), func(t *testing.T) {
+			view := renderColumnsField("Commit Type Stats", threeColSpecs, threeColOptions, 12, w)
+			assertCommandField(t, view, threeColLabels, 12, w, false)
+		})
+	}
+}
+
+// TestCommandColumnsMultiRender 多选 + 自适应多列(提交类型删除列表)
+func TestCommandColumnsMultiRender(t *testing.T) {
+	specs := []ColumnSpec{
+		{Kind: ColumnAuto, MaxWidth: 24},
+		{Kind: ColumnFlex},
+	}
+	options := []config.Option{
+		{Label: "fix", Description: fmt.Sprintf(i18n.T("config.commit.types.usage"), 12), Value: "fix"},
+		{Label: "feat", Description: fmt.Sprintf(i18n.T("config.commit.types.usage"), 3), Value: "feat"},
+		{Label: "refactor", Description: fmt.Sprintf(i18n.T("config.commit.types.usage"), 0), Value: "refactor"},
+	}
+	labels := make([]string, len(options))
+	for i, o := range options {
+		labels[i] = o.Label + " " + o.Description
+	}
+	for _, h := range []int{24, 12, 10, 8, 6} {
+		t.Run(fmt.Sprintf("delete commit types@%d行", h), func(t *testing.T) {
+			view := renderColumnsMultiField(i18n.T("config.commit.types.delete.select"), specs, options, h, 80)
+			assertCommandField(t, view, labels, h, 80, true)
+		})
 	}
 }
 

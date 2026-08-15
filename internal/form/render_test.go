@@ -48,6 +48,23 @@ func renderMultiSelectField(title string, labels []string, termHeight int) strin
 	return m.View().Content
 }
 
+// renderColumnsField 经生产构造器 NewListModelColumns 渲染自适应多列列表
+// (名称/单元格列自动宽度不截断,弹性列占满剩余)
+func renderColumnsField(title string, specs []ColumnSpec, options []config.Option, termHeight, termWidth int) string {
+	m := NewListModelColumns(title, specs, options, ListSingle)
+	m.width, m.height = termWidth, termHeight
+	m.applyLayout()
+	return m.View().Content
+}
+
+// renderColumnsMultiField 同 renderColumnsField,多选模式
+func renderColumnsMultiField(title string, specs []ColumnSpec, options []config.Option, termHeight, termWidth int) string {
+	m := NewListModelColumns(title, specs, options, ListMulti)
+	m.width, m.height = termWidth, termHeight
+	m.applyLayout()
+	return m.View().Content
+}
+
 // visibleLabels 统计渲染文本中按顺序出现的选项标签。
 // 选项行形如 "❯ fix" 或 "  feat"(被 ANSI 样式包裹),先去样式再按行匹配;
 // 表格分列渲染时单元格间以填充空格相连,匹配前将空白串折叠为单空格,标签同处理。

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -49,6 +50,9 @@ func TestAddCommitType(t *testing.T) {
 		err := AddCommitType("fix") // 默认选项已存在
 		if err == nil {
 			t.Fatal("expected error for duplicate commit type, got nil")
+		}
+		if !errors.Is(err, ErrCommitTypeExists) {
+			t.Errorf("error = %v, want errors.Is(ErrCommitTypeExists)", err)
 		}
 		if !strings.Contains(err.Error(), "already exists") {
 			t.Errorf("error = %q, want contains 'already exists'", err)

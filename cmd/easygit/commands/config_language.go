@@ -33,7 +33,7 @@ func configLanguage() {
 		},
 	}
 
-	selectedLangs, err := form.ListForm(i18n.T("language.select.title"), options, form.ListSingle, preselected)
+	selectedLangs, err := form.ListFormColumns(i18n.T("language.select.title"), configListSpecs(), options, form.ListSingle, preselected)
 	if err != nil {
 		logs.Error(i18n.T("language.set.error") + ": " + err.Error())
 		return

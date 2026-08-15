@@ -1,17 +1,23 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 )
 
-// commitTypePattern 提交类型合法格式:小写字母、数字、连字符
-var commitTypePattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+// CommitTypePattern 提交类型合法格式:小写字母、数字、连字符。
+// 导出供命令层预校验复用(单一事实来源,规则变更仅需同步此处)。
+var CommitTypePattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+// ErrCommitTypeExists 提交类型已存在的哨兵错误(errors.Is 可判定)
+var ErrCommitTypeExists = errors.New("commit type already exists")
 
 // AddCommitType 新增提交类型(usage 初始 0)。
-// 格式非法或已存在时返回错误;label 同时作为 label 与 value 存储。
+// 格式非法返回普通错误,已存在返回包装 ErrCommitTypeExists 的错误;
+// label 同时作为 label 与 value 存储。
 func AddCommitType(label string) error {
-	if !commitTypePattern.MatchString(label) {
+	if !CommitTypePattern.MatchString(label) {
 		return fmt.Errorf("invalid commit type format: %q", label)
 	}
 
@@ -27,7 +33,7 @@ func AddCommitType(label string) error {
 		return err
 	}
 	if exists > 0 {
-		return fmt.Errorf("commit type %q already exists", label)
+		return fmt.Errorf("%w: %q", ErrCommitTypeExists, label)
 	}
 
 	_, err = db.Exec("INSERT INTO options (label, value, usage) VALUES (?, ?, 0)", label, label)

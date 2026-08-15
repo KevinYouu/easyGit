@@ -20,7 +20,8 @@ type Option struct {
 	Label       string
 	Value       string
 	Usage       int
-	Description string // 选项单行说明(为空则渲染纯名称)
+	Description string   // 选项单行说明(为空则渲染纯名称)
+	Cells       []string // 自适应多列布局的逐列单元格(非空时优先于 Label/Description)
 }
 
 // FormatPatch 将版本上限格式化为可读字符串(prefix + major.minor.patch + suffix)
