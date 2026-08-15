@@ -38,7 +38,8 @@ type multiInputModel struct {
 	errMsg  string                // 当前聚焦字段校验错误(行内显示)
 
 	titleMaxW int // 标题列宽(全部字段最大标题宽,对齐输入框起始)
-	descMaxW  int // 简介列宽(全部字段最大简介宽,对齐行尾简介起始)
+	descMaxW  int // 简介列宽(全部字段最大简介宽,防简介溢出)
+	inputW    int // 输入框统一宽度(全部字段一致,desc 列对齐;随最长内容同步变化)
 	width     int
 	height    int
 	done      bool // 提交完成
@@ -141,13 +142,26 @@ func (m *multiInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// layoutInputs 按当前终端宽度设置各输入框宽度:
-// 输入框 = 终端宽 - 标题列 - 提示符 - 简介列 - 2(间隔),行尾简介对齐
+// layoutInputs 计算输入框统一宽度(每行一致,desc 列对齐):
+// 取全部字段内容宽(空时取占位符)的最大值 + 光标余量,上限为
+// 终端宽 - 标题列 - 提示符 - 简介列 - 间隔(长内容在框内滚动)。
+// 每次渲染前调用:任一行输入变长超过当前宽度时,全部行同步变宽,
+// desc 列整体右移,始终保持对齐且紧贴输入框。
 func (m *multiInputModel) layoutInputs() {
-	inputW := max(m.width-m.titleMaxW-3-m.descMaxW-2, 10)
+	w := 0
 	for i := range m.inputs {
-		m.inputs[i].SetWidth(inputW)
+		ti := m.inputs[i]
+		cw := lipgloss.Width(ti.Value())
+		if cw == 0 {
+			cw = lipgloss.Width(ti.Placeholder)
+		}
+		if cw > w {
+			w = cw
+		}
 	}
+	w += 2 // 光标与余量
+	maxW := max(m.width-m.titleMaxW-3-m.descMaxW-2, 10)
+	m.inputW = min(w, maxW)
 }
 
 // View 渲染:预览行 + 每行(标题列/输入框/行尾简介) + 分隔线 + 帮助栏。
@@ -155,6 +169,9 @@ func (m *multiInputModel) layoutInputs() {
 // 聚焦行的行尾内容(不增加行高,矮终端友好)。
 func (m *multiInputModel) View() tea.View {
 	var sb strings.Builder
+
+	// 输入框统一宽度:全部字段一致(desc 列对齐),随最长内容同步变化
+	m.layoutInputs()
 
 	if m.preview != nil {
 		sb.WriteString(mutedStyle.Render(m.preview(m.currentValues())))
@@ -167,6 +184,8 @@ func (m *multiInputModel) View() tea.View {
 		if focused {
 			titleStyle = focusedTitleStyle
 		}
+		// 输入框宽度统一(见 layoutInputs):简介紧贴输入框且各 desc 列对齐
+		m.inputs[i].SetWidth(m.inputW)
 		sb.WriteString(titleStyle.Width(m.titleMaxW).Render(stepTitle(i, spec.Title)))
 		sb.WriteString(m.inputs[i].View())
 

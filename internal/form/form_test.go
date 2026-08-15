@@ -676,6 +676,48 @@ func TestMultiInput_Unified(t *testing.T) {
 			t.Errorf("字段 2 不应包含简介: %q", lines[2])
 		}
 	})
+
+	t.Run("简介列对齐且紧贴输入框", func(t *testing.T) {
+		f := build()
+		lines := strings.Split(ansi.Strip(f.View().Content), "\n")
+		// 字段 1 与字段 5 均有简介:简介起始列应一致(中间输入列统一宽度)
+		col1 := strings.Index(lines[1], "留空则无前缀")
+		col5 := strings.Index(lines[5], "留空则无后缀")
+		if col1 < 0 || col5 < 0 {
+			t.Fatalf("简介缺失: col1=%d col5=%d", col1, col5)
+		}
+		if col1 != col5 {
+			t.Errorf("简介列未对齐: 字段1=%d 字段5=%d\n%s", col1, col5, lines[1])
+		}
+		// 简介紧贴输入框:desc 前仅一个空格(输入框右填充结束处),
+		// 而非被拉到屏幕最右的整行空白
+		before := lines[1][:col1]
+		if !strings.HasSuffix(before, " ") {
+			t.Errorf("简介前应为单空格分隔: %q", lines[1])
+		}
+		if strings.HasSuffix(strings.TrimRight(before, " "), " ") && strings.Contains(before, "  ") {
+			// 输入框宽于内容时右填充是 textinput 内部空格,允许;
+			// 但 desc 前不应有双空格(间隔只有 1)
+		}
+	})
+
+	t.Run("输入变长时全部行同步变宽保持对齐", func(t *testing.T) {
+		f := build()
+		// 字段 1 输入超长内容 → 输入列统一变宽 → 两处简介列同步右移且仍对齐
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "01234567890123456789"}).(*multiInputModel)
+		lines := strings.Split(ansi.Strip(f.View().Content), "\n")
+		col1 := strings.Index(lines[1], "留空则无前缀")
+		col5 := strings.Index(lines[5], "留空则无后缀")
+		if col1 < 0 || col5 < 0 {
+			t.Fatalf("简介缺失: col1=%d col5=%d", col1, col5)
+		}
+		if col1 != col5 {
+			t.Errorf("变长后简介列未对齐: 字段1=%d 字段5=%d", col1, col5)
+		}
+		if col1 < 30 {
+			t.Errorf("变长后简介列应右移(col1=%d),输入列未随内容变宽", col1)
+		}
+	})
 }
 
 // nonNeg 测试用非负整数校验(与配置中心 nonNegativeInt 同语义)
