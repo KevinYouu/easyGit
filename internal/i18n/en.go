@@ -257,6 +257,7 @@ var enTranslations = map[string]string{
 	// Squash command
 	"squash.title":            "Git Squash",
 	"squash.select.base":      "Select the earliest commit to merge (this and all subsequent commits will be merged into one)",
+	"squash.select.min.two":   "Please select at least 2 commits to squash.",
 	"squash.input.message":    "Enter new commit message:",
 	"squash.success":          "Successfully squashed commits!",
 	"squash.cancelled":        "Squash operation cancelled.",
@@ -476,6 +477,7 @@ var enTranslations = map[string]string{
 	"merge.failed":                          "Failed to merge",
 	"merge.starting":                        "Starting merge of '%s' using %s strategy...",
 	"merge.warning.dirty.working.directory": "Warning: You have uncommitted changes in your working directory.",
+	"merge.warning.get.remote.branches":    "Failed to get remote branches: %s",
 	"merge.confirm.continue.with.changes":   "Continue with merge anyway?",
 	"merge.conflict.detected":               "Merge conflict detected!",
 	"merge.conflict.instructions":           "Resolve conflicts manually, then run 'git add <file>' and 'git commit'",
@@ -577,6 +579,7 @@ var enTranslations = map[string]string{
 	"rebase.success.message":             "Rebase completed successfully.",
 	"rebase.failed":                      "Failed to rebase",
 	"rebase.starting":                    "Starting rebase...",
+	"rebase.not.enough.commits":         "Not enough commits to rebase",
 	"rebase.conflict.detected":           "Rebase conflict detected!",
 	"rebase.conflict.instructions":       "Resolve conflicts manually, then run 'git add <file>' and 'git rebase --continue' or use 'easyGit rebase' to continue.",
 	"rebase.conflict.files":              "Conflicted files:",

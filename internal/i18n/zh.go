@@ -257,6 +257,7 @@ var zhTranslations = map[string]string{
 	// Squash command
 	"squash.title":            "Git Squash",
 	"squash.select.base":      "选择要合并的最早提交 (该提交及其之后的所有提交将被合并为一个)",
+	"squash.select.min.two":   "请至少选择 2 个提交进行合并",
 	"squash.input.message":    "输入新的提交信息：",
 	"squash.success":          "成功合并提交！",
 	"squash.cancelled":        "合并操作已取消。",
@@ -476,6 +477,7 @@ var zhTranslations = map[string]string{
 	"merge.failed":                          "合并失败",
 	"merge.starting":                        "开始使用 %s 策略合并 '%s'...",
 	"merge.warning.dirty.working.directory": "警告：工作目录中有未提交的更改。",
+	"merge.warning.get.remote.branches":    "获取远程分支失败：%s",
 	"merge.confirm.continue.with.changes":   "是否仍要继续合并？",
 	"merge.conflict.detected":               "检测到合并冲突！",
 	"merge.conflict.instructions":           "请手动解决冲突，然后运行 'git add <文件>' 和 'git commit'",
@@ -577,6 +579,7 @@ var zhTranslations = map[string]string{
 	"rebase.success.message":             "变基成功完成!",
 	"rebase.failed":                      "变基失败",
 	"rebase.starting":                    "开始变基...",
+	"rebase.not.enough.commits":         "提交数量不足，无法执行变基",
 	"rebase.conflict.detected":           "检测到变基冲突!",
 	"rebase.conflict.instructions":       "请手动解决冲突，然后运行 'git add <文件>' 和 'git rebase --continue'，或者运行 'easyGit rebase' 来继续。",
 	"rebase.conflict.files":              "冲突文件:",

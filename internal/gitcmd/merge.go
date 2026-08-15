@@ -110,7 +110,7 @@ func getAllAvailableBranches() ([]config.Option, error) {
 	// Get remote branches
 	remoteBranches, err := getRemoteBranches(currentBranch)
 	if err != nil {
-		logs.Warning("Failed to get remote branches: " + err.Error())
+		logs.Warning(fmt.Sprintf(i18n.T("merge.warning.get.remote.branches"), err.Error()))
 		remoteBranches = []config.Option{} // Continue with local branches only
 	}
 

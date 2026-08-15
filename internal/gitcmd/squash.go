@@ -32,7 +32,7 @@ func Squash() error {
 	}
 
 	if len(selectedHashes) < 2 {
-		logs.Error("Please select at least 2 commits to squash.")
+		logs.Error(i18n.T("squash.select.min.two"))
 		return nil
 	}
 

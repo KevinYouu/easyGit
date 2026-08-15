@@ -161,7 +161,7 @@ func GetRecentCommits() ([]config.Option, []string, error) {
 
 	lines := strings.Split(string(output), "\n")
 	if len(lines) < 2 {
-		return nil, nil, fmt.Errorf("not enough commits to rebase")
+		return nil, nil, fmt.Errorf("%s", i18n.T("rebase.not.enough.commits"))
 	}
 
 	var options = []config.Option{}
