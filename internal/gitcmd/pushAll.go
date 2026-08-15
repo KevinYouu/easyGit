@@ -48,7 +48,6 @@ func PushAll() error {
 		return fmt.Errorf("select form: %w", err)
 	}
 	suffix := suffixes[0]
-	config.IncrementUsage(suffix)
 
 	commitMessage, err := form.InputWithValidate(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage)
 	if err != nil {
@@ -134,5 +133,12 @@ func PushAll() error {
 
 	// 使用统一的进度条执行所有命令:add → commit → pull 串行,
 	// 随后所有远程推送一次性并行启动
-	return command.RunMultipleCommandsParallel(allCommands, 3)
+	err = command.RunMultipleCommandsParallel(allCommands, 3)
+	if err != nil {
+		return err
+	}
+
+	// 只有全部操作成功后记录使用历史(与 ps 一致)
+	config.IncrementUsage(suffix)
+	return nil
 }

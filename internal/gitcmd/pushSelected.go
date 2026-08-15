@@ -62,7 +62,7 @@ func PushSelected() error {
 	}
 	options = applyCommitTypeDescriptions(options)
 
-	suffixes, err := form.ListForm(i18n.T("push.select.commit.type"), options, form.ListSingle)
+	suffixes, err := form.ListFormWrap(i18n.T("push.select.commit.type"), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("SelectForm: %w", err)
 	}
