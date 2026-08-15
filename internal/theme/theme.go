@@ -372,6 +372,88 @@ func GetMultiInputTheme() huh.Theme {
 	})
 }
 
+// GetCompactMultiInputTheme 返回紧凑多输入表单主题(矮终端友好):
+// 无边框卡片、字段间无空行(FieldSeparator 单换行)、标题与输入同行
+// (配合 Input.Inline),5 字段 + 预览 + 帮助 ≈ 9 行;焦点切换仅标题色变化,
+// 高度零跳变。错误提示与帮助隐藏同 GetMultiInputTheme。
+// 仅紧凑 MultiInput(配置中心版本号上限)使用,不影响其他表单。
+func GetCompactMultiInputTheme() huh.Theme {
+	return huh.ThemeFunc(func(_ bool) *huh.Styles {
+		st := huh.ThemeBase(true)
+
+		// 无边框、无内边距:每字段一行(Inline 模式)
+		st.FieldSeparator = lipgloss.NewStyle().SetString("\n")
+		st.Focused.Base = lipgloss.NewStyle()
+		st.Blurred.Base = lipgloss.NewStyle()
+		st.Focused.Card = st.Focused.Base
+		st.Blurred.Card = st.Blurred.Base
+
+		// 预览行(Note):弱化色,与字段区分
+		st.Focused.NoteTitle = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+		st.Blurred.NoteTitle = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Focused.Title = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		st.Blurred.Title = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Focused.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Blurred.Description = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Focused.TextInput.Cursor = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		st.Focused.TextInput.Placeholder = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
+
+		st.Focused.TextInput.Prompt = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Bold(true)
+
+		st.Focused.TextInput.Text = lipgloss.NewStyle().
+			Foreground(PrimaryColor)
+
+		st.Blurred.TextInput.Prompt = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Blurred.TextInput.Text = lipgloss.NewStyle().
+			Foreground(MutedForeground)
+
+		st.Blurred.TextInput.Placeholder = lipgloss.NewStyle().
+			Foreground(MutedForeground).
+			Italic(true)
+
+		// 错误提示:红色加粗 + ✗ 图标
+		errorStyle := lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Bold(true).
+			SetString("✗")
+		st.Focused.ErrorIndicator = errorStyle
+		st.Focused.ErrorMessage = errorStyle
+
+		// 隐藏帮助信息(帮助栏由 form 包统一渲染)
+		hidden := lipgloss.NewStyle().Width(0).Height(0)
+		st.Help.Ellipsis = hidden
+		st.Help.ShortKey = hidden
+		st.Help.ShortDesc = hidden
+		st.Help.ShortSeparator = hidden
+		st.Help.FullKey = hidden
+		st.Help.FullDesc = hidden
+		st.Help.FullSeparator = hidden
+
+		return st
+	})
+}
+
 // ─── Spinner 帧 ──────────────────────────────────────────────────────────────
 
 // GetSpinnerFrames 获取默认加载动画帧

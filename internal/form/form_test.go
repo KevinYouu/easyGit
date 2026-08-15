@@ -11,6 +11,7 @@ import (
 	"charm.land/bubbles/v2/cursor"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 )
@@ -62,7 +63,9 @@ func TestInput_Validation(t *testing.T) {
 // pumpForm 模拟 tea 程序消息循环:消息送入模型后递归执行返回的命令链,
 // 直到无更多命令;返回最新模型。
 // 光标闪烁是周期性命令(tea 程序中由事件循环节流),测试中不喂回
-// BlinkMsg,避免命令链无限循环。
+// BlinkMsg:处理其副作用(光标状态、huh 的 Eval 重算如 Note 预览绑定),
+// 但其 cmd 链会持续返回 BlinkMsg,跟进会死循环——因此处理后的 cmd 经
+// stripBlinkCmds 剥离闪烁消息,保留其余(如 huh 的 updateTitleMsg)。
 func pumpForm(t *testing.T, model tea.Model, msg tea.Msg) tea.Model {
 	t.Helper()
 	m, cmd := model.Update(msg)
@@ -81,11 +84,46 @@ func pumpForm(t *testing.T, model tea.Model, msg tea.Msg) tea.Model {
 			continue
 		}
 		if _, ok := msg.(cursor.BlinkMsg); ok {
+			// 处理闪烁消息(触发 huh 的 Eval 重算,如 Note 预览绑定),
+			// 但其 cmd 链会持续返回 BlinkMsg,剥离后跟进其余消息
+			m, cmd = m.Update(msg)
+			cmd = stripBlinkCmds(cmd)
 			continue
 		}
 		m, cmd = m.Update(msg)
 	}
 	return m
+}
+
+// stripBlinkCmds 剥离命令链中的光标闪烁消息(持续循环),保留其余消息
+// (如 huh 的 updateTitleMsg 动态内容重算);batch 内逐个执行子命令,
+// 仅过滤 BlinkMsg,其余原样保留。
+func stripBlinkCmds(cmd tea.Cmd) tea.Cmd {
+	if cmd == nil {
+		return nil
+	}
+	msg := cmd()
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		kept := make([]tea.Cmd, 0, len(batch))
+		for _, c := range batch {
+			if c == nil {
+				continue
+			}
+			inner := c()
+			if _, isBlink := inner.(cursor.BlinkMsg); isBlink {
+				continue
+			}
+			kept = append(kept, func() tea.Msg { return inner })
+		}
+		if len(kept) == 0 {
+			return nil
+		}
+		return tea.Batch(kept...)
+	}
+	if _, isBlink := msg.(cursor.BlinkMsg); isBlink {
+		return nil
+	}
+	return func() tea.Msg { return msg }
 }
 
 // pumpInit 模拟 tea 程序启动:执行模型 Init 命令链(聚焦首个字段、请求窗口尺寸),
@@ -578,4 +616,65 @@ func TestLineReaderShortRead(t *testing.T) {
 	if string(all) != "hello world\nnext\n" {
 		t.Errorf("读取结果 = %q, want %q", all, "hello world\nnext\n")
 	}
+}
+
+// TestCompactMultiInput 紧凑多输入表单(配置中心版本号上限):
+// 预览行随输入实时刷新(Note + 值绑定)、矮终端完整渲染不溢出。
+func TestCompactMultiInput(t *testing.T) {
+	specs := []InputSpec{
+		{Title: "前缀", Default: "v", AllowEmpty: true},
+		{Title: "主版本", Default: "1"},
+		{Title: "次版本", Default: "2"},
+		{Title: "修订号", Default: "3"},
+		{Title: "后缀", Default: "-beta", AllowEmpty: true},
+	}
+	values := []string{"v", "1", "2", "3", "-beta"}
+	ptrs := make([]*string, len(values))
+	for i := range values {
+		ptrs[i] = &values[i]
+	}
+
+	t.Run("预览行显示组合结果并随输入刷新", func(t *testing.T) {
+		f := pumpInit(t, NewCompactMultiInputForm(specs, ptrs, func(vals []string) string {
+			return "preview:" + strings.Join(vals, "|")
+		})).(*Form)
+
+		view := f.View().Content
+		if !strings.Contains(view, "preview:v|1|2|3|-beta") {
+			t.Errorf("初始预览缺失:\n%s", view)
+		}
+
+		// 聚焦字段 1(前缀),输入 x 追加到 v 后
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "x"}).(*Form)
+		view = f.View().Content
+		if !strings.Contains(view, "preview:vx|1|2|3|-beta") {
+			t.Errorf("输入后预览未刷新:\n%s", view)
+		}
+
+		// Enter 推进到字段 2,输入 9 追加到默认值 1 后(光标在末尾)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "9"}).(*Form)
+		view = f.View().Content
+		if !strings.Contains(view, "preview:vx|19|2|3|-beta") {
+			t.Errorf("字段 2 输入后预览未刷新:\n%s", view)
+		}
+	})
+
+	t.Run("矮终端完整渲染不溢出", func(t *testing.T) {
+		for _, h := range []int{10, 9, 8} {
+			f := pumpForm(t, NewCompactMultiInputForm(specs, ptrs, func(vals []string) string {
+				return "preview:" + strings.Join(vals, "|")
+			}), tea.WindowSizeMsg{Width: 80, Height: h}).(*Form)
+			view := f.View().Content
+			if got := lipgloss.Height(view); got > h {
+				t.Errorf("终端 %d 行:表单高度 %d 溢出", h, got)
+			}
+			// 全部 5 个字段标题可见
+			for _, title := range []string{"1. 前缀", "2. 主版本", "3. 次版本", "4. 修订号", "5. 后缀"} {
+				if !strings.Contains(view, title) {
+					t.Errorf("终端 %d 行:字段 %q 不可见:\n%s", h, title, view)
+				}
+			}
+		}
+	})
 }

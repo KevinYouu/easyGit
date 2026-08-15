@@ -81,6 +81,47 @@ func NewMultiInputForm(specs []InputSpec, values []*string) *Form {
 	)
 }
 
+// NewCompactMultiInputForm 构造紧凑版单页多输入表单(矮终端友好):
+// 字段无边框、标题与输入同行(Input.Inline)、字段间无空行,校验/键位/
+// 占位符与 NewMultiInputForm 完全一致;preview 非 nil 时在字段组顶部
+// 渲染实时预览行(huh Note + 值绑定,任一字段输入变化即重新求值)。
+// 用于配置中心版本号上限编辑等需在 8-12 行终端完整操作的场景。
+func NewCompactMultiInputForm(specs []InputSpec, values []*string, preview func([]string) string) *Form {
+	fields := make([]huh.Field, 0, len(specs)+1)
+	if preview != nil {
+		// 绑定全部字段值:输入变化触发 TitleFunc 重算,实时预览组合结果
+		fields = append(fields, huh.NewNote().TitleFunc(
+			func() string {
+				vals := make([]string, len(values))
+				for i, v := range values {
+					vals[i] = *v
+				}
+				return preview(vals)
+			},
+			values, // bindings:字段值指针数组,hashstructure 解引用比较
+		))
+	}
+	for i, spec := range specs {
+		title := stepTitle(i, spec.Title)
+		// inline 行内 title/desc/输入直接拼接,desc 与提示符前加空格分隔
+		desc := spec.Desc
+		if desc != "" {
+			desc = " " + desc
+		}
+		fields = append(fields,
+			newInputField(title, values[i], desc, spec.AllowEmpty, spec.Validate).
+				Inline(true).
+				Prompt(" ❯ "))
+	}
+	return newForm(
+		huh.NewForm(
+			huh.NewGroup(fields...),
+		).WithTheme(theme.GetCompactMultiInputTheme()).
+			WithShowHelp(false),
+		multiInputHelpKeys(),
+	)
+}
+
 // stepTitle 为第 idx 个字段标题加标准数字序号前缀(如 "1. "、"2. "),
 // 渲染层装饰,无语言差异,不进 i18n;序号随标题行样式渲染,
 // 聚焦时与标题同加粗高亮
@@ -115,6 +156,29 @@ func MultiInput(specs []InputSpec) ([]string, error) {
 	}
 
 	form := NewMultiInputForm(specs, ptrs)
+	if err := form.Run(); err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
+// MultiInputCompact 同 MultiInput,使用紧凑布局(无边框/字段同行/无空行),
+// 适合矮终端;preview 非 nil 时顶部渲染实时预览行(每次输入变化以当前
+// 值重新求值,如版本号组合结果),可返回 nil 省略。
+func MultiInputCompact(specs []InputSpec, preview func([]string) string) ([]string, error) {
+	if len(specs) == 0 {
+		return nil, nil
+	}
+
+	values := make([]string, len(specs))
+	ptrs := make([]*string, len(specs))
+	for i, spec := range specs {
+		values[i] = spec.Default
+		ptrs[i] = &values[i]
+	}
+
+	form := NewCompactMultiInputForm(specs, ptrs, preview)
 	if err := form.Run(); err != nil {
 		return nil, err
 	}
