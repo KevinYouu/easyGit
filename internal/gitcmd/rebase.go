@@ -152,44 +152,8 @@ func handleStandardRebase() error {
 	return nil
 }
 
-func GetRecentCommits() ([]config.Option, []string, error) {
-	cmd := exec.Command("git", "log", "-n", "50", "--pretty=format:%h|%s|%ad|%an", "--date=format:%m-%d %H:%M")
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, nil, fmt.Errorf(i18n.T("error.git.log")+" %w", err)
-	}
-
-	lines := strings.Split(string(output), "\n")
-	if len(lines) < 2 {
-		return nil, nil, fmt.Errorf("%s", i18n.T("rebase.not.enough.commits"))
-	}
-
-	var options = []config.Option{}
-	var hashes = []string{}
-	for _, line := range lines {
-		parts := strings.Split(line, "|")
-		if len(parts) >= 4 {
-			hash := parts[0]
-			message := parts[1]
-			date := parts[2]
-			author := parts[3]
-
-			// 提交消息保持完整不截断:表格展示层(parseCommitInfo/
-			// formatCompactCommit)会按列宽截断,而 squash 等命令
-			// 从标签提取默认消息,截断会导致获取到残缺文本
-			commitLabel := fmt.Sprintf(
-				"%s %s\n%s • %s",
-				hash,
-				message,
-				date,
-				author,
-			)
-			options = append(options, config.Option{Label: commitLabel, Value: hash})
-			hashes = append(hashes, hash)
-		}
-	}
-	return options, hashes, nil
-}
+// GetRecentCommits 已移至 commits.go(统一数据源 GetCommitsOptions 的薄封装),
+// 此处不再重复实现。
 
 func RunInternalRebase(baseCommit, mode string, targets []string, newMessage string) error {
 	executable, err := os.Executable()

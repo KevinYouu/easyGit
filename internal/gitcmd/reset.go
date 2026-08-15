@@ -2,9 +2,7 @@ package gitcmd
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
-	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/command"
@@ -13,16 +11,6 @@ import (
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/theme"
 )
-
-type Commit struct {
-	Hash      string
-	Message   string
-	Date      string
-	Author    string
-	Email     string
-	IsHead    bool
-	Timestamp time.Time
-}
 
 // resetModeOptions 重置模式选择项:列表式单选表单 4 项单行选项
 // (名称 + 说明,由 SelectForm 统一组装)。default 的 Value 为空串,
@@ -45,68 +33,16 @@ func Reset() error {
 
 	fmt.Printf("%s\n", headerStyle.Render(i18n.T("reset.title")))
 
-	// 使用更详细的git log格式获取提交历史，包含ISO时间戳用于排序
-	cmd := exec.Command("git", "log", "--pretty=format:%h|%s|%ad|%an|%ae|%ai", "--date=format:%m-%d %H:%M")
-	output, err := cmd.Output()
+	// 统一数据源:GetCommitsOptions 解析 git log(reset/squash/drop 共用)
+	options, commits, err := GetCommitsOptions(0)
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.git.log")+" %w", err)
+		return err
 	}
 
-	lines := strings.Split(string(output), "\n")
-	var options = []config.Option{}
-	var commits = []Commit{}
-
-	// 解析并存储提交信息（不显示历史记录）
-	for i, line := range lines {
-		parts := strings.Split(line, "|")
-		if len(parts) >= 5 {
-			hash := parts[0]
-			message := parts[1]
-			date := parts[2]
-			author := parts[3]
-			email := parts[4]
-
-			commit := Commit{
-				Hash:    hash,
-				Message: message,
-				Date:    date,
-				Author:  author,
-				Email:   email,
-				IsHead:  i == 0,
-			}
-
-			// 解析时间戳用于排序（如果有的话）
-			if len(parts) >= 6 {
-				if timestamp, err := time.Parse("2006-01-02 15:04:05 -0700", parts[5]); err == nil {
-					commit.Timestamp = timestamp
-				}
-			}
-
-			// 存储提交信息
-			commits = append(commits, commit)
-
-			// 完整消息入标签,截断统一由列表组件按实际列宽处理(终端宽时完整显示)
-			commitLabel := ""
-			if i == 0 {
-				// HEAD提交使用纯文本格式，但添加标记以区分
-				commitLabel = fmt.Sprintf(
-					"[HEAD] %s %s\n%s • %s",
-					hash,
-					message,
-					date,
-					author,
-				)
-			} else {
-				// 普通提交使用纯文本格式
-				commitLabel = fmt.Sprintf(
-					"%s %s\n%s • %s",
-					hash,
-					message,
-					date,
-					author,
-				)
-			}
-			options = append(options, config.Option{Label: commitLabel, Value: hash})
+	// HEAD 提交加 [HEAD] 标记区分(仅 reset 需要,统一数据源保持纯净标签)
+	for i := range options {
+		if commits[i].IsHead {
+			options[i].Label = "[HEAD] " + options[i].Label
 		}
 	}
 
