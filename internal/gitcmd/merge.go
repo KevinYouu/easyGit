@@ -198,7 +198,7 @@ func selectBranchToMerge(branches []config.Option) (string, error) {
 	return selectedBranches[0], nil
 }
 
-// selectMergeStrategy allows user to choose merge strategy
+// selectMergeStrategy 选择合并策略:预选上次使用的策略(未记忆时默认项在首位)
 func selectMergeStrategy() (MergeStrategy, error) {
 	var strategies []config.Option
 	for _, strategy := range mergeStrategies {
@@ -209,7 +209,8 @@ func selectMergeStrategy() (MergeStrategy, error) {
 		})
 	}
 
-	selectedStrategyNames, err := form.ListForm(i18n.T("merge.select.strategy"), strategies, form.ListSingle)
+	lastStrategy, _ := config.GetLastChoice(config.LastChoiceMergeStrategy)
+	selectedStrategyNames, err := form.ListForm(i18n.T("merge.select.strategy"), strategies, form.ListSingle, lastStrategy)
 	if err != nil {
 		return MergeStrategy{}, fmt.Errorf(i18n.T("error.select.form.detail")+": %w", err)
 	}
@@ -237,6 +238,8 @@ func performMerge(branch string, strategy MergeStrategy) error {
 		return handleMergeError(output, err)
 	}
 
+	// 记忆本次使用的策略,下次预选
+	config.SaveLastChoice(config.LastChoiceMergeStrategy, strategy.Name)
 	return nil
 }
 

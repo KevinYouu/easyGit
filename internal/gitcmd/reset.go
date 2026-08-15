@@ -62,8 +62,10 @@ func Reset() error {
 		}
 	}
 
-	// 选择重置模式:列表式单选表单,4 项单行选项(名称 + 说明)
-	resetModes, err := form.ListForm(i18n.T("reset.select.mode"), resetModeOptions(), form.ListSingle)
+	// 选择重置模式:列表式单选表单,4 项单行选项(名称 + 说明);
+	// 预选上次使用的模式(未记忆时默认项在首位,直接 Enter)
+	lastMode, _ := config.GetLastChoice(config.LastChoiceResetMode)
+	resetModes, err := form.ListForm(i18n.T("reset.select.mode"), resetModeOptions(), form.ListSingle, lastMode)
 	if err != nil {
 		return fmt.Errorf(i18n.T("reset.error.select.mode")+" %w", err)
 	}
@@ -114,6 +116,9 @@ func Reset() error {
 		if err != nil {
 			return fmt.Errorf(i18n.T("reset.error.git.reset")+" %w", err)
 		}
+
+		// 记忆本次选择的模式,下次预选
+		config.SaveLastChoice(config.LastChoiceResetMode, resetMode)
 
 		// 显示简洁的成功信息
 		fmt.Printf("\n%s %s\n",

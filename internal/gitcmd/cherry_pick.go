@@ -90,6 +90,8 @@ func CherryPick() error {
 	}
 
 	logs.Success(i18n.T("cherry.pick.success.all"))
+	// 记忆本次使用的选项,下次预选
+	config.SaveLastChoice(config.LastChoiceCherryPickOption, option.Name)
 	return nil
 }
 
@@ -315,10 +317,12 @@ func selectCherryPickOption() (CherryPickOption, error) {
 		})
 	}
 
+	lastOption, _ := config.GetLastChoice(config.LastChoiceCherryPickOption)
 	selectedNames, err := form.ListForm(
 		i18n.T("cherry.pick.select.option"),
 		options,
 		form.ListSingle,
+		lastOption,
 	)
 	if err != nil {
 		return CherryPickOption{}, err
