@@ -192,7 +192,7 @@ easyGit update
 
 ```bash
 # 单次覆盖（运行时优先）
-easyGit --theme light commit
+easyGit --theme light push-all
 
 # 持久化偏好（下次启动生效）
 easyGit config   # → 界面主题 → 自动 / 深色 / 浅色

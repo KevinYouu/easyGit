@@ -192,7 +192,7 @@ easyGit update
 
 ```bash
 # One-time override (runtime priority)
-easyGit --theme light commit
+easyGit --theme light push-all
 
 # Persist a preference (takes effect on next startup)
 easyGit config   # → Interface Theme → Auto / Dark / Light
