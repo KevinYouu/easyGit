@@ -27,18 +27,18 @@ func renderInputField(title, defaultValue string, termHeight int) string {
 	return m.(*Form).View().Content
 }
 
-// renderMultiInputForm 经生产构造器 NewMultiInputForm 渲染单页多输入表单
-// (所有字段同页堆叠,单帧视图含全部标题)
+// renderMultiInputForm 经生产构造器 newMultiInputModel 渲染单页多输入表单
+// (自绘三列布局,单帧视图含全部标题)
 func renderMultiInputForm(specs []InputSpec, termHeight int) string {
 	values := make([]string, len(specs))
 	ptrs := make([]*string, len(values))
 	for i := range values {
 		ptrs[i] = &values[i]
 	}
-	form := NewMultiInputForm(specs, ptrs, nil)
-	form.Init()
-	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
-	return m.(*Form).View().Content
+	m := newMultiInputModel(specs, ptrs, nil)
+	m.Init()
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
+	return mm.(*multiInputModel).View().Content
 }
 
 // renderConfirmField 经生产构造器 NewConfirmForm 渲染确认表单

@@ -30,8 +30,8 @@ type Form struct {
 // 筛选键必须在此禁用且先于 WithKeyMap:字段键位按值拷贝(Select/MultiSelect
 // 的 WithKeyMap 各取一份),事后修改不传播;而 Esc 在表单级先于字段分发匹配
 // Quit,若 "/" 可进入筛选模式,筛选中的 Esc 会误终止表单丢弃已选内容。
-// customize 可选:WithKeyMap 前定制键位(如多输入表单的 ↑/↓ 导航),
-// 必须在此回调内修改——字段按值拷贝 keymap,事后修改不传播。
+// customize 可选:WithKeyMap 前定制键位,必须在此回调内修改——
+// 字段按值拷贝 keymap,事后修改不传播。
 func newForm(f *huh.Form, keys []HelpKey, customize ...func(*huh.KeyMap)) *Form {
 	km := huh.NewDefaultKeyMap()
 	km.Quit = key.NewBinding(key.WithKeys("ctrl+c", "esc"))

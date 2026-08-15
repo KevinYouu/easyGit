@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // 注意: form 包的函数依赖于交互式终端输入,
@@ -23,7 +25,7 @@ func TestInput_Validation(t *testing.T) {
 	// 测试验证函数逻辑
 	validate := func(str string) error {
 		if str == "" {
-			return ErrEmptyInput
+			return errors.New("empty")
 		}
 		return nil
 	}
@@ -143,9 +145,9 @@ func pumpInit(t *testing.T, model tea.Model) tea.Model {
 	return model
 }
 
-// TestMultiInput_Construction 单页多输入表单构造断言:
-// 空 specs 直接返回空;默认值写入字段;Enter 逐字段推进(空值校验不推进)、
-// shift+tab 回退、末字段 Enter 提交,与帮助栏「继续/提交、上一步、取消」键位语义一致。
+// TestMultiInput_Construction 单页多输入表单构造断言(自绘三列模型):
+// 空 specs 直接返回空;默认值写入字段;Enter/↓ 逐字段推进(空值校验不推进)、
+// shift+tab/↑ 回退、末字段提交,与帮助栏「↑/↓ 导航、继续/提交、取消」键位语义一致。
 func TestMultiInput_Construction(t *testing.T) {
 	t.Run("空 specs 返回空结果", func(t *testing.T) {
 		vals, err := MultiInput(nil, nil)
@@ -157,29 +159,33 @@ func TestMultiInput_Construction(t *testing.T) {
 		}
 	})
 
-	t.Run("空值校验阻挡推进", func(t *testing.T) {
-		// 字段 1 无默认值:Enter 触发非空校验,错误提示且不推进到字段 2
-		specs := []InputSpec{
-			{Title: "版本号"},
-			{Title: "提交消息"},
-		}
-		values := make([]string, len(specs))
+	// build 构造模型并播种默认值(模拟 MultiInput 入口),返回模型与写回指针
+	build := func(specs []InputSpec, values []string) (*multiInputModel, []*string) {
 		ptrs := make([]*string, len(values))
 		for i := range values {
 			ptrs[i] = &values[i]
 		}
-		f := pumpForm(t, NewMultiInputForm(specs, ptrs, nil), tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+		m := pumpInit(t, newMultiInputModel(specs, ptrs, nil)).(*multiInputModel)
+		return pumpForm(t, m, tea.WindowSizeMsg{Width: 80, Height: 12}).(*multiInputModel), ptrs
+	}
 
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateNormal {
-			t.Fatalf("空值 Enter 后 State = %v, want StateNormal(不应推进)", f.State)
+	t.Run("空值校验阻挡推进", func(t *testing.T) {
+		specs := []InputSpec{
+			{Title: "版本号"},
+			{Title: "提交消息"},
 		}
-		if got := f.GetFocusedField().GetValue(); got != "" {
-			t.Errorf("应仍聚焦字段 1,当前值 = %q", got)
+		m, _ := build(specs, []string{"", ""})
+
+		// 字段 1 空值 Enter:非空校验报错且不推进
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if m.done {
+			t.Fatalf("空值 Enter 后 done = true, want false(不应推进)")
 		}
-		errs := f.Errors()
-		if len(errs) != 1 || errs[0].Error() != i18n.T("form.input.empty.error") {
-			t.Errorf("Errors() = %v, want [%q]", errs, i18n.T("form.input.empty.error"))
+		if m.focused != 0 {
+			t.Errorf("应仍聚焦字段 1,focused = %d", m.focused)
+		}
+		if m.errMsg != i18n.T("form.input.empty.error") {
+			t.Errorf("errMsg = %q, want %q", m.errMsg, i18n.T("form.input.empty.error"))
 		}
 	})
 
@@ -188,51 +194,43 @@ func TestMultiInput_Construction(t *testing.T) {
 			{Title: "版本号", Default: "v1.1.0"},
 			{Title: "提交消息"},
 		}
-		// 模拟 MultiInput 的播种:默认值先写入调用方指针,字段值来自指针
-		values := []string{specs[0].Default, ""}
-		ptrs := make([]*string, len(values))
-		for i := range values {
-			ptrs[i] = &values[i]
-		}
-		f := pumpForm(t, NewMultiInputForm(specs, ptrs, nil), tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+		m, ptrs := build(specs, []string{specs[0].Default, ""})
 
-		// 初始聚焦字段 1,默认值已显示
-		if got := f.GetFocusedField().GetValue(); got != "v1.1.0" {
+		// 初始聚焦字段 1,默认值已写入输入框
+		if got := m.inputs[0].Value(); got != "v1.1.0" {
 			t.Errorf("字段 1 值 = %q, want v1.1.0", got)
 		}
 
-		// Enter → 推进到字段 2(默认值非空,校验通过)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateNormal {
-			t.Fatalf("字段 1 Enter 后 State = %v, want StateNormal", f.State)
+		// Enter → 推进到字段 2
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if m.done {
+			t.Fatalf("字段 1 Enter 后 done = true, want false")
 		}
-		if got := f.GetFocusedField().GetValue(); got != "" {
-			t.Errorf("应聚焦字段 2,当前值 = %q", got)
+		if m.focused != 1 {
+			t.Errorf("应聚焦字段 2,focused = %d", m.focused)
 		}
 
-		// 向字段 2 输入文本(推进后字段 2 已获得焦点)
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "feat: 打标签"}).(*Form)
-		if got := f.GetFocusedField().GetValue(); got != "feat: 打标签" {
+		// 向字段 2 输入文本
+		m = pumpForm(t, m, tea.KeyPressMsg{Text: "feat: 打标签"}).(*multiInputModel)
+		if got := m.inputs[1].Value(); got != "feat: 打标签" {
 			t.Errorf("字段 2 输入值 = %q, want feat: 打标签", got)
-		}
-		if values[1] != "feat: 打标签" {
-			t.Errorf("values[1] = %q, want feat: 打标签(指针应同步)", values[1])
 		}
 
 		// shift+tab → 回退到字段 1
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}).(*Form)
-		if got := f.GetFocusedField().GetValue(); got != "v1.1.0" {
-			t.Errorf("shift+tab 后应聚焦字段 1,当前值 = %q", got)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}).(*multiInputModel)
+		if m.focused != 0 {
+			t.Errorf("shift+tab 后应聚焦字段 1,focused = %d", m.focused)
 		}
 
 		// 字段 1 Enter → 字段 2;字段 2(末字段)Enter → 提交
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateCompleted {
-			t.Fatalf("末字段 Enter 后 State = %v, want StateCompleted", f.State)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if !m.done {
+			t.Fatalf("末字段 Enter 后 done = false, want true")
 		}
-		if values[0] != "v1.1.0" || values[1] != "feat: 打标签" {
-			t.Errorf("values = %v, want [v1.1.0 feat: 打标签]", values)
+		m.writeBack()
+		if *ptrs[0] != "v1.1.0" || *ptrs[1] != "feat: 打标签" {
+			t.Errorf("values = %q/%q, want v1.1.0/feat: 打标签", *ptrs[0], *ptrs[1])
 		}
 	})
 
@@ -242,31 +240,21 @@ func TestMultiInput_Construction(t *testing.T) {
 			{Title: "前缀", AllowEmpty: true},
 			{Title: "主版本号"},
 		}
-		values := make([]string, len(specs))
-		ptrs := make([]*string, len(values))
-		for i := range values {
-			ptrs[i] = &values[i]
-		}
-		f := pumpInit(t, NewMultiInputForm(specs, ptrs, nil)).(*Form)
-		f = pumpForm(t, f, tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+		m, _ := build(specs, []string{"", ""})
 
 		// 字段 1 空值 Enter:AllowEmpty 跳过非空校验,推进到字段 2
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateNormal {
-			t.Fatalf("AllowEmpty 空值 Enter 后 State = %v, want StateNormal", f.State)
-		}
-		if got := f.GetFocusedField().GetValue(); got != "" {
-			t.Errorf("应聚焦字段 2,当前值 = %q", got)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if m.done || m.focused != 1 {
+			t.Fatalf("AllowEmpty 空值 Enter 后 done=%v focused=%d, want false/1", m.done, m.focused)
 		}
 
 		// 字段 2 空值 Enter:非空校验仍生效,不推进
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateNormal {
-			t.Fatalf("字段 2 空值 Enter 后 State = %v, want StateNormal", f.State)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if m.done || m.focused != 1 {
+			t.Fatalf("字段 2 空值 Enter 后 done=%v focused=%d, want false/1", m.done, m.focused)
 		}
-		errs := f.Errors()
-		if len(errs) != 1 || errs[0].Error() != i18n.T("form.input.empty.error") {
-			t.Errorf("Errors() = %v, want [%q]", errs, i18n.T("form.input.empty.error"))
+		if m.errMsg != i18n.T("form.input.empty.error") {
+			t.Errorf("errMsg = %q, want %q", m.errMsg, i18n.T("form.input.empty.error"))
 		}
 	})
 
@@ -280,46 +268,28 @@ func TestMultiInput_Construction(t *testing.T) {
 		specs := []InputSpec{
 			{Title: "数字", Validate: validate},
 		}
-		values := make([]string, 1)
-		ptrs := make([]*string, len(values))
-		for i := range values {
-			ptrs[i] = &values[i]
-		}
-		f := pumpInit(t, NewMultiInputForm(specs, ptrs, nil)).(*Form)
-		f = pumpForm(t, f, tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+		m, _ := build(specs, []string{""})
 
 		// 非法值:自定义校验报错,不推进
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "7"}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateNormal {
-			t.Fatalf("非法值 Enter 后 State = %v, want StateNormal", f.State)
+		m = pumpForm(t, m, tea.KeyPressMsg{Text: "7"}).(*multiInputModel)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if m.done {
+			t.Fatalf("非法值 Enter 后 done = true, want false")
 		}
-		errs := f.Errors()
-		if len(errs) != 1 || errs[0].Error() != "must be 42" {
-			t.Errorf("Errors() = %v, want [must be 42]", errs)
+		if m.errMsg != "must be 42" {
+			t.Errorf("errMsg = %q, want must be 42", m.errMsg)
 		}
 
 		// 退格清空非法输入后输入合法值:提交成功
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyBackspace}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "42"}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		if f.State != huh.StateCompleted {
-			t.Fatalf("合法值 Enter 后 State = %v, want StateCompleted", f.State)
-		}
-		if values[0] != "42" {
-			t.Errorf("values[0] = %q, want 42", values[0])
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyBackspace}).(*multiInputModel)
+		m = pumpForm(t, m, tea.KeyPressMsg{Text: "42"}).(*multiInputModel)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		if !m.done {
+			t.Fatalf("合法值 Enter 后 done = false, want true")
 		}
 	})
 }
 
-var ErrEmptyInput = &validationError{msg: "input cannot be empty"}
-
-type validationError struct {
-	msg string
-}
-
-// optionDisplayText 无样式纯文本(列表模型与 accessible 模式共用):
-// 有说明时「名称 + 说明」拼接,无说明仅名称。
 func TestOptionDisplayText(t *testing.T) {
 	if got := optionDisplayText(config.Option{Label: "soft", Description: "保留工作区更改"}); got != "soft 保留工作区更改" {
 		t.Errorf("带说明 = %q, want %q", got, "soft 保留工作区更改")
@@ -407,10 +377,6 @@ func TestRunAccessibleList(t *testing.T) {
 	})
 }
 
-func (e *validationError) Error() string {
-	return e.msg
-}
-
 func TestConfirm_DefaultValue(t *testing.T) {
 	// 测试 Confirm 函数的默认值行为
 	// 由于需要交互式输入，这里只测试函数签名
@@ -447,7 +413,7 @@ func TestInput_EmptyString(t *testing.T) {
 
 	validate := func(str string) error {
 		if str == "" {
-			return ErrEmptyInput
+			return errors.New("empty")
 		}
 		return nil
 	}
@@ -464,7 +430,7 @@ func TestInput_ValidString(t *testing.T) {
 
 	validate := func(str string) error {
 		if str == "" {
-			return ErrEmptyInput
+			return errors.New("empty")
 		}
 		return nil
 	}
@@ -622,11 +588,11 @@ func TestLineReaderShortRead(t *testing.T) {
 // 预览行随输入实时刷新(Note + 值绑定)、矮终端完整渲染不溢出。
 func TestMultiInput_Unified(t *testing.T) {
 	specs := []InputSpec{
-		{Title: "前缀", Default: "v", AllowEmpty: true},
-		{Title: "主版本", Default: "1"},
-		{Title: "次版本", Default: "2"},
-		{Title: "修订号", Default: "3"},
-		{Title: "后缀", Default: "-beta", AllowEmpty: true},
+		{Title: "前缀", Default: "v", Desc: "留空则无前缀", AllowEmpty: true},
+		{Title: "主版本", Default: "1", Validate: nonNeg},
+		{Title: "次版本", Default: "2", Validate: nonNeg},
+		{Title: "修订号", Default: "3", Validate: nonNeg},
+		{Title: "后缀", Default: "-beta", Desc: "留空则无后缀", AllowEmpty: true},
 	}
 	values := []string{"v", "1", "2", "3", "-beta"}
 	ptrs := make([]*string, len(values))
@@ -638,8 +604,13 @@ func TestMultiInput_Unified(t *testing.T) {
 		return "preview:" + strings.Join(vals, "|")
 	}
 
+	build := func() *multiInputModel {
+		m := pumpInit(t, newMultiInputModel(specs, ptrs, preview)).(*multiInputModel)
+		return pumpForm(t, m, tea.WindowSizeMsg{Width: 80, Height: 12}).(*multiInputModel)
+	}
+
 	t.Run("预览行显示组合结果并随输入刷新", func(t *testing.T) {
-		f := pumpInit(t, NewMultiInputForm(specs, ptrs, preview)).(*Form)
+		f := build()
 
 		view := f.View().Content
 		if !strings.Contains(view, "preview:v|1|2|3|-beta") {
@@ -647,15 +618,15 @@ func TestMultiInput_Unified(t *testing.T) {
 		}
 
 		// 聚焦字段 1(前缀),输入 x 追加到 v 后
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "x"}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "x"}).(*multiInputModel)
 		view = f.View().Content
 		if !strings.Contains(view, "preview:vx|1|2|3|-beta") {
 			t.Errorf("输入后预览未刷新:\n%s", view)
 		}
 
 		// Enter 推进到字段 2,输入 9 追加到默认值 1 后(光标在末尾)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "9"}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "9"}).(*multiInputModel)
 		view = f.View().Content
 		if !strings.Contains(view, "preview:vx|19|2|3|-beta") {
 			t.Errorf("字段 2 输入后预览未刷新:\n%s", view)
@@ -664,7 +635,7 @@ func TestMultiInput_Unified(t *testing.T) {
 
 	t.Run("矮终端完整渲染不溢出", func(t *testing.T) {
 		for _, h := range []int{10, 9, 8} {
-			f := pumpForm(t, NewMultiInputForm(specs, ptrs, preview), tea.WindowSizeMsg{Width: 80, Height: h}).(*Form)
+			f := pumpForm(t, newMultiInputModel(specs, ptrs, preview), tea.WindowSizeMsg{Width: 80, Height: h}).(*multiInputModel)
 			view := f.View().Content
 			if got := lipgloss.Height(view); got > h {
 				t.Errorf("终端 %d 行:表单高度 %d 溢出", h, got)
@@ -677,6 +648,43 @@ func TestMultiInput_Unified(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("简介行尾弱化显示且不混入标题", func(t *testing.T) {
+		f := build()
+		view := ansi.Strip(f.View().Content)
+		lines := strings.Split(view, "\n")
+
+		// 标题行不含简介内容
+		titleLine := lines[1]
+		if strings.Contains(titleLine, "留空则无前缀") && !strings.Contains(titleLine, "❯") {
+			// 标题与简介同行的唯一合法形式:简介在行尾(❯ 输入框之后)
+		}
+		// 简介必须在行尾:字段 1 行以简介结尾(去除尾部空白后)
+		if !strings.HasSuffix(strings.TrimRight(titleLine, " "), "留空则无前缀") {
+			t.Errorf("字段 1 行尾应显示弱化简介: %q", titleLine)
+		}
+		// 简介必须位于输入框(❯)之后
+		if idx := strings.Index(titleLine, "❯"); idx < 0 || strings.Index(titleLine, "留空则无前缀") < idx {
+			t.Errorf("简介应位于输入框之后: %q", titleLine)
+		}
+		// 字段 5(后缀)同理
+		if !strings.HasSuffix(strings.TrimRight(lines[5], " "), "留空则无后缀") {
+			t.Errorf("字段 5 行尾应显示弱化简介: %q", lines[5])
+		}
+		// 无简介字段(主版本)行尾不应出现任何简介
+		if strings.Contains(lines[2], "留空则无") {
+			t.Errorf("字段 2 不应包含简介: %q", lines[2])
+		}
+	})
+}
+
+// nonNeg 测试用非负整数校验(与配置中心 nonNegativeInt 同语义)
+func nonNeg(s string) error {
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 {
+		return errors.New("must be non-negative")
+	}
+	return nil
 }
 
 // TestMultiInput_Navigation 统一多输入表单的上下导航键:
@@ -692,73 +700,74 @@ func TestMultiInput_Navigation(t *testing.T) {
 	for i := range values {
 		ptrs[i] = &values[i]
 	}
-	// 每个子测试重建指针:导航测试会修改 values,子测试间须隔离
-	newForm := func() *Form {
+	// 每个子测试重建:导航测试会修改 values,子测试间须隔离
+	newForm := func() *multiInputModel {
 		for i, spec := range specs {
 			values[i] = spec.Default
 		}
 		for i := range values {
 			ptrs[i] = &values[i]
 		}
-		return pumpForm(t, NewMultiInputForm(specs, ptrs, nil), tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+		m := pumpInit(t, newMultiInputModel(specs, ptrs, nil)).(*multiInputModel)
+		return pumpForm(t, m, tea.WindowSizeMsg{Width: 80, Height: 12}).(*multiInputModel)
 	}
 
-	assertFocused := func(t *testing.T, f *Form, want string) {
+	assertFocused := func(t *testing.T, m *multiInputModel, want int) {
 		t.Helper()
-		if got := f.GetFocusedField().GetValue(); got != want {
-			t.Errorf("聚焦字段值 = %q, want %q", got, want)
+		if m.focused != want {
+			t.Errorf("聚焦字段 = %d, want %d", m.focused, want)
 		}
 	}
 
 	t.Run("↓ 推进、↑ 回退、末字段 ↓ 提交", func(t *testing.T) {
 		f := newForm()
-		assertFocused(t, f, "a")
+		assertFocused(t, f, 0)
 
 		// ↓ 推进到字段 B
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		assertFocused(t, f, "b")
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		assertFocused(t, f, 1)
 
 		// ↑ 回退到字段 A
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*Form)
-		assertFocused(t, f, "a")
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*multiInputModel)
+		assertFocused(t, f, 0)
 
 		// ↓↓ 到末字段 C,再 ↓ 提交
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		assertFocused(t, f, "c")
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		if f.State != huh.StateCompleted {
-			t.Fatalf("末字段 ↓ 后 State = %v, want StateCompleted", f.State)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		assertFocused(t, f, 2)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		if !f.done {
+			t.Fatalf("末字段 ↓ 后 done = false, want true")
 		}
 	})
 
 	t.Run("j/k 推进回退且不产生字符", func(t *testing.T) {
 		f := newForm()
-		assertFocused(t, f, "a")
+		assertFocused(t, f, 0)
 
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "j"}).(*Form)
-		assertFocused(t, f, "b")
-		if values[0] != "a" {
-			t.Errorf("j 不应向字段 A 输入字符,values[0] = %q", values[0])
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "j"}).(*multiInputModel)
+		assertFocused(t, f, 1)
+		if f.inputs[0].Value() != "a" {
+			t.Errorf("j 不应向字段 A 输入字符,值 = %q", f.inputs[0].Value())
 		}
 
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "k"}).(*Form)
-		assertFocused(t, f, "a")
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "k"}).(*multiInputModel)
+		assertFocused(t, f, 0)
 
 		// 普通字符输入不受影响
-		f = pumpForm(t, f, tea.KeyPressMsg{Text: "z"}).(*Form)
-		if got := f.GetFocusedField().GetValue(); got != "az" {
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "z"}).(*multiInputModel)
+		if got := f.inputs[0].Value(); got != "az" {
 			t.Errorf("字段 A 输入 z 后 = %q, want az", got)
 		}
 	})
 
 	t.Run("首字段 ↑ 与末字段 ↓ 边界不越界", func(t *testing.T) {
 		f := newForm()
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*Form)
-		assertFocused(t, f, "a") // 首字段 ↑ 停在原地
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*multiInputModel)
+		assertFocused(t, f, 0) // 首字段 ↑ 停在原地
 
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*Form)
-		assertFocused(t, f, "c") // 末字段
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		assertFocused(t, f, 2) // 末字段
 	})
 }

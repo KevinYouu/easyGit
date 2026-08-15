@@ -3,14 +3,15 @@
 ## 已完成:配置中心(config)统一所有可配置项
 
 - [x] 新增 `easyGit config` 子命令:主列表(单选)列出全部可配置项,每项 Description 实时显示当前值摘要;选中进入子流程,完成后返回主列表循环,Esc 退出;语言切换后列表按新语言重建即时生效
-- [x] 四个配置项:界面语言(复用原 set-language 逻辑)、推送配置(子菜单「设置/清除/返回」,clear 参数并入菜单)、提交类型(新增 AddCommitType/DeleteCommitTypes,删除显示 usage 使用次数,不允许删空)、标签版本上限(紧凑单页 5 字段:无边框/同行/无空行,矮终端友好;预览行实时显示组合结果;数字校验非负整数,prefix/suffix 可空)
+- [x] 四个配置项:界面语言(复用原 set-language 逻辑)、推送配置(子菜单「设置/清除/返回」,clear 参数并入菜单)、提交类型(新增 AddCommitType/DeleteCommitTypes,删除显示 usage 使用次数,不允许删空)、标签版本上限(自绘三列表单:标题列/输入框/行尾弱化简介,预览行实时组合,↑/↓/j/k 导航,数字校验非负整数,prefix/suffix 可空)
 - [x] 自适应多列布局(列数不硬编码):ColumnSpec 声明任意列,ColumnAuto 按最长内容自适应(上限截断)/ColumnFlex 占满剩余;名称列完整不截断、摘要列占满;Option.Cells 支持逐列单元格;极窄终端降级单列 → `internal/form/layout.go` / `list.go`(ListFormColumns/NewListModelColumns)
 - [x] 提交类型错误处理审查修复:重复校验收敛到 config.AddCommitType(sentinel ErrCommitTypeExists + errors.Is),新增 error.add.commit.type/error.delete.commit.type 带 err;删除死键 push.config.help/push.config.change.hint/config.tag.patch.input.title
 - [x] `InputSpec` 新增 `AllowEmpty`(跳过非空校验)与 `Validate`(自定义校验)字段,向后兼容 → `internal/form/input.go`
 - [x] 移除一级命令 `set-language` / `set-push-config`,收敛到 config 单一入口 → `cmd/easygit/root.go`
 - [x] 修复 TERM=dumb 管道脚本输入源 bug:accessible 模式表单统一 `WithInput(stdinBuf)` + `lineReader` 行级包装(防 huh 内部 Scanner 预读吞掉 MultiInput 后续字段输入),顺带修复既有 pa 列表→输入流程 → `internal/form/form.go` / `list.go`
 - [x] 测试:commit_type CRUD(含 errors.Is)+ BuildConfigOptions + FormatPatch;InputSpec.AllowEmpty/Validate(pumpInit 模拟 Init 链);lineReader 顺序/完整性;CalculateAdaptiveColumns 宽度计算;config 主列表/三列/删除多选渲染用例;紧凑多输入表单(预览实时刷新 + 8-10 行矮终端完整渲染)→ `make all` 全绿
-- [x] TERM=dumb 全流程回归:语言切换(预选标记)、推送配置设置/清除、提交类型添加(重复报错文案)/删除、标签版本上限紧凑表单编辑(逐字段输入/空行保留默认/非法数字拒绝)与数字校验;expect 真实 TUI 两列渲染 + 矮终端(8-10 行)表单 + 预览实时刷新 + 退出无残影(表单统一 AltScreen)
+- [x] TERM=dumb 全流程回归:语言切换(预选标记)、推送配置设置/清除、提交类型添加(重复报错文案)/删除、标签版本上限表单编辑(逐字段输入/空行保留默认/非法数字拒绝)与数字校验;expect 真实 TUI 三列渲染(行尾简介弱化不混入标题) + 矮终端(8 行)表单 + 预览实时刷新 + ↑/↓/j/k 导航 + 退出无残影(统一 AltScreen)
+- [x] 多输入表单组件统一:自绘 multi_input.go(不经 huh 渲染,简介行尾弱化不占额外行),tc 命令(tag.go)与配置中心版本号上限共用 form.MultiInput(specs, preview);删除 huh 版卡片式/紧凑主题与构造器
 - [x] docs/features/配置中心.md + README 双语命令表同步 + TODO 登记
 - [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
