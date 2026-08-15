@@ -761,7 +761,7 @@ func TestMultiInput_Navigation(t *testing.T) {
 		}
 	}
 
-	t.Run("↓ 推进、↑ 回退、末字段 ↓ 提交", func(t *testing.T) {
+	t.Run("↓ 推进、↑ 回退、末字段 ↓ 循环回首字段", func(t *testing.T) {
 		f := newForm()
 		assertFocused(t, f, 0)
 
@@ -773,13 +773,23 @@ func TestMultiInput_Navigation(t *testing.T) {
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*multiInputModel)
 		assertFocused(t, f, 0)
 
-		// ↓↓ 到末字段 C,再 ↓ 提交
+		// ↓↓ 到末字段 C,再 ↓ 循环回首字段(不提交)
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
 		assertFocused(t, f, 2)
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		if f.done {
+			t.Fatalf("末字段 ↓ 后 done = true, want false(循环不应提交)")
+		}
+		assertFocused(t, f, 0) // 循环回首字段 A
+
+		// 末字段仅 Enter 提交
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		assertFocused(t, f, 2)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
 		if !f.done {
-			t.Fatalf("末字段 ↓ 后 done = false, want true")
+			t.Fatalf("末字段 Enter 后 done = false, want true")
 		}
 	})
 
@@ -801,12 +811,24 @@ func TestMultiInput_Navigation(t *testing.T) {
 		if got := f.inputs[0].Value(); got != "az" {
 			t.Errorf("字段 A 输入 z 后 = %q, want az", got)
 		}
+
+		// j 循环:末字段 j 回首字段且不提交
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "j"}).(*multiInputModel)
+		if f.done {
+			t.Fatalf("末字段 j 后 done = true, want false")
+		}
+		assertFocused(t, f, 0)
 	})
 
-	t.Run("首字段 ↑ 与末字段 ↓ 边界不越界", func(t *testing.T) {
+	t.Run("首字段 ↑ 与末字段 ↓ 循环边界", func(t *testing.T) {
 		f := newForm()
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyUp}).(*multiInputModel)
-		assertFocused(t, f, 0) // 首字段 ↑ 停在原地
+		assertFocused(t, f, 2) // 首字段 ↑ 循环回末字段
+
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
+		assertFocused(t, f, 0) // 末字段 ↓ 循环回首字段
 
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)
 		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyDown}).(*multiInputModel)

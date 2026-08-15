@@ -112,22 +112,28 @@ func (m *multiInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, quitBinding):
 			m.canceled = true
 			return m, tea.Quit
-		case key.Matches(msg, nextBinding): // enter / ↓ / j:校验后推进或提交
+		case key.Matches(msg, nextBinding): // enter / ↓ / j:推进;末字段仅 Enter 提交
 			if err := m.validate(m.focused); err != nil {
 				m.errMsg = err.Error()
 				return m, nil
 			}
 			m.errMsg = ""
 			if m.focused == len(m.specs)-1 {
+				// 末字段:Enter 提交;↓/j/tab 循环回首字段(不提交,
+				// 避免误触保存退出——用户反馈反直觉)
+				if msg.Key().Code != tea.KeyEnter {
+					return m, m.moveTo(0)
+				}
 				m.done = true
 				return m, tea.Quit
 			}
 			return m, m.moveTo(m.focused + 1)
-		case key.Matches(msg, prevBinding): // shift+tab / ↑ / k:回退
-			if m.focused > 0 {
-				m.errMsg = ""
-				return m, m.moveTo(m.focused - 1)
+		case key.Matches(msg, prevBinding): // shift+tab / ↑ / k:回退;首字段循环回末字段
+			if m.focused == 0 {
+				return m, m.moveTo(len(m.specs) - 1)
 			}
+			m.errMsg = ""
+			return m, m.moveTo(m.focused - 1)
 		default:
 			m.errMsg = ""
 			var cmd tea.Cmd
@@ -295,7 +301,7 @@ func (m *multiInputModel) validateWithValue(i int, v string) error {
 var (
 	quitBinding = key.NewBinding(key.WithKeys("ctrl+c", "esc"))
 	// 上下导航:keymap 匹配先于 textinput 分发,方向键/j/k 不进入输入
-	nextBinding = key.NewBinding(key.WithKeys("enter", "down", "j"))
+	nextBinding = key.NewBinding(key.WithKeys("enter", "down", "j", "tab"))
 	prevBinding = key.NewBinding(key.WithKeys("shift+tab", "up", "k"))
 )
 
