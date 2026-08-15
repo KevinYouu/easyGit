@@ -71,6 +71,8 @@ func (f *Form) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View 实现 tea.Model:列表类表单在标题下方渲染分隔线,视图末尾先渲染
 // 底部分隔线再附加帮助栏;极小终端(<6 行)不渲染,退出中的表单不再渲染
 // (与 huh 原生行为一致)。
+// AltScreen:与列表模型统一全屏渲染,退出时终端自动恢复主屏,
+// 避免表单帧残留在正常屏幕(残影)。
 func (f *Form) View() tea.View {
 	content := f.Form.View()
 	if content == "" {
@@ -86,6 +88,7 @@ func (f *Form) View() tea.View {
 		}
 	}
 	v := tea.NewView(content)
+	v.AltScreen = true
 	if f.height >= HelpBarMinTermHeight {
 		v.SetContent(v.Content + "\n" + theme.GetHorizontalRule(f.width))
 		v = AppendHelpBar(v, f.helpKeys, f.width)
