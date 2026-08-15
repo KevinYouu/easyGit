@@ -178,8 +178,8 @@ func DeleteAndPushTag() error {
 		}
 	}
 
-	// 让用户选择要删除的标签
-	selectedTags, err := form.ListForm(i18n.T("tag.delete.select"), options, form.ListSingle)
+	// 让用户选择要删除的标签(自适应多列:标签名自动宽度不截断)
+	selectedTags, err := form.ListFormColumns(i18n.T("tag.delete.select"), form.NameDescColumns(), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select tag error: %w", err)
 	}

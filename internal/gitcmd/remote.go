@@ -105,8 +105,8 @@ func SelectRemoteWithConfig() ([]string, bool, error) {
 		}
 	}
 
-	// 使用多选表单
-	selectedRemotes, err := form.ListForm(i18n.T("git.select.remotes.first"), form.StringOptions(options), form.ListMulti)
+	// 使用多选表单(自适应多列:远程名自动宽度不截断)
+	selectedRemotes, err := form.ListFormColumns(i18n.T("git.select.remotes.first"), form.NameDescColumns(), form.StringOptions(options), form.ListMulti)
 	if err != nil {
 		return nil, false, err
 	}

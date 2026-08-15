@@ -79,7 +79,8 @@ func DeleteBranch() error {
 		})
 	}
 
-	selectedBranches, err := form.ListForm(i18n.T("branch.delete.select"), options, form.ListSingle)
+	// 自适应多列:分支名自动宽度不截断
+	selectedBranches, err := form.ListFormColumns(i18n.T("branch.delete.select"), form.NameDescColumns(), options, form.ListSingle)
 	if err != nil {
 		return fmt.Errorf("select branch error: %w", err)
 	}

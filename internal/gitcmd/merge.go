@@ -191,7 +191,8 @@ func getRemoteBranches(currentBranch string) ([]config.Option, error) {
 
 // selectBranchToMerge shows a selection form for available branches
 func selectBranchToMerge(branches []config.Option) (string, error) {
-	selectedBranches, err := form.ListForm(i18n.T("merge.select.target"), branches, form.ListSingle)
+	// 自适应多列:分支名自动宽度不截断,避免按 hash 列截断首词
+	selectedBranches, err := form.ListFormColumns(i18n.T("merge.select.target"), form.NameDescColumns(), branches, form.ListSingle)
 	if err != nil {
 		return "", fmt.Errorf(i18n.T("error.select.form.detail")+": %w", err)
 	}

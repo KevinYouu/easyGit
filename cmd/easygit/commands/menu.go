@@ -47,7 +47,7 @@ func RunMenu() error {
 		byKey[item.key] = item.run
 	}
 
-	selected, err := form.ListForm(i18n.T("menu.title"), options, form.ListSingle)
+	selected, err := form.ListFormColumns(i18n.T("menu.title"), form.NameDescColumns(), options, form.ListSingle)
 	if err != nil {
 		return nil // Esc / 取消:退出
 	}

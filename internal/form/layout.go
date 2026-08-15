@@ -84,6 +84,16 @@ type ColumnSpec struct {
 	MinWidth int // ColumnFlex 下限(0 = messageColMin)
 }
 
+// NameDescColumns 标准「名称 + 说明」双列 spec:名称列自动宽度(上限
+// MaxAutoColumnWidth 截断),说明列占满剩余。非提交类文本列表(命令菜单/
+// 分支/远程/标签)统一使用,避免走提交解析路径被 hash 列宽截断首词。
+func NameDescColumns() []ColumnSpec {
+	return []ColumnSpec{
+		{Kind: ColumnAuto, MaxWidth: MaxAutoColumnWidth},
+		{Kind: ColumnFlex},
+	}
+}
+
 // CalculateAdaptiveColumns 计算自适应多列布局的列宽(不含单元格内边距):
 // Auto 列 = 该列最长内容的显示宽度(上限 MaxWidth);剩余宽度平均分配给
 // Flex 列(各自不低于 MinWidth 或 messageColMin)。调用方保证 spec 与
