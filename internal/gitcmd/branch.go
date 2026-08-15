@@ -9,6 +9,7 @@ import (
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
 	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
@@ -103,13 +104,34 @@ func DeleteBranch() error {
 	})
 
 	if deleteRemote {
-		commands = append(commands, command.CommandInfo{
-			Command:     "git",
-			Args:        []string{"push", "origin", "--delete", selectedBranch},
-			Description: i18n.T("branch.delete.remote"),
-			LoadingMsg:  fmt.Sprintf(i18n.T("branch.delete.remote.loading"), selectedBranch),
-			SuccessMsg:  fmt.Sprintf(i18n.T("branch.delete.remote.success"), selectedBranch),
-		})
+		// 选择远程仓库(支持配置持久化和多选)
+		selectedRemotes, needSave, err := SelectRemoteWithConfig()
+		if err != nil {
+			return fmt.Errorf("select remote: %w", err)
+		}
+
+		if needSave {
+			if err := config.SavePushConfig(selectedRemotes); err != nil {
+				logs.Error(i18n.T("error.save.push.config"))
+			} else {
+				remotesStr := strings.Join(selectedRemotes, ", ")
+				logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
+			}
+		}
+
+		// 添加每个远程的删除推送命令(并行段)
+		for _, remote := range selectedRemotes {
+			commands = append(commands, command.CommandInfo{
+				Command:     "git",
+				Args:        []string{"push", remote, "--delete", selectedBranch},
+				Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
+				LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
+				SuccessMsg:  fmt.Sprintf(i18n.T("branch.delete.remote.success"), selectedBranch),
+			})
+		}
+
+		// 本地删除串行,随后所有远程删除推送一次性并行启动
+		return command.RunMultipleCommandsParallel(commands, 1)
 	}
 
 	return command.RunMultipleCommands(commands)

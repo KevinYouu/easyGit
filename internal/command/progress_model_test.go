@@ -1,14 +1,30 @@
 package command
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"strings"
 	"testing"
 	"unicode/utf8"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/charmbracelet/x/ansi"
 )
+
+// captureStdout 捕获函数执行期间的 stdout 输出
+func captureStdout(fn func()) string {
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	fn()
+	w.Close()
+	os.Stdout = old
+	out, _ := io.ReadAll(r)
+	return string(out)
+}
 
 func TestNewProgressModel(t *testing.T) {
 	commands := []CommandInfo{
@@ -236,5 +252,278 @@ func TestProgressI18nStatus(t *testing.T) {
 	m := NewProgressModel(nil)
 	if m.status != i18n.T("progress.preparing") {
 		t.Errorf("初始状态应为 i18n 文案 %q, got %q", i18n.T("progress.preparing"), m.status)
+	}
+}
+
+// pumpProgress 将 Update 结果转回 *ProgressModel 并返回产生的命令
+func pumpProgress(m *ProgressModel, msg tea.Msg) (*ProgressModel, tea.Cmd) {
+	nm, cmd := m.Update(msg)
+	return nm.(*ProgressModel), cmd
+}
+
+// runParallelFlow 驱动并行模型完成一次完整流程:
+// 串行段逐条执行(步骤 < parallelFrom),并行段按给定顺序乱序完成。
+// 返回最终模型。
+func runParallelFlow(t *testing.T, m *ProgressModel, parallelFrom int, completions []stepResult) *ProgressModel {
+	t.Helper()
+
+	// 启动第一批(步骤 0)
+	cmd := m.startNextBatch()
+	var msg tea.Msg = cmd()
+
+	// pendingSteps 记录已启动未完成的步骤
+	pending := map[int]bool{}
+
+	for _, cr := range completions {
+		start, ok := msg.(StepStartMsg)
+		if !ok {
+			t.Fatalf("期望 StepStartMsg, got %T", msg)
+		}
+		pending[start.Step] = true
+		var next tea.Cmd
+		m, next = pumpProgress(m, msg)
+
+		// 完成一个步骤(乱序完成:由调用方指定)
+		if !pending[cr.step] {
+			t.Fatalf("步骤 %d 尚未启动", cr.step)
+		}
+		delete(pending, cr.step)
+		m, next = pumpProgress(m, StepCompleteMsg{Step: cr.step, Success: cr.success, Output: cr.output})
+		if next == nil {
+			if len(pending) > 0 || cr.step != len(m.commands)-1 {
+				t.Fatalf("步骤 %d 完成后无新命令, 仍有在飞 %v", cr.step, pending)
+			}
+			msg = nil
+			continue
+		}
+		msg = next()
+	}
+	return m
+}
+
+type stepResult struct {
+	step    int
+	success bool
+	output  string
+}
+
+// TestParallelProgressModel 并行段状态机:
+// 串行段逐条推进 → 到达 parallelFrom 一次性启动全部剩余步骤 → 乱序完成 → 全部结束后 AllComplete
+func TestParallelProgressModel(t *testing.T) {
+	commands := []CommandInfo{
+		{Command: "git", Args: []string{"add", "."}, Description: "暂存更改"},
+		{Command: "git", Args: []string{"commit", "-m", "x"}, Description: "提交更改"},
+		{Command: "git", Args: []string{"pull"}, Description: "拉取更新"},
+		{Command: "git", Args: []string{"push", "origin"}, Description: "推送到 origin"},
+		{Command: "git", Args: []string{"push", "github"}, Description: "推送到 github"},
+	}
+
+	t.Run("构造与越界保护", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+		if m.parallelFrom != 3 {
+			t.Errorf("parallelFrom 应为 3, got %d", m.parallelFrom)
+		}
+		if NewProgressModelParallel(commands, 99).parallelFrom != -1 {
+			t.Errorf("越界 parallelFrom 应回退为全串行")
+		}
+		if NewProgressModelParallel(commands, -1).parallelFrom != -1 {
+			t.Errorf("负 parallelFrom 应回退为全串行")
+		}
+		if NewProgressModel(commands).parallelFrom != -1 {
+			t.Errorf("普通模型应全串行")
+		}
+	})
+
+	t.Run("串行推进到并行段,乱序完成全成功", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+
+		// 第一批只启动步骤 0
+		cmd := m.startNextBatch()
+		if msg := cmd().(StepStartMsg); msg.Step != 0 {
+			t.Fatalf("第一批应启动步骤 0, got %d", msg.Step)
+		}
+		if m.inFlight != 1 {
+			t.Errorf("串行段在飞数应为 1, got %d", m.inFlight)
+		}
+
+		// 步骤 0 → 1 → 2 逐条推进
+		m, _ = pumpProgress(m, StepStartMsg{Step: 0, Description: "x"})
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 0, Success: true})
+		if msg := cmd().(StepStartMsg); msg.Step != 1 {
+			t.Fatalf("完成后应启动步骤 1, got %d", msg.Step)
+		}
+		m, _ = pumpProgress(m, StepStartMsg{Step: 1, Description: "x"})
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 1, Success: true})
+		if msg := cmd().(StepStartMsg); msg.Step != 2 {
+			t.Fatalf("完成后应启动步骤 2, got %d", msg.Step)
+		}
+		m, _ = pumpProgress(m, StepStartMsg{Step: 2, Description: "x"})
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 2, Success: true})
+
+		// 步骤 2 完成 → 并行段一次性启动步骤 3,4
+		batch, ok := cmd().(tea.BatchMsg)
+		if !ok {
+			t.Fatalf("并行段应返回 BatchMsg, got %T", cmd())
+		}
+		if len(batch) != 2 {
+			t.Fatalf("并行段应启动 2 个步骤, got %d", len(batch))
+		}
+		if m.inFlight != 2 {
+			t.Errorf("并行段在飞数应为 2, got %d", m.inFlight)
+		}
+		if !strings.Contains(m.status, "2") {
+			t.Errorf("并行状态文案应含远程数, got %q", m.status)
+		}
+
+		// 两个步骤同时 running
+		m, _ = pumpProgress(m, StepStartMsg{Step: 3, Description: "x"})
+		m, _ = pumpProgress(m, StepStartMsg{Step: 4, Description: "x"})
+		if m.stepStatus[3] != 1 || m.stepStatus[4] != 1 {
+			t.Errorf("并行步骤应同时 running: %v", m.stepStatus)
+		}
+
+		// 乱序完成:步骤 4 先完成,仍有在飞,不启动新批次
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 4, Success: true})
+		if cmd != nil {
+			t.Errorf("还有在飞步骤时不应启动新批次")
+		}
+		if m.inFlight != 1 || m.stepStatus[4] != 2 {
+			t.Errorf("步骤 4 应标记成功且剩余在飞 1: inFlight=%d status=%v", m.inFlight, m.stepStatus)
+		}
+
+		// 步骤 3 完成 → 全部结束
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 3, Success: true})
+		all, ok := cmd().(AllCompleteMsg)
+		if !ok || !all.Success {
+			t.Fatalf("全部成功应 AllComplete(true), got %T %+v", cmd(), all)
+		}
+		if m.completedCount() != 5 {
+			t.Errorf("完成数应为 5, got %d", m.completedCount())
+		}
+		if m.hasError {
+			t.Errorf("不应有错误")
+		}
+	})
+
+	t.Run("并行段部分失败:等待全部结束并收集失败", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+		cmd := m.startNextBatch()
+		m, _ = pumpProgress(m, cmd().(StepStartMsg))
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 0, Success: true})
+		m, _ = pumpProgress(m, cmd().(StepStartMsg))
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 1, Success: true})
+		m, _ = pumpProgress(m, cmd().(StepStartMsg))
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 2, Success: true})
+		batch := cmd().(tea.BatchMsg)
+		for _, c := range batch {
+			m, _ = pumpProgress(m, c().(StepStartMsg))
+		}
+
+		// 步骤 3 失败(带输出),步骤 4 成功
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 3, Success: false, Output: "remote rejected"})
+		if cmd != nil {
+			t.Errorf("步骤 4 仍在飞,不应结束")
+		}
+		if !m.hasError || len(m.failedSteps) != 1 || m.failedSteps[0] != 3 {
+			t.Errorf("应记录失败步骤 3: hasError=%v failedSteps=%v", m.hasError, m.failedSteps)
+		}
+		if m.errorMessage != "remote rejected" {
+			t.Errorf("应收集失败输出, got %q", m.errorMessage)
+		}
+		if m.stepStatus[3] != 3 || m.stepStatus[4] != 1 {
+			t.Errorf("失败/运行状态错: %v", m.stepStatus)
+		}
+
+		// 步骤 4 完成后才结束,结果为失败
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 4, Success: true})
+		all, ok := cmd().(AllCompleteMsg)
+		if !ok || all.Success {
+			t.Fatalf("有失败应 AllComplete(false)")
+		}
+		if m.completedCount() != 5 {
+			t.Errorf("失败步骤也应计入完成数, got %d", m.completedCount())
+		}
+	})
+
+	t.Run("串行段失败立即终止,不启动后续", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+		cmd := m.startNextBatch()
+		m, _ = pumpProgress(m, cmd().(StepStartMsg))
+		m, cmd = pumpProgress(m, StepCompleteMsg{Step: 0, Success: false, Output: "commit failed"})
+		all, ok := cmd().(AllCompleteMsg)
+		if !ok || all.Success {
+			t.Fatalf("串行段失败应直接 AllComplete(false)")
+		}
+		if m.pendingStart != 1 || m.stepStatus[1] != 0 {
+			t.Errorf("后续步骤不应启动: pendingStart=%d status=%v", m.pendingStart, m.stepStatus)
+		}
+	})
+}
+
+// TestParallelProgressView 并行段渲染:多个步骤同时 running 各自显示 spinner 帧,
+// 完成/失败后 ✓/✗ 逐个点亮,进度按完成数推进
+func TestParallelProgressView(t *testing.T) {
+	commands := []CommandInfo{
+		{Command: "git", Args: []string{"add", "."}, Description: "暂存更改"},
+		{Command: "git", Args: []string{"commit"}, Description: "提交更改"},
+		{Command: "git", Args: []string{"pull"}, Description: "拉取更新"},
+		{Command: "git", Args: []string{"push", "origin"}, Description: "推送到 origin"},
+		{Command: "git", Args: []string{"push", "github"}, Description: "推送到 github"},
+	}
+
+	t.Run("并行段多个 running", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+		m.width = 80
+		m.executing = true
+		m.stepStatus = []int{2, 2, 2, 1, 1}
+		m.status = fmt.Sprintf(i18n.T("progress.executing.parallel"), 2)
+		m.frame = 0
+		frame := m.spinner.frames[0]
+		view := ansi.Strip(m.View().Content)
+
+		if strings.Count(view, frame) != 2 { // 两个并行步骤各一个 spinner 帧(状态行为 ▶)
+			t.Errorf("并行步骤应各自显示 spinner 帧: %q", view)
+		}
+		if strings.Count(view, "✓") != 3 {
+			t.Errorf("3 个已完成步骤应显示 ✓: %q", view)
+		}
+		if !strings.Contains(view, fmt.Sprintf(i18n.T("progress.executing.parallel"), 2)) {
+			t.Errorf("状态行应显示并行文案: %q", view)
+		}
+	})
+
+	t.Run("并行段完成与失败图标", func(t *testing.T) {
+		m := NewProgressModelParallel(commands, 3)
+		m.width = 80
+		m.isCompleted = true
+		m.hasError = true
+		m.stepStatus = []int{2, 2, 2, 3, 2}
+		view := ansi.Strip(m.View().Content)
+		if strings.Count(view, "✗") != 2 { // 步骤 4 一个 + 状态行一个
+			t.Errorf("失败步骤应显示 ✗: %q", view)
+		}
+		if !strings.Contains(view, "(5/5)") {
+			t.Errorf("失败也计入进度: %q", view)
+		}
+	})
+}
+
+// TestRunMultipleCommandsParallelSummary 失败摘要应列出全部失败步骤
+func TestRunMultipleCommandsParallelSummary(t *testing.T) {
+	commands := []CommandInfo{
+		{Command: "git", Args: []string{"push", "origin"}, Description: "推送到 origin"},
+		{Command: "git", Args: []string{"push", "github"}, Description: "推送到 github"},
+	}
+	m := NewProgressModelParallel(commands, 0)
+	m.hasError = true
+	m.failedSteps = []int{0, 1}
+	m.errorMessage = "rejected 1\nrejected 2"
+
+	out := captureStdout(func() { printExecutionSummary(m) })
+	if !strings.Contains(out, "推送到 origin") || !strings.Contains(out, "推送到 github") {
+		t.Errorf("摘要应列出全部失败步骤: %q", out)
+	}
+	if !strings.Contains(out, "rejected 1") || !strings.Contains(out, "rejected 2") {
+		t.Errorf("摘要应包含全部错误输出: %q", out)
 	}
 }

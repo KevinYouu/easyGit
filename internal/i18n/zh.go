@@ -156,13 +156,14 @@ var zhTranslations = map[string]string{
 	"progress.complete": "完成！",
 
 	// Progress model (multi-step execution screen)
-	"progress.preparing":   "准备中...",
-	"progress.executing":   "正在执行: %s",
-	"progress.completed":   "已完成: %s",
-	"progress.failed":      "失败: %s",
-	"progress.step.failed": "步骤 %d 失败: %s",
-	"progress.output":      "输出: %s",
-	"progress.command":     "命令: %s %s",
+	"progress.preparing":          "准备中...",
+	"progress.executing":          "正在执行: %s",
+	"progress.completed":          "已完成: %s",
+	"progress.failed":             "失败: %s",
+	"progress.step.failed":        "步骤 %d 失败: %s",
+	"progress.output":             "输出: %s",
+	"progress.command":            "命令: %s %s",
+	"progress.executing.parallel": "并行推送 %d 个远程...",
 
 	// Form components
 	"form.input.placeholder": "请输入...",

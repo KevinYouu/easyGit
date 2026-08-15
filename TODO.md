@@ -1,5 +1,20 @@
 # TODO
 
+## 已完成:多远程并行推送(pa/ps/tc/td/bd)
+
+- [x] 进度模型并行段支持:`ProgressModel` 新增 `parallelFrom`/`inFlight`/`pendingStart`/`failedSteps`,
+      `NewProgressModelParallel` / `RunMultipleCommandsParallel`(parallelFrom 越界回退全串行);
+      串行段逐条推进,到达 parallelFrom 后剩余步骤经 `tea.Batch` 一次性并发启动(框架 BatchMsg 并发执行);
+      并行段任一失败等待其余在飞步骤结束,进度按 completedCount 计数(完成消息乱序不跳变),
+      状态行显示并行文案 `progress.executing.parallel` → `internal/command/progress_model.go`
+- [x] 错误摘要多失败:failedSteps 逐条输出「步骤失败 + 命令」,errorMessage 仅收集命令输出(原跳过首末行 hack 删除)→ `printExecutionSummary`
+- [x] pa/ps 推送段并行:add → commit → pull 串行,所有远程 push 一次性并行启动 → `pushAll.go` / `pushSelected.go`
+- [x] 遗漏修复:tc(tag-create)/td(tag-delete)/bd(branch-delete)不再硬编码 origin,统一走 SelectRemoteWithConfig(配置持久化+多选),推送段并行 → `tag.go` / `branch.go`;无远程时降级仅本地操作
+- [x] i18n:`progress.executing.parallel`(zh/en)
+- [x] 测试:并行状态机(串行推进→并行段一次性启动→乱序完成→全部结束)、并行段部分失败收集、串行段失败立即终止、并行渲染(多 running spinner/失败 ✗/进度含失败)、摘要多失败;真实 git 集成验证(/tmp 裸仓库×2 并行推送,两个远程 HEAD 一致) → `make all` 全绿
+- [x] docs/features/推送配置持久化.md 实现位置同步(并发真实落地),TODO 登记
+- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
+
 ## 已完成:配置中心(config)统一所有可配置项
 
 - [x] 新增 `easyGit config` 子命令:主列表(单选)列出全部可配置项,每项 Description 实时显示当前值摘要;选中进入子流程,完成后返回主列表循环,Esc 退出;语言切换后列表按新语言重建即时生效

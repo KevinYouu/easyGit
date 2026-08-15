@@ -42,6 +42,14 @@ type ProgressModel struct {
 
 	// 步骤状态跟踪
 	stepStatus []int // 0=pending, 1=running, 2=success, 3=failed
+
+	// 并行执行支持:parallelFrom >= 0 时,从该下标起的步骤一次性并行启动;
+	// inFlight 当前批次在飞步骤数;pendingStart 下一个待启动步骤下标;
+	// failedSteps 失败步骤集合(并行下可能多个,串行下至多一个)
+	parallelFrom int
+	inFlight     int
+	pendingStart int
+	failedSteps  []int
 }
 
 // spinnerAnimation 实现简单的加载动画
@@ -78,19 +86,31 @@ type AllCompleteMsg struct {
 // NewProgressModel 创建新的进度模型
 func NewProgressModel(commands []CommandInfo) *ProgressModel {
 	return &ProgressModel{
-		commands:    commands,
-		currentStep: 0,
-		total:       len(commands),
-		status:      i18n.T("progress.preparing"),
-		isCompleted: false,
-		results:     make([]string, len(commands)),
-		executing:   false,
-		showSpinner: true,
-		spinner:     defaultSpinnerAnimation,
-		stepStatus:  make([]int, len(commands)),
-		width:       progressDefaultWidth,
-		height:      progressDefaultHeight,
+		commands:     commands,
+		currentStep:  0,
+		total:        len(commands),
+		status:       i18n.T("progress.preparing"),
+		isCompleted:  false,
+		results:      make([]string, len(commands)),
+		executing:    false,
+		showSpinner:  true,
+		spinner:      defaultSpinnerAnimation,
+		stepStatus:   make([]int, len(commands)),
+		width:        progressDefaultWidth,
+		height:       progressDefaultHeight,
+		parallelFrom: -1, // 默认全串行
 	}
+}
+
+// NewProgressModelParallel 创建带并行段的进度模型:
+// [0, parallelFrom) 步骤串行执行,到达 parallelFrom 后剩余步骤一次性并行启动。
+// parallelFrom 越界时回退为全串行。
+func NewProgressModelParallel(commands []CommandInfo, parallelFrom int) *ProgressModel {
+	model := NewProgressModel(commands)
+	if parallelFrom >= 0 && parallelFrom <= len(commands) {
+		model.parallelFrom = parallelFrom
+	}
+	return model
 }
 
 // NewProgressModelWithoutSpinner 创建不带spinner的进度模型
@@ -105,13 +125,14 @@ type tickMsg time.Time
 
 // Init 初始化
 func (m *ProgressModel) Init() tea.Cmd {
+	m.pendingStart = 0
+	m.inFlight = 0
+	m.failedSteps = nil
+	cmds := []tea.Cmd{m.startNextBatch()}
 	if m.showSpinner {
-		return tea.Batch(
-			m.executeNextCommand(),
-			m.tickCmd(),
-		)
+		cmds = append(cmds, m.tickCmd())
 	}
-	return m.executeNextCommand()
+	return tea.Batch(cmds...)
 }
 
 // tickCmd 帧更新命令
@@ -156,54 +177,60 @@ func (m *ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case StepStartMsg:
 		m.currentStep = msg.Step
-		m.status = fmt.Sprintf(i18n.T("progress.executing"), msg.Description)
 		m.executing = true
 		if len(m.stepStatus) > msg.Step {
 			m.stepStatus[msg.Step] = 1 // 标记为运行中
+		}
+		// 并行段内状态文案已在 startNextBatch 统一设置,避免多步骤互相覆盖
+		if m.parallelFrom < 0 || msg.Step < m.parallelFrom {
+			m.status = fmt.Sprintf(i18n.T("progress.executing"), msg.Description)
 		}
 		// 开始执行命令
 		return m, m.executeCommand(msg.Step)
 
 	case StepCompleteMsg:
 		m.results[msg.Step] = msg.Output
+		m.inFlight--
 		if msg.Success {
+			m.currentStep = msg.Step + 1 // 串行路径推进到下一步;并行路径进度按 completedCount 计
 			m.status = fmt.Sprintf(i18n.T("progress.completed"), m.commands[msg.Step].Description)
 			if len(m.stepStatus) > msg.Step {
 				m.stepStatus[msg.Step] = 2 // 标记为成功
 			}
-			m.currentStep = msg.Step + 1 // 更新到下一步
-			// 继续下一个命令
-			if msg.Step+1 < m.total {
-				return m, m.executeNextCommand()
-			} else {
-				// 所有命令完成
-				return m, func() tea.Msg { return AllCompleteMsg{Success: true} }
-			}
 		} else {
-			// 命令失败 - 收集详细的错误信息
+			// 命令失败 - 记录失败步骤与输出(并行下可能有多个失败)
 			m.hasError = true
-
-			// 构建详细的错误消息
-			errorMsg := fmt.Sprintf(i18n.T("progress.step.failed"), msg.Step+1, msg.Error.Error())
-
-			// 如果有命令输出，添加到错误信息中
-			if strings.TrimSpace(msg.Output) != "" {
-				errorMsg += "\n" + fmt.Sprintf(i18n.T("progress.output"), strings.TrimSpace(msg.Output))
-			}
-
-			// 添加命令信息
-			if msg.Step < len(m.commands) {
-				cmd := m.commands[msg.Step]
-				errorMsg += "\n" + fmt.Sprintf(i18n.T("progress.command"), cmd.Command, strings.Join(cmd.Args, " "))
-			}
-
-			m.errorMessage = errorMsg
+			m.failedSteps = append(m.failedSteps, msg.Step)
 			m.status = fmt.Sprintf(i18n.T("progress.failed"), m.commands[msg.Step].Description)
 			if len(m.stepStatus) > msg.Step {
 				m.stepStatus[msg.Step] = 3 // 标记为失败
 			}
+			// 收集命令输出(通常含错误详情),多失败时按行拼接
+			if output := strings.TrimSpace(msg.Output); output != "" {
+				if m.errorMessage != "" {
+					m.errorMessage += "\n"
+				}
+				m.errorMessage += output
+			}
+		}
+
+		// 本批仍有在飞步骤:并行段等待其余完成,串行段每批仅一个
+		if m.inFlight > 0 {
+			return m, nil
+		}
+
+		// 本批全部结束
+		m.executing = false
+		if m.hasError {
+			// 串行段失败即终止;并行段已等待全部在飞步骤结束
 			return m, func() tea.Msg { return AllCompleteMsg{Success: false} }
 		}
+		if m.pendingStart < m.total {
+			// 启动下一批(串行单步或并行整段)
+			return m, m.startNextBatch()
+		}
+		// 所有命令完成
+		return m, func() tea.Msg { return AllCompleteMsg{Success: true} }
 
 	case AllCompleteMsg:
 		m.isCompleted = true
@@ -232,7 +259,8 @@ func (m *ProgressModel) View() tea.View {
 	s.WriteString("\n")
 
 	// 进度条
-	progress := float64(m.currentStep) / float64(m.total)
+	completed := m.completedCount()
+	progress := float64(completed) / float64(m.total)
 	if m.isCompleted {
 		progress = 1.0
 	}
@@ -241,7 +269,7 @@ func (m *ProgressModel) View() tea.View {
 	// 空间耗尽时条体为 0(仅保留前后缀),行不折行
 	percentText := fmt.Sprintf("%.0f%%", progress*100)
 	rowPrefix := theme.InfoStyle.Render(i18n.T("ui.progress"))
-	rowSuffix := fmt.Sprintf("] %s (%d/%d)", percentText, m.currentStep, m.total)
+	rowSuffix := fmt.Sprintf("] %s (%d/%d)", percentText, completed, m.total)
 	barWidth := min(progressBarMaxWidth, max(m.width-lipgloss.Width(rowPrefix)-lipgloss.Width(rowSuffix)-2, 0))
 	filled := int(progress * float64(barWidth))
 
@@ -375,17 +403,51 @@ func (m *ProgressModel) View() tea.View {
 	return tea.NewView(s.String())
 }
 
-// executeNextCommand 执行下一个命令
-func (m *ProgressModel) executeNextCommand() tea.Cmd {
-	if m.currentStep >= len(m.commands) {
-		return func() tea.Msg { return AllCompleteMsg{Success: true} }
+// completedCount 已结束(成功或失败)的步骤数。
+// 串行路径复用 currentStep;并行路径按 stepStatus 计数(完成消息乱序也不影响进度)。
+func (m *ProgressModel) completedCount() int {
+	if m.parallelFrom < 0 {
+		return m.currentStep
+	}
+	n := 0
+	for _, s := range m.stepStatus {
+		if s == 2 || s == 3 {
+			n++
+		}
+	}
+	return n
+}
+
+// startNextBatch 启动下一批步骤:未达并行段时每次启动单个串行步骤,
+// 到达并行段(parallelFrom >= 0)后一次性启动剩余全部步骤(tea.Batch 由框架并发执行)。
+func (m *ProgressModel) startNextBatch() tea.Cmd {
+	if m.pendingStart >= len(m.commands) {
+		return func() tea.Msg { return AllCompleteMsg{Success: !m.hasError} }
 	}
 
-	cmd := m.commands[m.currentStep]
-	step := m.currentStep
+	// 到达并行段:一次启动所有剩余步骤
+	if m.parallelFrom >= 0 && m.pendingStart == m.parallelFrom {
+		cmds := make([]tea.Cmd, 0, len(m.commands)-m.parallelFrom)
+		for i := m.parallelFrom; i < len(m.commands); i++ {
+			cmds = append(cmds, m.startStep(i))
+		}
+		m.inFlight += len(cmds)
+		m.pendingStart = len(m.commands)
+		m.status = fmt.Sprintf(i18n.T("progress.executing.parallel"), len(cmds))
+		return tea.Batch(cmds...)
+	}
 
+	// 串行段:启动单个步骤
+	step := m.pendingStart
+	m.pendingStart++
+	m.inFlight++
+	return m.startStep(step)
+}
+
+// startStep 返回发送 StepStartMsg 的命令
+func (m *ProgressModel) startStep(step int) tea.Cmd {
+	cmd := m.commands[step]
 	return func() tea.Msg {
-		// 发送开始消息
 		return StepStartMsg{
 			Step:        step,
 			Description: cmd.Description,
@@ -430,9 +492,20 @@ func (m *ProgressModel) executeCommand(step int) tea.Cmd {
 	}
 }
 
-// RunMultipleCommands 使用 Bubble Tea 执行多个命令
+// RunMultipleCommands 使用 Bubble Tea 执行多个命令(严格串行)
 func RunMultipleCommands(commands []CommandInfo) error {
-	model := NewProgressModel(commands)
+	return runProgress(NewProgressModel(commands))
+}
+
+// RunMultipleCommandsParallel 使用 Bubble Tea 执行多个命令:
+// [0, parallelFrom) 串行执行,从 parallelFrom 起的剩余步骤一次性并行启动。
+// 并行段任一失败会等待其余在飞步骤结束,随后统一报错并列出全部失败步骤。
+func RunMultipleCommandsParallel(commands []CommandInfo, parallelFrom int) error {
+	return runProgress(NewProgressModelParallel(commands, parallelFrom))
+}
+
+// runProgress 运行进度程序并输出摘要
+func runProgress(model *ProgressModel) error {
 	p := tea.NewProgram(model)
 
 	finalModel, err := p.Run()
@@ -455,35 +528,31 @@ func RunMultipleCommands(commands []CommandInfo) error {
 	return nil
 }
 
-// printExecutionSummary 在程序退出后打印执行摘要
+// printExecutionSummary 在程序退出后打印执行摘要。
+// 失败时遍历全部失败步骤(并行推送可能多个远程失败)逐条输出步骤与命令,
+// 再输出各步骤捕获的命令输出。
 func printExecutionSummary(model *ProgressModel) {
 	if model.hasError {
-		// 显示失败的步骤信息
-		if model.currentStep < len(model.commands) {
-			failedCmd := model.commands[model.currentStep]
-			fmt.Printf("%s", fmt.Sprintf(i18n.T("cmd.failed.step"), model.currentStep+1, failedCmd.Description)+"\n")
-			fmt.Printf(i18n.T("cmd.command")+" %s %s\n", failedCmd.Command, strings.Join(failedCmd.Args, " "))
+		// 逐个列出失败步骤:步骤行 + 命令行
+		for _, step := range model.failedSteps {
+			if step < 0 || step >= len(model.commands) {
+				continue
+			}
+			failedCmd := model.commands[step]
+			fmt.Printf("%s\n", fmt.Sprintf(i18n.T("cmd.failed.step"), step+1, failedCmd.Description))
+			fmt.Printf("%s %s %s\n", i18n.T("cmd.command"), failedCmd.Command, strings.Join(failedCmd.Args, " "))
 		}
 
-		// 显示详细的错误信息
+		// 显示详细的错误输出(各失败步骤捕获的命令输出)
 		if model.errorMessage != "" {
 			fmt.Println()
-			// 过滤重复行:首行为「步骤失败」行、末行为「命令」行,均已在上方错误摘要展示。
-			// 按结构跳过首末非空行,不依赖翻译模板前缀,避免本地化差异误伤命令输出。
-			lines := make([]string, 0, 8)
 			for line := range strings.SplitSeq(model.errorMessage, "\n") {
 				if trimmed := strings.TrimSpace(line); trimmed != "" {
-					lines = append(lines, trimmed)
+					errorStyle := lipgloss.NewStyle().
+						Foreground(theme.PrimaryColor).
+						Render(trimmed)
+					fmt.Println(errorStyle)
 				}
-			}
-			for i, line := range lines {
-				if i == 0 || i == len(lines)-1 {
-					continue
-				}
-				errorStyle := lipgloss.NewStyle().
-					Foreground(theme.PrimaryColor).
-					Render(line)
-				fmt.Println(errorStyle)
 			}
 		}
 	} else {

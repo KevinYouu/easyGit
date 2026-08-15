@@ -156,13 +156,14 @@ var enTranslations = map[string]string{
 	"progress.complete": "Complete!",
 
 	// Progress model (multi-step execution screen)
-	"progress.preparing":   "Preparing...",
-	"progress.executing":   "Executing: %s",
-	"progress.completed":   "Completed: %s",
-	"progress.failed":      "Failed: %s",
-	"progress.step.failed": "Step %d failed: %s",
-	"progress.output":      "Output: %s",
-	"progress.command":     "Command: %s %s",
+	"progress.preparing":          "Preparing...",
+	"progress.executing":          "Executing: %s",
+	"progress.completed":          "Completed: %s",
+	"progress.failed":             "Failed: %s",
+	"progress.step.failed":        "Step %d failed: %s",
+	"progress.output":             "Output: %s",
+	"progress.command":            "Command: %s %s",
+	"progress.executing.parallel": "Pushing to %d remotes in parallel...",
 
 	// Form components
 	"form.input.placeholder": "Please enter...",

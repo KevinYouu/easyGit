@@ -20,6 +20,7 @@ English | [简体中文](README-ZH.md)
 Instead of typing multiple Git commands or remembering complex flags, easyGit provides:
 
 - ⚡ **One-Command Workflows** - Push all changes or select specific files with a single command
+- 🔀 **Parallel Multi-Remote Push** - `pa`/`ps`/`tc`/`td`/`bd` push to multiple remotes concurrently; one failing remote never blocks the others, and the summary lists every failed step
 - 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus
 - 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences, commit types, and tag version cap
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection

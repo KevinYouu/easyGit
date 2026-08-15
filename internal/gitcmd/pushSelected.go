@@ -135,8 +135,9 @@ func PushSelected() error {
 		}
 	}
 
-	// 使用统一的进度条执行所有命令
-	err = command.RunMultipleCommands(allCommands)
+	// 使用统一的进度条执行所有命令:add → commit → pull 串行,
+	// 随后所有远程推送一次性并行启动
+	err = command.RunMultipleCommandsParallel(allCommands, 3)
 	if err != nil {
 		return err
 	}

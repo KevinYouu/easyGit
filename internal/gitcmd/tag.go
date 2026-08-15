@@ -11,6 +11,7 @@ import (
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
+	"github.com/KevinYouu/easyGit/internal/logs"
 	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
@@ -33,7 +34,7 @@ func CreateAndPushTag() error {
 	}
 	version, commitMessage := values[0], values[1]
 
-	// 使用新的命令执行器
+	// 本地打标签(串行首步)
 	commands := []command.CommandInfo{
 		{
 			Command:     "git",
@@ -42,16 +43,48 @@ func CreateAndPushTag() error {
 			LoadingMsg:  i18n.T("tag.create.loading"),
 			SuccessMsg:  fmt.Sprintf(i18n.T("tag.create.success"), version),
 		},
-		{
-			Command:     "git",
-			Args:        []string{"push", "origin", version},
-			Description: i18n.T("tag.push.description"),
-			LoadingMsg:  i18n.T("tag.push.loading"),
-			SuccessMsg:  fmt.Sprintf(i18n.T("tag.push.success"), version),
-		},
 	}
 
-	return command.RunMultipleCommands(commands)
+	// 检测是否有远程仓库;无远程时仅创建本地标签
+	remotes, remotesErr := GetAllRemotes()
+	hasRemote := remotesErr == nil && len(remotes) > 0
+	if !hasRemote {
+		logs.Info(i18n.T("push.no.remote.commit.only"))
+		return command.RunMultipleCommands(commands)
+	}
+
+	// 选择远程仓库(支持配置持久化和多选)
+	selectedRemotes, needSave, err := SelectRemoteWithConfig()
+	if err != nil {
+		return fmt.Errorf("select remote: %w", err)
+	}
+
+	// 如果需要保存配置(首次选择或配置变更)
+	if needSave {
+		if err := config.SavePushConfig(selectedRemotes); err != nil {
+			logs.Error(i18n.T("error.save.push.config"))
+		} else {
+			remotesStr := strings.Join(selectedRemotes, ", ")
+			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
+		}
+	} else {
+		remotesStr := strings.Join(selectedRemotes, ", ")
+		logs.Info(fmt.Sprintf(i18n.T("push.using.config.remotes"), remotesStr))
+	}
+
+	// 添加每个远程的推送命令(并行段)
+	for _, remote := range selectedRemotes {
+		commands = append(commands, command.CommandInfo{
+			Command:     "git",
+			Args:        []string{"push", remote, version},
+			Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
+			LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
+			SuccessMsg:  fmt.Sprintf(i18n.T("tag.push.success"), version),
+		})
+	}
+
+	// 本地打标签串行,随后所有远程推送一次性并行启动
+	return command.RunMultipleCommandsParallel(commands, 1)
 }
 
 func GetLatestTag() (string, error) {
@@ -172,7 +205,7 @@ func DeleteAndPushTag() error {
 		return nil
 	}
 
-	// 执行删除操作
+	// 本地删除标签(串行首步)
 	commands := []command.CommandInfo{
 		{
 			Command:     "git",
@@ -181,14 +214,42 @@ func DeleteAndPushTag() error {
 			LoadingMsg:  fmt.Sprintf(i18n.T("tag.delete.local.loading"), selectedTag),
 			SuccessMsg:  fmt.Sprintf(i18n.T("tag.delete.local.success"), selectedTag),
 		},
-		{
-			Command:     "git",
-			Args:        []string{"push", "origin", ":refs/tags/" + selectedTag},
-			Description: i18n.T("tag.delete.remote"),
-			LoadingMsg:  fmt.Sprintf(i18n.T("tag.delete.remote.loading"), selectedTag),
-			SuccessMsg:  fmt.Sprintf(i18n.T("tag.delete.remote.success"), selectedTag),
-		},
 	}
 
-	return command.RunMultipleCommands(commands)
+	// 检测是否有远程仓库;无远程时仅删除本地标签
+	remotes, remotesErr := GetAllRemotes()
+	hasRemote := remotesErr == nil && len(remotes) > 0
+	if !hasRemote {
+		logs.Info(i18n.T("push.no.remote.commit.only"))
+		return command.RunMultipleCommands(commands)
+	}
+
+	// 选择远程仓库(支持配置持久化和多选)
+	selectedRemotes, needSave, err := SelectRemoteWithConfig()
+	if err != nil {
+		return fmt.Errorf("select remote: %w", err)
+	}
+
+	if needSave {
+		if err := config.SavePushConfig(selectedRemotes); err != nil {
+			logs.Error(i18n.T("error.save.push.config"))
+		} else {
+			remotesStr := strings.Join(selectedRemotes, ", ")
+			logs.Info(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
+		}
+	}
+
+	// 添加每个远程的删除推送命令(并行段)
+	for _, remote := range selectedRemotes {
+		commands = append(commands, command.CommandInfo{
+			Command:     "git",
+			Args:        []string{"push", remote, ":refs/tags/" + selectedTag},
+			Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
+			LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
+			SuccessMsg:  fmt.Sprintf(i18n.T("tag.delete.remote.success"), selectedTag),
+		})
+	}
+
+	// 本地删除串行,随后所有远程删除推送一次性并行启动
+	return command.RunMultipleCommandsParallel(commands, 1)
 }
