@@ -22,14 +22,29 @@ func PushSelected() error {
 		return nil
 	}
 
-	var selectedFiles []string
-	for _, fileStatus := range fileStatus {
-		if fileStatus.Status != "" {
-			selectedFiles = append(selectedFiles, fileStatus.Path)
+	// 文件选项带状态列(状态自动宽度,路径列占满):M/A/D 一目了然,
+	// 零新增步骤,仅信息增强
+	var fileOptions []config.Option
+	for _, fs := range fileStatus {
+		if fs.Status == "" {
+			continue
 		}
+		fileOptions = append(fileOptions, config.Option{
+			Label: fs.Path,
+			Value: fs.Path,
+			Cells: []string{fs.Status, fs.Path},
+		})
 	}
 
-	data, err := form.ListForm(i18n.T("push.select.files"), form.StringOptions(selectedFiles), form.ListMulti)
+	data, err := form.ListFormColumns(
+		i18n.T("push.select.files"),
+		[]form.ColumnSpec{
+			{Kind: form.ColumnAuto, MaxWidth: form.MaxAutoColumnWidth},
+			{Kind: form.ColumnFlex},
+		},
+		fileOptions,
+		form.ListMulti,
+	)
 	if err != nil {
 		logs.Error(i18n.T("error.multiselect.form"))
 		return fmt.Errorf("MultiSelectForm: %w", err)
