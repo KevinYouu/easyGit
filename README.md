@@ -19,10 +19,11 @@ English | [简体中文](README-ZH.md)
 
 Instead of typing multiple Git commands or remembering complex flags, easyGit provides:
 
-- ⚡ **One-Command Workflows** - Push all changes or select specific files with a single command
+- ⚡ **One-Command Workflows** - Push all changes or select specific files with a single command; no-argument `easyGit` opens an interactive action menu
 - 🔀 **Parallel Multi-Remote Push** - `pa`/`ps`/`tc`/`td`/`bd` push to multiple remotes concurrently; one failing remote never blocks the others, and the summary lists every failed step
-- 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus
-- 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences, commit types, tag version cap, theme, and conflict editor
+- 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus; press `/` in any list to filter instantly
+- 🧠 **Remembers Your Choices** - Commit types, reset modes, merge strategies, cherry-pick options, and recent commit messages (↑/↓ in the message input) are remembered across sessions
+- 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences (incl. pull-before-push), commit types, tag version cap, theme, and conflict editor
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components; full-width divider lines frame every screen, and a `❯` indicator follows your cursor across all selection lists
 - 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
@@ -137,15 +138,20 @@ If you encounter any issues, see the [FAQ](#-faq) section.
 ### Basic Usage
 
 ```bash
+# No arguments? Open the interactive action menu (press Enter on a command)
+easyGit
+
 # Push all changes in the working directory
 easyGit push-all  # or: easyGit pa
 
-# Push selected files in the working directory
+# Push selected files in the working directory (status column M/A/D shown)
 easyGit push-selected  # or: easyGit ps
 
 # Initialize easyGit configuration (usually auto-initialized on first run)
 easyGit init
 ```
+
+> 💡 **Tips**: In any selection list (commits, branches, tags, files) press `/` to filter by text. In the commit message input, press ↑/↓ to reuse one of your last 10 messages.
 
 ### Advanced Operations
 
@@ -178,7 +184,7 @@ easyGit squash  # or: easyGit sq
 # Drop/Delete specific commits
 easyGit drop  # or: easyGit d
 
-# Configure easyGit (language, theme, push settings, commit types, tag version cap)
+# Configure easyGit (language, theme, push settings incl. pull-before-push, commit types, tag version cap)
 easyGit config
 
 # Update easyGit
@@ -233,7 +239,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | Command           | Alias | Description                                              | Use Case                                            |
 | ----------------- | ----- | -------------------------------------------------------- | --------------------------------------------------- |
 | `init`            | -     | Initialize easyGit configuration                         | First-time setup (usually automatic)                |
-| `config`          | -     | Open the interactive configuration center                | Change language, theme, push settings, commit types, tag version cap, conflict editor |
+| `config`          | -     | Open the interactive configuration center                | Change language, theme, push settings (incl. pull-before-push), commit types, tag version cap, conflict editor |
 | `update`          | -     | Update easyGit to latest version                         | Get new features and bug fixes                      |
 | `version`         | `v`   | Show current version information                         | Check installed version                             |
 

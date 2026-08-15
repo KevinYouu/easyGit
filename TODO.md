@@ -1,5 +1,25 @@
 # TODO
 
+## 已完成:交互与流程优化批次(15 项,逐项独立提交)
+
+- [x] P0 提交消息空主题校验:form 层 InputWithValidate + validateCommitMessage 拦截 `fix: ` 空消息(commit fe264cb)
+- [x] P0 ps 文件列表加 M/A/D 状态列(ListFormColumns 双列,零新增步骤)(35ae9b2)
+- [x] P0 清理 3 处硬编码英文 → i18n(squash/merge/rebase)(97dc470)
+- [x] P0 pa/ps 交互统一:循环导航 ListFormWrap + IncrementUsage 成功后计数(1f3310f)
+- [x] P0 README 修正 `--theme light commit` 错误示例(1381332)
+- [x] P1 统一提交数据源 GetCommitsOptions(rs/sq/d 共用,删三处重复解析)(138b13d)
+- [x] P1 列表 `/` 过滤:输入即筛选,大小写不敏感,支持粘贴/退格/循环导航(7bd0fe5)
+- [x] P1 记忆上次选择:reset 模式/merge 策略/cp 选项 → settings 表预选(0e3f4f9)
+- [x] P1 推送前 pull 可配置:config 新增「推送前拉取」,未设 upstream 自动跳过(b7d6681)
+- [x] P1 提取 SelectAndSaveRemotes 收敛 5 处远程选择+持久化逻辑(8d7330d)
+- [x] P1 非 git 仓库统一检查:root PersistentPreRunE(init/version/update/config 排除)(6e2ab43)
+- [x] P2 交互式主菜单:easyGit 无参数进入,按使用频率排序(03e2cbc)
+- [x] P2 提交消息历史:独立 recent_messages 表(去重置顶/超限截断),输入 ↑/↓ 复用最近 10 条(3d589c2 + 33f9658)
+- [x] P2 git status 免 spinner(ps 响应提速)(222085e)
+- [x] 文档:README/README-ZH 双语同步(主菜单/过滤/历史/推送前拉取/状态列)
+
+## 已完成:配置中心新增冲突编辑器
+
 ## 已完成:配置中心新增冲突编辑器
 
 - [x] 新增 `config` 配置项「冲突编辑器」:settings 表 `conflict_editor` 键,GetConflictEditor/SaveConflictEditor(空串=清除恢复自动)→ `internal/config/conflictEditor.go`
