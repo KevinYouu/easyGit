@@ -24,6 +24,16 @@ func applyCommitTypeDescriptions(options []config.Option) []config.Option {
 	return options
 }
 
+// validateCommitMessage 提交消息校验:须含提交类型前缀(如 "fix: ")且主题非空,
+// 防止误 Enter 提交 "fix: " 这类空主题消息。
+func validateCommitMessage(msg string) error {
+	parts := strings.SplitN(msg, ":", 2)
+	if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+		return fmt.Errorf("%s", i18n.T("form.input.commit.subject.empty"))
+	}
+	return nil
+}
+
 func PushAll() error {
 	options, err := config.GetOptions()
 	if err != nil {
@@ -40,7 +50,7 @@ func PushAll() error {
 	suffix := suffixes[0]
 	config.IncrementUsage(suffix)
 
-	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
+	commitMessage, err := form.InputWithValidate(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage)
 	if err != nil {
 		return fmt.Errorf("input: %w", err)
 	}

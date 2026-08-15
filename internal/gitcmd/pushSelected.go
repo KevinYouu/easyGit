@@ -53,7 +53,7 @@ func PushSelected() error {
 	}
 	suffix := suffixes[0]
 
-	commitMessage, err := form.Input(i18n.T("push.input.commit.message"), suffix+": ")
+	commitMessage, err := form.InputWithValidate(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage)
 	if err != nil {
 		return fmt.Errorf("input: %w", err)
 	}

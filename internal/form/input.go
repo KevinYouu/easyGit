@@ -38,10 +38,16 @@ func newInputField(title string, value *string, desc string, allowEmpty bool, va
 // NewInputForm 构造输入 huh 表单(Input 与渲染测试共用同一构造路径,
 // 防止生产配置与测试复刻漂移)。输入值写入 value,占位符与非空校验统一在此配置。
 func NewInputForm(title string, value *string) *Form {
+	return NewInputFormWithValidate(title, value, nil)
+}
+
+// NewInputFormWithValidate 构造带自定义校验的输入表单:非空校验通过后
+// 执行 validate(如提交消息主题非空),为 nil 时跳过。
+func NewInputFormWithValidate(title string, value *string, validate func(string) error) *Form {
 	// 直接使用紧凑模式
 	return newForm(
 		huh.NewForm(
-			huh.NewGroup(newInputField(title, value, "", false, nil)),
+			huh.NewGroup(newInputField(title, value, "", false, validate)),
 		).WithTheme(theme.GetCompactTheme()).
 			WithShowHelp(false),
 		inputHelpKeys(),
@@ -94,9 +100,15 @@ func stepTitle(idx int, title string) string {
 }
 
 func Input(title string, defaultValue string) (string, error) {
+	return InputWithValidate(title, defaultValue, nil)
+}
+
+// InputWithValidate 输入表单,支持自定义校验(非空校验通过后执行),
+// 用于提交消息主题非空等业务级校验。
+func InputWithValidate(title string, defaultValue string, validate func(string) error) (string, error) {
 	inputValue := defaultValue
 
-	form := NewInputForm(title, &inputValue)
+	form := NewInputFormWithValidate(title, &inputValue, validate)
 	if err := form.Run(); err != nil {
 		return "", err
 	}

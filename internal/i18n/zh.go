@@ -194,11 +194,12 @@ var zhTranslations = map[string]string{
 	"progress.executing.parallel": "并行推送 %d 个远程...",
 
 	// Form components
-	"form.input.placeholder": "请输入...",
-	"form.input.empty.error": "输入不能为空",
-	"form.confirm.title":     "确认",
-	"form.select.title":      "请选择一个选项",
-	"form.multiselect.title": "请选择选项",
+	"form.input.placeholder":          "请输入...",
+	"form.input.empty.error":          "输入不能为空",
+	"form.input.commit.subject.empty": "提交主题不能为空",
+	"form.confirm.title":              "确认",
+	"form.select.title":               "请选择一个选项",
+	"form.multiselect.title":          "请选择选项",
 
 	// Form help bar keys
 	"form.help.navigate": "导航",

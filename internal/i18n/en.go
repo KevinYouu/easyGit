@@ -194,11 +194,12 @@ var enTranslations = map[string]string{
 	"progress.executing.parallel": "Pushing to %d remotes in parallel...",
 
 	// Form components
-	"form.input.placeholder": "Please enter...",
-	"form.input.empty.error": "Input cannot be empty",
-	"form.confirm.title":     "Confirmation",
-	"form.select.title":      "Please select an option",
-	"form.multiselect.title": "Please select options",
+	"form.input.placeholder":          "Please enter...",
+	"form.input.empty.error":          "Input cannot be empty",
+	"form.input.commit.subject.empty": "Commit subject cannot be empty",
+	"form.confirm.title":              "Confirmation",
+	"form.select.title":               "Please select an option",
+	"form.multiselect.title":          "Please select options",
 
 	// Form help bar keys
 	"form.help.navigate": "Navigate",
