@@ -202,14 +202,18 @@ var enTranslations = map[string]string{
 	"form.multiselect.title":          "Please select options",
 
 	// Form help bar keys
-	"form.help.navigate": "Navigate",
-	"form.help.confirm":  "Confirm",
-	"form.help.cancel":   "Cancel",
-	"form.help.submit":   "Submit",
-	"form.help.next":     "Next/Submit",
-	"form.help.toggle":   "Toggle",
-	"form.help.switch":   "Switch",
-	"form.help.quit":     "Quit",
+	"form.help.navigate":     "Navigate",
+	"form.help.confirm":      "Confirm",
+	"form.help.cancel":       "Cancel",
+	"form.help.submit":       "Submit",
+	"form.help.next":         "Next/Submit",
+	"form.help.toggle":       "Toggle",
+	"form.help.filter":       "Filter",
+	"form.help.filter.clear": "Clear filter",
+	"form.help.filter.done":  "Done",
+	"form.filter.label":      "Filter",
+	"form.help.switch":       "Switch",
+	"form.help.quit":         "Quit",
 
 	// Git commands and operations
 	"git.remotes.title":        "Remotes:",

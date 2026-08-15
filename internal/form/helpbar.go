@@ -35,6 +35,7 @@ func selectHelpKeys() []HelpKey {
 	return []HelpKey{
 		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
 		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "/", Action: i18n.T("form.help.filter")},
 		{Key: "Esc", Action: i18n.T("form.help.cancel")},
 	}
 }
@@ -44,6 +45,7 @@ func multiSelectHelpKeys() []HelpKey {
 		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
 		{Key: "Space", Action: i18n.T("form.help.toggle")},
 		{Key: "Enter", Action: i18n.T("form.help.confirm")},
+		{Key: "/", Action: i18n.T("form.help.filter")},
 		{Key: "Esc", Action: i18n.T("form.help.cancel")},
 	}
 }

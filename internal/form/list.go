@@ -50,6 +50,13 @@ type listModel struct {
 	cursor       int // 选中项下标
 	scrollTop    int // 可见窗口首行下标
 	viewportRows int // 可见窗口行数(= 表格视口高度,applyLayout 计算)
+
+	// 过滤:按 / 进入过滤输入模式,输入即过滤(大小写不敏感子串匹配)。
+	// visible 保存过滤后可见的 choices 下标(保持 choices 索引语义不变,
+	// selected/cursor 仍指向 choices);无过滤时 visible = 全量。
+	filter    string
+	filtering bool
+	visible   []int
 }
 
 func (m *listModel) Init() tea.Cmd { return nil }
@@ -65,6 +72,10 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
+		// 过滤输入模式:可打印字符直接进入过滤词(含空格/粘贴),特殊键另行处理
+		if m.filtering {
+			return m.updateFilterKey(msg)
+		}
 		switch msg.String() {
 		case "esc", "ctrl+c":
 			m.quitting = true
@@ -80,6 +91,10 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			m.confirmed = true
 			return m, tea.Quit
+		case "/":
+			// 进入过滤输入模式(已有过滤词时继续编辑)
+			m.filtering = true
+			return m, nil
 		case " ", "space":
 			// 仅多选支持空格切换选中
 			if m.kind == ListMulti {
@@ -88,29 +103,95 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			} else if m.wrap && len(m.choices) > 0 {
-				// 循环导航:顶部按 ↑ 跳到最后一个选项
-				m.cursor = len(m.choices) - 1
-			}
-			m.adjustScroll()
-			m.rebuildRows()
+			m.moveCursor(-1)
 			return m, nil
 		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			} else if m.wrap && len(m.choices) > 0 {
-				// 循环导航:底部按 ↓ 跳到第一个选项
-				m.cursor = 0
-			}
-			m.adjustScroll()
-			m.rebuildRows()
+			m.moveCursor(1)
 			return m, nil
 		}
 	}
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+// updateFilterKey 过滤输入模式的键处理:可打印字符(含空格/粘贴)追加进
+// 过滤词并即时过滤;Enter 完成过滤(保留结果),Esc 清除过滤并退出。
+func (m *listModel) updateFilterKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if text := msg.Key().Text; text != "" {
+		m.filter += text
+		m.applyFilter()
+		return m, nil
+	}
+	switch msg.String() {
+	case "esc", "ctrl+c":
+		m.filter = ""
+		m.filtering = false
+		m.applyFilter()
+	case "enter":
+		m.filtering = false
+		m.applyFilter()
+	case "backspace":
+		if r := []rune(m.filter); len(r) > 0 {
+			m.filter = string(r[:len(r)-1])
+			m.applyFilter()
+		}
+	}
+	return m, nil
+}
+
+// applyFilter 按当前过滤词重建可见集合:光标落到首个匹配项,滚动窗口复位。
+func (m *listModel) applyFilter() {
+	m.visible = m.visible[:0]
+	needle := strings.ToLower(m.filter)
+	for i, opt := range m.choices {
+		if needle == "" || strings.Contains(strings.ToLower(m.rowLabel(opt)), needle) {
+			m.visible = append(m.visible, i)
+		}
+	}
+	if len(m.visible) > 0 {
+		m.cursor = m.visible[0]
+	} else {
+		m.cursor = -1
+	}
+	m.scrollTop = 0
+	m.rebuildRows()
+}
+
+// visibleIndex 返回 choices 索引 cursor 在可见集合中的位置(不可见时 -1)
+func (m *listModel) visibleIndex(cursor int) int {
+	for i, idx := range m.visible {
+		if idx == cursor {
+			return i
+		}
+	}
+	return -1
+}
+
+// moveCursor 在可见集合中移动光标(±1),支持循环导航(wrap)
+func (m *listModel) moveCursor(delta int) {
+	if len(m.visible) == 0 {
+		return
+	}
+	pos := max(m.visibleIndex(m.cursor),
+		// 光标不在可见集合(理论不发生,防御):落回可见窗口
+		0)
+	pos += delta
+	if pos < 0 {
+		if m.wrap {
+			pos = len(m.visible) - 1
+		} else {
+			pos = 0
+		}
+	} else if pos >= len(m.visible) {
+		if m.wrap {
+			pos = 0
+		} else {
+			pos = len(m.visible) - 1
+		}
+	}
+	m.cursor = m.visible[pos]
+	m.adjustScroll()
+	m.rebuildRows()
 }
 
 func (m *listModel) View() tea.View {
@@ -146,12 +227,30 @@ func (m *listModel) View() tea.View {
 			titleView += countView
 		}
 		titleLine := SafeTruncate(titleView, max(m.width-cellPaddingWidth, footerMinWidth))
-		// 帮助栏:多选含 Space 切换,单选仅导航键
+		// 帮助栏:多选含 Space 切换,单选仅导航键;过滤输入模式展示专用键位
 		helpKeys := selectHelpKeys()
 		if m.kind == ListMulti {
 			helpKeys = multiSelectHelpKeys()
 		}
+		if m.filtering {
+			helpKeys = []HelpKey{
+				{Key: "Esc", Action: i18n.T("form.help.filter.clear")},
+				{Key: "Enter", Action: i18n.T("form.help.filter.done")},
+			}
+		}
 		footer := SafeTruncate(RenderHelpBar(helpKeys, max(m.width-cellPaddingWidth, footerMinWidth)), max(m.width-cellPaddingWidth, footerMinWidth))
+		// 过滤状态:输入中追加闪烁光标指示符,已过滤显示当前词
+		if m.filtering || m.filter != "" {
+			filterView := lipgloss.NewStyle().
+				Foreground(theme.MutedForeground).
+				Render(fmt.Sprintf("[%s: %s%s]", i18n.T("form.filter.label"), m.filter, func() string {
+					if m.filtering {
+						return "▍"
+					}
+					return ""
+				}()))
+			titleLine += " " + SafeTruncate(filterView, max(m.width-cellPaddingWidth, footerMinWidth)/2)
+		}
 		content = fmt.Sprintf("%s\n%s\n%s\n%s\n%s", titleLine, theme.GetHorizontalRule(m.width), content, theme.GetHorizontalRule(m.width), footer)
 	}
 	// 宽屏富余时水平居中
@@ -187,9 +286,9 @@ func (m *listModel) applyLayout() {
 		columns = CalculateColumns(m.width, withCheckbox)
 		m.messageWidth = CalculateMessageWidth(m.width, withCheckbox)
 	}
-	// 可视行数 = min(计算高度, 选项数):内容不足一屏时按内容显示,
+	// 可视行数 = min(计算高度, 可见选项数):内容不足一屏时按内容显示,
 	// 超出时占满终端(滚动由本模型窗口控制)
-	m.viewportRows = min(CalculateTableHeight(m.height), max(len(m.choices), 1))
+	m.viewportRows = min(CalculateTableHeight(m.height), max(len(m.visible), 1))
 	// SetHeight 内部会扣除 header 行,这里补偿使可视行数等于计算值
 	height := m.viewportRows + tableHeaderLines
 
@@ -231,14 +330,15 @@ func optionCells(opt config.Option) []string {
 // 窗口行数恒等于视口高度(表格内部 offset 恒为 0,永不自行滚动),
 // 光标与滚动完全由本模型控制——避免 bubbles/table 在内容居中渲染的
 // 区域边界处(顶部/底部锚定区)视口偏移跳变导致选中效果跳行。
-// 表格光标同步为选中项在窗口内的相对行,同时驱动高亮样式。
+// 表格光标同步为选中项在可见集合内的相对行,同时驱动高亮样式。
 func (m *listModel) rebuildRows() {
 	rows := make([]table.Row, 0, m.viewportRows)
-	for i := m.scrollTop; i < m.scrollTop+m.viewportRows && i < len(m.choices); i++ {
-		rows = append(rows, m.optionRow(i, m.cursor, m.choices[i]))
+	for i := m.scrollTop; i < m.scrollTop+m.viewportRows && i < len(m.visible); i++ {
+		idx := m.visible[i]
+		rows = append(rows, m.optionRow(idx, m.cursor, m.choices[idx]))
 	}
 	m.table.SetRows(rows)
-	m.table.SetCursor(m.cursor - m.scrollTop)
+	m.table.SetCursor(m.visibleIndex(m.cursor) - m.scrollTop)
 }
 
 // adjustScroll 光标移动后收敛滚动窗口:光标滑出窗口时窗口跟随平移
@@ -246,17 +346,18 @@ func (m *listModel) rebuildRows() {
 // 光标视觉位置恰好移动一格,不存在跳变。
 func (m *listModel) adjustScroll() {
 	n := m.viewportRows
-	if m.cursor < m.scrollTop {
-		m.scrollTop = m.cursor
-	} else if m.cursor >= m.scrollTop+n {
-		m.scrollTop = m.cursor - n + 1
+	pos := m.visibleIndex(m.cursor)
+	if pos < m.scrollTop {
+		m.scrollTop = pos
+	} else if pos >= m.scrollTop+n {
+		m.scrollTop = pos - n + 1
 	}
 	m.clampScroll()
 }
 
 // clampScroll 将滚动窗口首行钳制到 [0, len-vp] 内(列表不足一屏时窗口=列表)
 func (m *listModel) clampScroll() {
-	maxTop := max(len(m.choices)-m.viewportRows, 0)
+	maxTop := max(len(m.visible)-m.viewportRows, 0)
 	m.scrollTop = min(max(m.scrollTop, 0), maxTop)
 }
 
@@ -357,6 +458,11 @@ func newListModel(title string, options []config.Option, kind ListKind, wrap boo
 		height:  height,
 		title:   title,
 		styles:  defaultTableStyles(),
+	}
+	// 初始可见集合 = 全量(过滤前)
+	m.visible = make([]int, len(options))
+	for i := range options {
+		m.visible[i] = i
 	}
 	if kind == ListMulti {
 		m.selected = make(map[int]bool)

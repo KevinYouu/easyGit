@@ -202,14 +202,18 @@ var zhTranslations = map[string]string{
 	"form.multiselect.title":          "请选择选项",
 
 	// Form help bar keys
-	"form.help.navigate": "导航",
-	"form.help.confirm":  "确认",
-	"form.help.cancel":   "取消",
-	"form.help.submit":   "提交",
-	"form.help.next":     "继续/提交",
-	"form.help.toggle":   "选择/取消",
-	"form.help.switch":   "切换",
-	"form.help.quit":     "退出",
+	"form.help.navigate":     "导航",
+	"form.help.confirm":      "确认",
+	"form.help.cancel":       "取消",
+	"form.help.submit":       "提交",
+	"form.help.next":         "继续/提交",
+	"form.help.toggle":       "选择/取消",
+	"form.help.filter":       "筛选",
+	"form.help.filter.clear": "清除筛选",
+	"form.help.filter.done":  "完成筛选",
+	"form.filter.label":      "筛选",
+	"form.help.switch":       "切换",
+	"form.help.quit":         "退出",
 
 	// Git commands and operations
 	"git.remotes.title":        "远程仓库：",
