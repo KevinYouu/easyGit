@@ -161,7 +161,6 @@ var (
 	SuccessIconStyle lipgloss.Style
 	WarningIconStyle lipgloss.Style
 	InfoIconStyle    lipgloss.Style
-	MutedStyle       lipgloss.Style
 	SpinnerStyle     lipgloss.Style
 	ProgressStyle    lipgloss.Style
 )
@@ -198,39 +197,12 @@ func rebuildStyles() {
 	InfoIconStyle = lipgloss.NewStyle().
 		Foreground(InfoColor)
 
-	MutedStyle = lipgloss.NewStyle().
-		Foreground(MutedForeground)
-
 	SpinnerStyle = lipgloss.NewStyle().
 		Foreground(PrimaryColor).
 		Bold(true)
 
 	ProgressStyle = lipgloss.NewStyle().
 		Foreground(PrimaryColor)
-}
-
-// ─── 原子渲染函数 ────────────────────────────────────────────────────────────
-
-// RenderSelection 渲染选中态文本（背景高亮 + 白色前景 + ❯ 指示符）
-func RenderSelection(text string) string {
-	return lipgloss.NewStyle().
-		Background(SelectionBg).
-		Foreground(SelectionFg).
-		Bold(true).
-		Render("❯ " + text)
-}
-
-// RenderMuted 渲染弱化文本
-func RenderMuted(text string) string {
-	return MutedStyle.Render(text)
-}
-
-// RenderBadge 渲染标签，variant: "success" | "error" | "warning" | "info"
-func RenderBadge(text, variant string) string {
-	return lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Render(text)
 }
 
 // ─── huh 表单主题 ────────────────────────────────────────────────────────────
@@ -340,123 +312,12 @@ func GetCompactTheme() huh.Theme {
 	})
 }
 
-// GetCustomTheme 返回标准主题（较大场景使用）
-func GetCustomTheme() huh.Theme {
-	return huh.ThemeFunc(func(_ bool) *huh.Styles {
-		theme := huh.ThemeBase(current.isDark)
-
-		theme.Focused.Base = lipgloss.NewStyle().
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(BorderColor).
-			Padding(1, 2).
-			MarginBottom(1)
-
-		theme.Blurred.Base = lipgloss.NewStyle().
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(BorderColor).
-			Padding(1, 2).
-			MarginBottom(1)
-
-		theme.Focused.Title = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true).
-			Padding(0, 0, 1, 0)
-
-		theme.Blurred.Title = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Padding(0, 0, 1, 0)
-
-		theme.Focused.Description = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Italic(true)
-
-		theme.Blurred.Description = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Italic(true)
-
-		theme.Focused.SelectedOption = lipgloss.NewStyle().
-			Background(SelectionBg).
-			Foreground(SelectionFg).
-			Bold(true).
-			Padding(0, 1)
-
-		theme.Focused.UnselectedOption = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Padding(0, 1)
-
-		theme.Blurred.SelectedOption = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Padding(0, 1)
-
-		theme.Blurred.UnselectedOption = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Padding(0, 1)
-
-		theme.Focused.TextInput.Cursor = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		theme.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Italic(true)
-
-		theme.Focused.TextInput.Prompt = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		// 选中指示符 - ❯ 显示宽 2(与 huh 默认 "> " 同宽,零布局位移);
-		// ❯ 与选项的间距由 PaddingRight 布局产生,不用字面空格
-		theme.Focused.SelectSelector = lipgloss.NewStyle().
-			SetString("❯").
-			PaddingRight(1).
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		theme.Focused.MultiSelectSelector = lipgloss.NewStyle().
-			SetString("❯").
-			PaddingRight(1).
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		theme.Focused.ErrorIndicator = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Bold(true)
-
-		theme.Focused.ErrorMessage = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Italic(true)
-
-		return theme
-	})
-}
-
 // ─── Spinner 帧 ──────────────────────────────────────────────────────────────
 
 // GetSpinnerFrames 获取默认加载动画帧
 func GetSpinnerFrames() []string {
 	return []string{
 		"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
-	}
-}
-
-// GetPulseSpinnerFrames 获取脉冲动画帧
-func GetPulseSpinnerFrames() []string {
-	return []string{
-		"●", "◐", "◑", "◒", "◓", "◔", "◕", "◖", "◗", "◘",
-	}
-}
-
-// GetDotsSpinnerFrames 获取点状动画帧
-func GetDotsSpinnerFrames() []string {
-	return []string{
-		"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷",
-	}
-}
-
-// GetArrowSpinnerFrames 获取箭头旋转动画帧
-func GetArrowSpinnerFrames() []string {
-	return []string{
-		"→", "↘", "↓", "↙", "←", "↖", "↑", "↗",
 	}
 }
 
@@ -473,27 +334,4 @@ func GetHorizontalRule(width int) string {
 		Foreground(BorderColor).
 		Width(width).
 		Render(strings.Repeat("─", width))
-}
-
-// GetStatusIcon 根据状态获取图标
-func GetStatusIcon(status string) string {
-	icons := map[string]string{
-		"success":  "✓",
-		"error":    "✗",
-		"warning":  "⚠",
-		"info":     "ℹ",
-		"pending":  "○",
-		"complete": "✓",
-		"running":  "▶",
-	}
-
-	if icon, exists := icons[status]; exists {
-		return icon
-	}
-	return "•"
-}
-
-// GetProgressBarStyle 获取进度条样式
-func GetProgressBarStyle() lipgloss.Style {
-	return ProgressStyle
 }

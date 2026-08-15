@@ -473,7 +473,7 @@ func TestConfirm_BooleanValue(t *testing.T) {
 // TestFormEscCancels Esc 触发取消:统一列表模型 esc/ctrl+c 置 quitting 并退出,
 // 与帮助栏「Esc 取消」提示一致。
 func TestFormEscCancels(t *testing.T) {
-	m := NewListModel("标题", []config.Option{{Label: "a", Value: "a"}}, ListSingle)
+	m := newListModel("标题", []config.Option{{Label: "a", Value: "a"}}, ListSingle, false, nil)
 	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if cmd == nil {
 		t.Fatal("Esc 未触发取消命令")
@@ -489,7 +489,7 @@ func TestListWrap(t *testing.T) {
 	options := []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}
 
 	t.Run("wrap 开启时顶部↑跳末尾、底部↓跳回顶部", func(t *testing.T) {
-		m := NewListModelWrap("标题", options, ListSingle)
+		m := newListModel("标题", options, ListSingle, true, nil)
 		if got := m.table.Cursor(); got != 0 {
 			t.Fatalf("初始光标 = %d, want 0", got)
 		}
@@ -504,7 +504,7 @@ func TestListWrap(t *testing.T) {
 	})
 
 	t.Run("默认不循环:边界按键不动", func(t *testing.T) {
-		m := NewListModel("标题", options, ListSingle)
+		m := newListModel("标题", options, ListSingle, false, nil)
 		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 		if got := m.table.Cursor(); got != 0 {
 			t.Errorf("顶部 ↑ 后光标 = %d, want 0(默认不循环)", got)
@@ -521,7 +521,7 @@ func TestListWrap(t *testing.T) {
 	})
 
 	t.Run("空选项列表循环导航不 panic", func(t *testing.T) {
-		m := NewListModelWrap("标题", nil, ListSingle)
+		m := newListModel("标题", nil, ListSingle, true, nil)
 		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	})

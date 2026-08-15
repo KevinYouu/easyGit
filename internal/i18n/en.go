@@ -201,8 +201,6 @@ var enTranslations = map[string]string{
 	"git.remotes.title":        "Remotes:",
 	"git.status.no_changes":    "No files changed.",
 	"git.status.title":         "File statuses:",
-	"git.select.remote":        "Select remote repository",
-	"git.select.branch":        "Select target branch",
 	"git.select.remote.first":  "Multiple remotes detected, please select default push remote",
 	"git.select.remotes.first": "Multiple remotes detected, please select default push remotes (multi-select)",
 	"git.select.branch.first":  "Please select default push target branch",

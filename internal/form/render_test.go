@@ -19,7 +19,7 @@ import (
 //   - render_command_test.go:    命令 × 列表表单渲染
 //   - render_input_confirm_test.go: 命令 × Input/Confirm 表单渲染
 
-// renderSelectField 经生产构造器 NewListModel 渲染单选列表(默认 80 列)
+// renderSelectField 经 newListModel 渲染单选列表(默认 80 列)
 func renderSelectField(title string, labels []string, termHeight int) string {
 	return renderSelectFieldWidth(title, labels, termHeight, 80)
 }
@@ -30,28 +30,28 @@ func renderSelectFieldWidth(title string, labels []string, termHeight, termWidth
 	for i, l := range labels {
 		opts[i] = config.Option{Label: l, Value: l}
 	}
-	m := NewListModel(title, opts, ListSingle)
+	m := newListModel(title, opts, ListSingle, false, nil)
 	m.width, m.height = termWidth, termHeight
 	m.applyLayout()
 	return m.View().Content
 }
 
-// renderMultiSelectField 经生产构造器 NewListModel 渲染多选列表
+// renderMultiSelectField 经 newListModel 渲染多选列表
 func renderMultiSelectField(title string, labels []string, termHeight int) string {
 	opts := make([]config.Option, len(labels))
 	for i, l := range labels {
 		opts[i] = config.Option{Label: l, Value: l}
 	}
-	m := NewListModel(title, opts, ListMulti)
+	m := newListModel(title, opts, ListMulti, false, nil)
 	m.width, m.height = 80, termHeight
 	m.applyLayout()
 	return m.View().Content
 }
 
-// renderColumnsField 经生产构造器 NewListModelColumns 渲染自适应多列列表
+// renderColumnsField 经 newListModel 渲染自适应多列列表
 // (名称/单元格列自动宽度不截断,弹性列占满剩余)
 func renderColumnsField(title string, specs []ColumnSpec, options []config.Option, termHeight, termWidth int) string {
-	m := NewListModelColumns(title, specs, options, ListSingle)
+	m := newListModel(title, options, ListSingle, false, specs)
 	m.width, m.height = termWidth, termHeight
 	m.applyLayout()
 	return m.View().Content
@@ -59,7 +59,7 @@ func renderColumnsField(title string, specs []ColumnSpec, options []config.Optio
 
 // renderColumnsMultiField 同 renderColumnsField,多选模式
 func renderColumnsMultiField(title string, specs []ColumnSpec, options []config.Option, termHeight, termWidth int) string {
-	m := NewListModelColumns(title, specs, options, ListMulti)
+	m := newListModel(title, options, ListMulti, false, specs)
 	m.width, m.height = termWidth, termHeight
 	m.applyLayout()
 	return m.View().Content
@@ -268,7 +268,7 @@ func TestTableSelectRender(t *testing.T) {
 	options := testOptions()
 	for _, sz := range tableSizes {
 		t.Run(fmt.Sprintf("%dx%d", sz.w, sz.h), func(t *testing.T) {
-			m := NewListModel("单选测试", options, ListSingle)
+			m := newListModel("单选测试", options, ListSingle, false, nil)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
 			view := m.View().Content
@@ -285,7 +285,7 @@ func TestTableMultiSelectRender(t *testing.T) {
 	options := testOptions()
 	for _, sz := range tableSizes {
 		t.Run(fmt.Sprintf("%dx%d", sz.w, sz.h), func(t *testing.T) {
-			m := NewListModel("测试多选", options, ListMulti)
+			m := newListModel("测试多选", options, ListMulti, false, nil)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
 			view := m.View().Content
@@ -302,7 +302,7 @@ func TestTableMultiSelectRender(t *testing.T) {
 // 非光标行 [ ] 前导空格占位,与光标行 ❯[ ] 同宽,光标移动零抖动
 func TestTableMultiSelectCheckboxAligned(t *testing.T) {
 	options := testOptions()
-	m := NewListModel("对齐测试", options, ListMulti)
+	m := newListModel("对齐测试", options, ListMulti, false, nil)
 	m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
 
 	views := make([]string, 0, len(options))

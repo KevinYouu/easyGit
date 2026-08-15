@@ -118,41 +118,6 @@ func SelectRemoteWithConfig() ([]string, bool, error) {
 	return selectedRemotes, true, nil
 }
 
-// SelectRemote 让用户选择远程仓库(不持久化,用于配置命令)
-func SelectRemote() (string, error) {
-	remotes, err := GetAllRemotes()
-	if err != nil {
-		logs.Error(i18n.T("error.get.remotes"))
-		return "", err
-	}
-
-	// 只有一个远程时直接返回
-	if len(remotes) == 1 {
-		return remotes[0], nil
-	}
-
-	// 获取当前默认远程
-	currentRemote, _ := GetCurrentRemote()
-
-	// 将当前远程移到列表最前面,并转换为 Option 数组
-	var options []config.Option
-	for _, remote := range remotes {
-		if remote == currentRemote {
-			// 当前远程放在最前面
-			options = append([]config.Option{{Label: remote, Value: remote}}, options...)
-		} else {
-			options = append(options, config.Option{Label: remote, Value: remote})
-		}
-	}
-
-	selectedValues, err := form.ListForm(i18n.T("git.select.remote"), options, form.ListSingle)
-	if err != nil {
-		return "", err
-	}
-
-	return selectedValues[0], nil
-}
-
 // GetRemoteBranches 获取指定远程的分支列表
 func GetRemoteBranches(remote string) ([]string, error) {
 	cmd := exec.Command("git", "branch", "-r")
@@ -178,50 +143,4 @@ func GetRemoteBranches(remote string) ([]string, error) {
 	}
 
 	return branches, nil
-}
-
-// SelectBranch 让用户选择要推送的分支(不持久化,用于配置命令)
-func SelectBranch(remote string, preselectedBranch ...string) (string, error) {
-	// 获取当前分支
-	currentBranch, err := GetCurrentBranch()
-	if err != nil {
-		logs.Error(i18n.T("error.get.current.branch"))
-		return "", err
-	}
-
-	// 获取远程分支列表
-	remoteBranches, err := GetRemoteBranches(remote)
-	if err != nil {
-		// 如果获取远程分支失败,返回当前分支(可能是新分支)
-		return currentBranch, nil
-	}
-
-	// 构建选项列表: 当前分支在最前面
-	var options []config.Option
-	options = append(options, config.Option{Label: currentBranch, Value: currentBranch})
-
-	// 添加远程已存在的其他分支
-	for _, branch := range remoteBranches {
-		if branch != currentBranch {
-			options = append(options, config.Option{Label: branch, Value: branch})
-		}
-	}
-
-	// 只有一个分支选项时直接返回
-	if len(options) == 1 {
-		return options[0].Value, nil
-	}
-
-	// 确定预选值
-	var preselected string
-	if len(preselectedBranch) > 0 && preselectedBranch[0] != "" {
-		preselected = preselectedBranch[0]
-	}
-
-	selectedValues, err := form.ListForm(i18n.T("git.select.branch"), options, form.ListSingle, preselected)
-	if err != nil {
-		return "", err
-	}
-
-	return selectedValues[0], nil
 }

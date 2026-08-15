@@ -35,7 +35,7 @@ func TestFindJump(t *testing.T) {
 				for i := range options {
 					options[i] = config.Option{Label: fmt.Sprintf("opt-%02d", i), Value: "v"}
 				}
-				m := NewListModelWrap("标题", options, ListSingle)
+				m := newListModel("标题", options, ListSingle, true, nil)
 				m.height = vp + 4 // CalculateTableHeight(h)=h-4,取 min(h-4, rows)=vp
 				m.width = 100
 				m.applyLayout()
@@ -96,7 +96,7 @@ func TestListWrapCursorVisible(t *testing.T) {
 	}
 
 	t.Run("顶部↑循环到末尾,光标行可见且为最后一个选项", func(t *testing.T) {
-		m := NewListModelWrap("标题", options, ListSingle)
+		m := newListModel("标题", options, ListSingle, true, nil)
 		m.width, m.height = 100, 12 // 视口高度 8,列表 20 项,必然滚动
 		m.applyLayout()
 		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
@@ -110,7 +110,7 @@ func TestListWrapCursorVisible(t *testing.T) {
 	})
 
 	t.Run("底部↓循环回顶部,光标行可见且为第一个选项", func(t *testing.T) {
-		m := NewListModelWrap("标题", options, ListSingle)
+		m := newListModel("标题", options, ListSingle, true, nil)
 		m.width, m.height = 100, 12
 		m.applyLayout()
 		m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // 逐格走到末尾,期间正常滚动

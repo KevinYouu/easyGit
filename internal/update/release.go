@@ -45,11 +45,6 @@ func NewReleaseClient() *ReleaseClient {
 	return newReleaseClient(githubAPIURL, githubDownloadURL)
 }
 
-// NewReleaseClientWithBaseURL 创建指向自定义服务的发布客户端（测试注入用）
-func NewReleaseClientWithBaseURL(apiBaseURL, downloadBaseURL string) *ReleaseClient {
-	return newReleaseClient(apiBaseURL, downloadBaseURL)
-}
-
 func newReleaseClient(apiBaseURL, downloadBaseURL string) *ReleaseClient {
 	// 基于默认传输克隆，仅覆盖响应头超时，保留连接池等默认调优
 	transport := http.DefaultTransport.(*http.Transport).Clone()

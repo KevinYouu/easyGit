@@ -72,10 +72,11 @@ func TestNewProgressModelWithoutSpinner(t *testing.T) {
 		},
 	}
 
-	model := NewProgressModelWithoutSpinner(commands)
+	model := NewProgressModel(commands)
+	model.showSpinner = false
 
 	if model == nil {
-		t.Fatal("NewProgressModelWithoutSpinner returned nil")
+		t.Fatal("NewProgressModel returned nil")
 	}
 
 	if len(model.commands) != len(commands) {
@@ -175,7 +176,8 @@ func TestProgressView(t *testing.T) {
 
 	t.Run("状态图标切换", func(t *testing.T) {
 		// 步骤进行中:已完成 ✓、运行中 ▶(无 spinner)、未决 ○,状态行 ▶
-		m := NewProgressModelWithoutSpinner(commands)
+		m := NewProgressModel(commands)
+		m.showSpinner = false
 		m.width = 80
 		m.currentStep = 1
 		m.executing = true
@@ -211,7 +213,8 @@ func TestProgressHelpBar(t *testing.T) {
 	}
 
 	t.Run("执行中渲染帮助栏", func(t *testing.T) {
-		m := NewProgressModelWithoutSpinner(commands)
+		m := NewProgressModel(commands)
+		m.showSpinner = false
 		m.width, m.height = 80, 24
 		m.executing = true
 		view := ansi.Strip(m.View().Content)
@@ -224,7 +227,8 @@ func TestProgressHelpBar(t *testing.T) {
 	})
 
 	t.Run("极小终端隐藏帮助栏", func(t *testing.T) {
-		m := NewProgressModelWithoutSpinner(commands)
+		m := NewProgressModel(commands)
+		m.showSpinner = false
 		m.width, m.height = 80, 4
 		m.executing = true
 		view := ansi.Strip(m.View().Content)
@@ -234,7 +238,8 @@ func TestProgressHelpBar(t *testing.T) {
 	})
 
 	t.Run("完成时保留退出提示", func(t *testing.T) {
-		m := NewProgressModelWithoutSpinner(commands)
+		m := NewProgressModel(commands)
+		m.showSpinner = false
 		m.width, m.height = 80, 24
 		m.isCompleted = true
 		view := ansi.Strip(m.View().Content)

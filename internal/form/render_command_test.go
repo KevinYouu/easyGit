@@ -272,7 +272,7 @@ func TestCommandTableRender(t *testing.T) {
 		for _, title := range []string{i18n.T("rebase.select.drop_commits"), i18n.T("rebase.select.squash_commits")} {
 			for _, sz := range tableSizes {
 				t.Run(fmt.Sprintf("%s %dx%d", title, sz.w, sz.h), func(t *testing.T) {
-					m := NewListModel(title, options, ListMulti)
+					m := newListModel(title, options, ListMulti, false, nil)
 					m.width, m.height = sz.w, sz.h
 					m.applyLayout()
 					assertTableView(t, m.View().Content, sz.w, sz.h, options, true)
@@ -284,7 +284,7 @@ func TestCommandTableRender(t *testing.T) {
 	t.Run("reset 提交列表", func(t *testing.T) {
 		options := tableOptions(20)
 		for _, sz := range tableSizes {
-			m := NewListModel(i18n.T("reset.select.commit"), options, ListSingle)
+			m := newListModel(i18n.T("reset.select.commit"), options, ListSingle, false, nil)
 			m.width, m.height = sz.w, sz.h
 			m.applyLayout()
 			assertTableView(t, m.View().Content, sz.w, sz.h, options, false)
@@ -312,7 +312,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{
 			name: "单选",
 			view: func(w, h int) string {
-				m := NewListModel(i18n.T("reset.select.commit"), options, ListSingle)
+				m := newListModel(i18n.T("reset.select.commit"), options, ListSingle, false, nil)
 				m.width, m.height = w, h
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
@@ -322,7 +322,7 @@ func TestTableListLongMessageSingleLine(t *testing.T) {
 		{
 			name: "多选",
 			view: func(w, h int) string {
-				m := NewListModel(i18n.T("rebase.select.drop_commits"), options, ListMulti)
+				m := newListModel(i18n.T("rebase.select.drop_commits"), options, ListMulti, false, nil)
 				m.width, m.height = w, h
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
@@ -381,7 +381,7 @@ func TestTableListLongMessageFullDisplay(t *testing.T) {
 		{
 			name: "单选",
 			view: func(w, h int) string {
-				m := NewListModel(i18n.T("reset.select.commit"), options, ListSingle)
+				m := newListModel(i18n.T("reset.select.commit"), options, ListSingle, false, nil)
 				m.width, m.height = w, h
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)
@@ -390,7 +390,7 @@ func TestTableListLongMessageFullDisplay(t *testing.T) {
 		{
 			name: "多选",
 			view: func(w, h int) string {
-				m := NewListModel(i18n.T("rebase.select.drop_commits"), options, ListMulti)
+				m := newListModel(i18n.T("rebase.select.drop_commits"), options, ListMulti, false, nil)
 				m.width, m.height = w, h
 				m.applyLayout()
 				return ansi.Strip(m.View().Content)

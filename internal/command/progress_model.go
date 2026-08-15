@@ -113,13 +113,6 @@ func NewProgressModelParallel(commands []CommandInfo, parallelFrom int) *Progres
 	return model
 }
 
-// NewProgressModelWithoutSpinner 创建不带spinner的进度模型
-func NewProgressModelWithoutSpinner(commands []CommandInfo) *ProgressModel {
-	model := NewProgressModel(commands)
-	model.showSpinner = false
-	return model
-}
-
 // tickMsg 动画帧消息
 type tickMsg time.Time
 

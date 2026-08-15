@@ -77,7 +77,7 @@ func TestReleaseClientLatestVersion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	version, err := client.LatestVersion()
 	if err != nil {
 		t.Fatalf("LatestVersion() unexpected error: %v", err)
@@ -94,7 +94,7 @@ func TestReleaseClientLatestVersionAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	_, err := client.LatestVersion()
 	if err == nil {
 		t.Fatal("expected error for HTTP 403")
@@ -110,7 +110,7 @@ func TestReleaseClientLatestVersionMissingTag(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	if _, err := client.LatestVersion(); err == nil {
 		t.Fatal("expected error for missing tag_name")
 	}
@@ -125,7 +125,7 @@ func TestReleaseClientDownloadFile(t *testing.T) {
 	tempDir := t.TempDir()
 	destPath := filepath.Join(tempDir, "asset.zip")
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	if err := client.DownloadFile(server.URL, destPath); err != nil {
 		t.Fatalf("DownloadFile() unexpected error: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestReleaseClientDownloadFileStatusError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	err := client.DownloadFile(server.URL, filepath.Join(t.TempDir(), "asset.zip"))
 	if err == nil {
 		t.Fatal("expected error for HTTP 404")
@@ -164,7 +164,7 @@ func TestReleaseClientChecksums(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	checksums, err := client.Checksums("v0.2.5")
 	if err != nil {
 		t.Fatalf("Checksums() unexpected error: %v", err)

@@ -270,7 +270,7 @@ func TestOptionLabel(t *testing.T) {
 
 // 极小终端(<6 行)不渲染帮助栏:经生产构造器驱动,内容不被挤压。
 func TestHelpBarHiddenOnTinyTerminal(t *testing.T) {
-	m := NewListModel("标题", []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}, ListSingle)
+	m := newListModel("标题", []config.Option{{Label: "a", Value: "a"}, {Label: "b", Value: "b"}, {Label: "c", Value: "c"}}, ListSingle, false, nil)
 	m.width, m.height = 80, 4
 	m.applyLayout()
 	view := ansi.Strip(m.View().Content)

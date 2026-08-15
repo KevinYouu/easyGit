@@ -231,7 +231,7 @@ func TestUpdateUnixEndToEnd(t *testing.T) {
 	}
 
 	// 本地版本为不可解析的开发版（默认 untracked），必然触发下载更新
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	if err := updateUnixTo(client, target); err != nil {
 		t.Fatalf("updateUnixTo() unexpected error: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestUpdateUnixAlreadyLatest(t *testing.T) {
 	defer server.Close()
 
 	target := filepath.Join(t.TempDir(), "easyGit")
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	if err := updateUnixTo(client, target); err != nil {
 		t.Fatalf("updateUnixTo() unexpected error: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestUpdateUnixChecksumMismatch(t *testing.T) {
 		t.Fatalf("failed to write old binary: %v", err)
 	}
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	err := updateUnixTo(client, target)
 	if err == nil {
 		t.Fatal("expected checksum mismatch error")
@@ -339,7 +339,7 @@ func TestUpdateUnixDownloadFailure(t *testing.T) {
 	defer server.Close()
 
 	target := filepath.Join(t.TempDir(), "easyGit")
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	err := updateUnixTo(client, target)
 	if err == nil {
 		t.Fatal("expected download failure error")
@@ -370,7 +370,7 @@ func TestUpdateUnixExtractFailure(t *testing.T) {
 		t.Fatalf("failed to write old binary: %v", err)
 	}
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	err := updateUnixTo(client, target)
 	if err == nil {
 		t.Fatal("expected extract failure error")
@@ -428,7 +428,7 @@ func TestUpdateUnixInstallFailure(t *testing.T) {
 		t.Fatalf("failed to write old binary: %v", err)
 	}
 
-	client := NewReleaseClientWithBaseURL(server.URL, server.URL)
+	client := newReleaseClient(server.URL, server.URL)
 	err = updateUnixTo(client, target)
 	if err == nil {
 		t.Fatal("expected install failure error")

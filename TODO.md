@@ -1,5 +1,15 @@
 # TODO
 
+## 已完成:死代码清理(colors/spinner 包及测试专用导出)
+
+- [x] 删除零引用包 `internal/colors`(仅自测使用)与 `internal/spinner`(全仓库无引用,command 包自带 spinner 实现)→ 同步删除 theme 中仅被 spinner 包使用的 5 个帧/图标函数
+- [x] 删除仅测试引用的导出函数:`theme`(RenderSelection/RenderMuted/RenderBadge/GetCustomTheme/GetProgressBarStyle + 孤儿变量 MutedStyle)、`i18n.GetSupportedLanguages`、`gitcmd.SelectRemote/SelectBranch`(config 命令已改用 SelectRemoteWithConfig)、`update.NewReleaseClientWithBaseURL`、`command.NewProgressModelWithoutSpinner`、`form.NewListModel/NewListModelWrap/NewListModelColumns`
+- [x] 测试同步:theme_test 删 9 个对应测试并重写 TestSelectorIndicators;form 测试 24 处改用私有 newListModel;update 测试 8 处改用私有 newReleaseClient;command 测试改用 NewProgressModel + showSpinner=false
+- [x] i18n 死键:`git.select.remote`/`git.select.branch`(zh/en)已无引用,删除
+- [x] 排查确认活代码:NewInputForm/NewConfirmForm(被 Input/Confirm 调用)、GetAllBranches/GetLatestTag 等(包内间接调用)、GetSpinnerFrames/GetHorizontalRule 等(command 包使用)均保留
+- [x] 文档:docs/features/测试用例.md、docs/TEST_STRATEGY.md 移除 colors/spinner 条目 → `make all` 全绿
+- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
+
 ## 已完成:主题双色板(默认自动 + 手动切换)
 
 - [x] `internal/theme` 双色板:Neutral Dark / Neutral Light 两套令牌(primary/muted/border/selection/diff 背景,新增 SelectionMuted),`ApplyMode(auto|dark|light)` 切换并重建包级样式;`DetectDarkBackground`(lipgloss HasDarkBackground,OSC 11 查询,失败/非 TTY 回退深色);huh 主题 `ThemeBase(current.isDark)` 动态适配

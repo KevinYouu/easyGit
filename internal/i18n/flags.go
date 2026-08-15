@@ -8,8 +8,3 @@ import (
 func AddLanguageFlag(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringP("language", "l", "", "Set language (en/zh)")
 }
-
-// GetSupportedLanguages returns a list of supported language codes
-func GetSupportedLanguages() []string {
-	return []string{"en", "zh"}
-}

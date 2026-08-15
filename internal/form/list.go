@@ -339,27 +339,6 @@ func optionDisplayText(opt config.Option) string {
 	return opt.Label + " " + opt.Description
 }
 
-// NewListModel 构造统一列表模型(生产与渲染测试共用同一构造路径,
-// 防止生产配置与测试复刻漂移);默认不循环导航,仅个别命令
-// 经 ListFormWrap/NewListModelWrap 显式开启;单选光标落预选项,多选预填选中集。
-func NewListModel(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
-	return newListModel(title, options, kind, false, nil, preselected...)
-}
-
-// NewListModelWrap 同 NewListModel,开启循环导航:光标在顶部按 ↑/k 跳至末尾,
-// 在底部按 ↓/j 跳回顶部。
-func NewListModelWrap(title string, options []config.Option, kind ListKind, preselected ...string) *listModel {
-	return newListModel(title, options, kind, true, nil, preselected...)
-}
-
-// NewListModelColumns 构造自适应多列布局列表(列数不硬编码,由 specs 声明):
-// 每行按 ColumnSpec 分列渲染,宽度策略见 CalculateAdaptiveColumns;
-// 单元格来源:Option.Cells 非空时按列索引取值,否则取 [Label, Description];
-// 极窄终端(< minColumnWidth)自动降级为单列(单元格空格连接后截断)。
-func NewListModelColumns(title string, specs []ColumnSpec, options []config.Option, kind ListKind, preselected ...string) *listModel {
-	return newListModel(title, options, kind, false, specs, preselected...)
-}
-
 // newListModel 构造逻辑实现;wrap 与 specs 为内部参数,导出入口默认零值。
 func newListModel(title string, options []config.Option, kind ListKind, wrap bool, specs []ColumnSpec, preselected ...string) *listModel {
 	// 检测终端尺寸

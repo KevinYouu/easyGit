@@ -201,8 +201,6 @@ var zhTranslations = map[string]string{
 	"git.remotes.title":        "远程仓库：",
 	"git.status.no_changes":    "没有文件更改。",
 	"git.status.title":         "文件状态：",
-	"git.select.remote":        "选择远程仓库",
-	"git.select.branch":        "选择目标分支",
 	"git.select.remote.first":  "检测到多个远程仓库,请选择默认推送的远程",
 	"git.select.remotes.first": "检测到多个远程仓库,请选择默认推送的远程(可多选)",
 	"git.select.branch.first":  "请选择默认推送的目标分支",
