@@ -173,6 +173,8 @@ func (m *multiInputModel) layoutInputs() {
 // View 渲染:预览行 + 每行(标题列/输入框/行尾简介) + 分隔线 + 帮助栏。
 // 简介用弱化色置于行尾,不混入标题、不占额外行;校验错误以红色替换
 // 聚焦行的行尾内容(不增加行高,矮终端友好)。
+// 聚焦行整行背景(参考列表 Selected 样式):标题/输入框/简介/行尾补白
+// 逐段携带同一背景色,内层 ANSI reset 不会清掉背景(无"打洞")。
 func (m *multiInputModel) View() tea.View {
 	var sb strings.Builder
 
@@ -186,25 +188,55 @@ func (m *multiInputModel) View() tea.View {
 
 	for i, spec := range m.specs {
 		focused := i == m.focused
+		var line strings.Builder
 		titleStyle := blurredTitleStyle
 		if focused {
-			titleStyle = focusedTitleStyle
+			titleStyle = focusedTitleStyle.Background(focusedRowBg)
+		}
+		// 输入框样式:textinput 样式私有,每帧 SetStyles 整组替换——
+		// 聚焦行 Prompt/Text/Placeholder 均带背景(右填充空格用 Text 样式,
+		// 占位符用 Placeholder 样式,缺一即"露底");非聚焦行恢复默认
+		if focused {
+			s := textinput.DefaultStyles(true)
+			s.Focused.Prompt = s.Focused.Prompt.Background(focusedRowBg).Foreground(theme.SelectionFg)
+			s.Focused.Text = s.Focused.Text.Background(focusedRowBg).Foreground(theme.SelectionFg)
+			s.Focused.Placeholder = s.Focused.Placeholder.Background(focusedRowBg).Foreground(lipgloss.Color("#d4d4d4"))
+			m.inputs[i].SetStyles(s)
+		} else {
+			m.inputs[i].SetStyles(textinput.DefaultStyles(true))
 		}
 		// 输入框宽度统一(见 layoutInputs):简介紧贴输入框且各 desc 列对齐
 		m.inputs[i].SetWidth(m.inputW)
-		sb.WriteString(titleStyle.Width(m.titleMaxW).Render(stepTitle(i, spec.Title)))
-		sb.WriteString(m.inputs[i].View())
+		line.WriteString(titleStyle.Width(m.titleMaxW).Render(stepTitle(i, spec.Title)))
+		line.WriteString(m.inputs[i].View())
 
-		// 行尾:校验错误(红)优先,否则弱化简介
+		// 行尾:校验错误(红)优先,否则弱化简介;聚焦行分隔空格/简介带背景
 		tail := ""
 		if focused && m.errMsg != "" {
-			tail = errorStyle.Render("✗ " + m.errMsg)
+			tail = errorStyle.Background(focusedRowBg).Render("✗ " + m.errMsg)
 		} else if spec.Desc != "" {
-			tail = mutedStyle.Render(spec.Desc)
+			if focused {
+				tail = focusedDescStyle.Background(focusedRowBg).Render(spec.Desc)
+			} else {
+				tail = mutedStyle.Render(spec.Desc)
+			}
 		}
 		if tail != "" {
-			sb.WriteString(" " + tail)
+			if focused {
+				line.WriteString(focusedPadStyle.Render(" "))
+			} else {
+				line.WriteString(" ")
+			}
+			line.WriteString(tail)
 		}
+
+		// 聚焦行行尾补白:背景只在有字符处显示,补带背景空格铺满终端宽
+		if focused {
+			if pad := m.width - lipgloss.Width(line.String()); pad > 0 {
+				line.WriteString(focusedPadStyle.Render(strings.Repeat(" ", pad)))
+			}
+		}
+		sb.WriteString(line.String())
 		if i < len(m.specs)-1 {
 			sb.WriteString("\n")
 		}
@@ -316,6 +348,16 @@ var (
 	errorStyle = lipgloss.NewStyle().
 			Foreground(theme.ErrorColor).
 			Bold(true)
+
+	// 聚焦行整行背景(参考列表 Selected 样式):标题/输入框/简介/分隔空格/
+	// 行尾补白逐段携带同一背景,避免内层 ANSI reset 清掉外层背景导致"打洞"
+	focusedRowBg = theme.SelectionBg
+	// 聚焦行简介提亮色:深灰底(#404040)上 muted(#a3a3a3)对比不足,提亮至中性 300
+	focusedDescStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#d4d4d4"))
+	// 聚焦行行尾补白(铺满终端宽,整行背景)与分隔空格
+	focusedPadStyle = lipgloss.NewStyle().
+			Background(theme.SelectionBg)
 )
 
 // lipglossWidth 字符显示宽度(CJK 按 2 列计算)

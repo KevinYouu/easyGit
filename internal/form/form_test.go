@@ -586,6 +586,84 @@ func TestLineReaderShortRead(t *testing.T) {
 
 // TestCompactMultiInput 紧凑多输入表单(配置中心版本号上限):
 // 预览行随输入实时刷新(Note + 值绑定)、矮终端完整渲染不溢出。
+// TestMultiInput_FocusedRowBackground 聚焦行整行背景(参考列表 Selected 样式):
+// 聚焦行逐段携带 SelectionBg 背景(#404040 → 48;2;64;64;64)——标题/输入框/
+// 简介/行尾补白,无"打洞";非聚焦行无背景;焦点切换/输入/校验错误后背景跟随。
+func TestMultiInput_FocusedRowBackground(t *testing.T) {
+	specs := []InputSpec{
+		{Title: "前缀", Default: "v", Desc: "留空则无前缀", AllowEmpty: true},
+		{Title: "主版本", Default: "1", Validate: nonNeg},
+		{Title: "后缀", Default: "-beta", Desc: "留空则无后缀", AllowEmpty: true},
+	}
+	values := []string{"v", "1", "-beta"}
+	ptrs := make([]*string, len(values))
+	for i := range values {
+		ptrs[i] = &values[i]
+	}
+	build := func() *multiInputModel {
+		m := pumpInit(t, newMultiInputModel(specs, ptrs, nil)).(*multiInputModel)
+		return pumpForm(t, m, tea.WindowSizeMsg{Width: 60, Height: 10}).(*multiInputModel)
+	}
+
+	const bg = "48;2;64;64;64" // theme.SelectionBg #404040 的 truecolor 背景序列
+	hasBg := func(line string) bool { return strings.Contains(line, bg) }
+
+	t.Run("聚焦行整行背景、非聚焦行无背景、行尾铺满", func(t *testing.T) {
+		f := build()
+		lines := strings.Split(f.View().Content, "\n")
+
+		// 聚焦字段 1:整行(标题→输入框→简介→补白)均含背景色码
+		if !hasBg(lines[0]) {
+			t.Errorf("聚焦行应含背景色码 %s:\n%q", bg, lines[0])
+		}
+		// 非聚焦行无背景
+		if hasBg(lines[1]) || hasBg(lines[2]) {
+			t.Errorf("非聚焦行不应含背景色码:\n%q\n%q", lines[1], lines[2])
+		}
+		// 聚焦行铺满终端宽(行尾补白)
+		if got := lipgloss.Width(ansi.Strip(lines[0])); got != 60 {
+			t.Errorf("聚焦行宽 = %d, want 60", got)
+		}
+	})
+
+	t.Run("焦点切换与输入后背景跟随", func(t *testing.T) {
+		f := build()
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel) // 聚焦字段 2
+		lines := strings.Split(f.View().Content, "\n")
+		if hasBg(lines[0]) || !hasBg(lines[1]) {
+			t.Errorf("焦点切换后背景应跟随: 行1=%v 行2=%v", hasBg(lines[0]), hasBg(lines[1]))
+		}
+
+		// 输入内容后背景仍在(输入框区域含背景)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "9"}).(*multiInputModel)
+		lines = strings.Split(f.View().Content, "\n")
+		if !hasBg(lines[1]) {
+			t.Errorf("输入后聚焦行仍应含背景色码:\n%q", lines[1])
+		}
+		if got := lipgloss.Width(ansi.Strip(lines[1])); got != 60 {
+			t.Errorf("输入后聚焦行宽 = %d, want 60", got)
+		}
+	})
+
+	t.Run("校验错误行仍整行背景", func(t *testing.T) {
+		specs2 := []InputSpec{
+			{Title: "字段A", Default: ""}, // 非空校验
+		}
+		v := []string{""}
+		p := []*string{&v[0]}
+		m := pumpInit(t, newMultiInputModel(specs2, p, nil)).(*multiInputModel)
+		m = pumpForm(t, m, tea.WindowSizeMsg{Width: 60, Height: 10}).(*multiInputModel)
+		m = pumpForm(t, m, tea.KeyPressMsg{Code: tea.KeyEnter}).(*multiInputModel)
+		lines := strings.Split(m.View().Content, "\n")
+		if !strings.Contains(ansi.Strip(lines[0]), "✗") {
+			t.Errorf("校验失败应显示错误标记:\n%q", lines[0])
+		}
+		if !hasBg(lines[0]) {
+			t.Errorf("错误行仍应整行背景:\n%q", lines[0])
+		}
+	})
+}
+
 func TestMultiInput_Unified(t *testing.T) {
 	specs := []InputSpec{
 		{Title: "前缀", Default: "v", Desc: "留空则无前缀", AllowEmpty: true},

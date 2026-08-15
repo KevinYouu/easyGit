@@ -12,6 +12,7 @@
 - [x] 测试:commit_type CRUD(含 errors.Is)+ BuildConfigOptions + FormatPatch;InputSpec.AllowEmpty/Validate(pumpInit 模拟 Init 链);lineReader 顺序/完整性;CalculateAdaptiveColumns 宽度计算;config 主列表/三列/删除多选渲染用例;紧凑多输入表单(预览实时刷新 + 8-10 行矮终端完整渲染)→ `make all` 全绿
 - [x] TERM=dumb 全流程回归:语言切换(预选标记)、推送配置设置/清除、提交类型添加(重复报错文案)/删除、标签版本上限表单编辑(逐字段输入/空行保留默认/非法数字拒绝)与数字校验;expect 真实 TUI 三列渲染(行尾简介弱化不混入标题) + 矮终端(8 行)表单 + 预览实时刷新 + ↑/↓/j/k 导航 + 退出无残影(统一 AltScreen)
 - [x] 多输入表单组件统一:自绘 multi_input.go(不经 huh 渲染,简介行尾弱化不占额外行),tc 命令(tag.go)与配置中心版本号上限共用 form.MultiInput(specs, preview);删除 huh 版卡片式/紧凑主题与构造器
+- [x] 多输入表单体验优化:输入列统一宽度(简介紧贴且列对齐)、循环导航(末字段 ↓/j 不误触保存)、聚焦行整行背景(逐段携带 SelectionBg 无"打洞",含行尾补白;测试断言背景色码/行宽/焦点跟随)
 - [x] docs/features/配置中心.md + README 双语命令表同步 + TODO 登记
 - [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
