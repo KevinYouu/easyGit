@@ -49,10 +49,8 @@ var cherryPickOptions = []CherryPickOption{
 }
 
 func CherryPick() error {
-	// First check if we're in a git repository
-	if !isGitRepository() {
-		return fmt.Errorf("%s", i18n.T("error.not.git.repo"))
-	}
+	// 非 git 仓库检查已由 root 层 PersistentPreRunE 统一拦截,
+	// 此处不再重复检查
 
 	// Get all commits from all branches
 	commits, err := getAllCommitsForCherryPick()
@@ -385,9 +383,4 @@ func executeCherryPick(commit Commit, option CherryPickOption) error {
 	}
 
 	return nil
-}
-
-func isGitRepository() bool {
-	cmd := exec.Command("git", "rev-parse", "--git-dir")
-	return cmd.Run() == nil
 }

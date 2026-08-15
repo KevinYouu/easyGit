@@ -7,32 +7,6 @@ import (
 	"github.com/KevinYouu/easyGit/internal/testutil"
 )
 
-func TestIsGitRepository(t *testing.T) {
-	t.Run("valid git repository", func(t *testing.T) {
-		tmpDir := testutil.SetupTestRepo(t)
-		oldDir, _ := os.Getwd()
-		os.Chdir(tmpDir)
-		defer os.Chdir(oldDir)
-
-		result := isGitRepository()
-		if !result {
-			t.Error("isGitRepository() = false, want true in git repo")
-		}
-	})
-
-	t.Run("not a git repository", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		oldDir, _ := os.Getwd()
-		os.Chdir(tmpDir)
-		defer os.Chdir(oldDir)
-
-		result := isGitRepository()
-		if result {
-			t.Error("isGitRepository() = true, want false in non-git directory")
-		}
-	})
-}
-
 func TestCherryPickOption_Structure(t *testing.T) {
 	// 测试 cherryPickOptions 的基本结构
 	if len(cherryPickOptions) == 0 {

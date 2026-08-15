@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os/exec"
+
 	"github.com/KevinYouu/easyGit/cmd/easygit/commands"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/spf13/cobra"
@@ -12,6 +15,17 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		commands.VersionCommand().Run(cmd, args)
 	},
+}
+
+// nonGitCommands 允许在非 git 仓库目录运行的命令:配置类/工具类命令
+// 不依赖仓库上下文,统一排除;其余命令在 root 层统一检查 git 仓库,
+// 避免各命令重复检查与分散报错。
+var nonGitCommands = map[string]bool{
+	"init":                    true,
+	"version":                 true,
+	"update":                  true,
+	"config":                  true,
+	"_internal_rebase_editor": true, // 变基期间由 git 调用,必然在仓库内
 }
 
 // updateRootCommandDescriptions updates all command descriptions based on current language
@@ -54,6 +68,17 @@ func updateRootCommandDescriptions() {
 }
 
 func init() {
+	// 非 git 仓库统一检查(子命令继承;root 自身无参数显示版本不检查)
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if cmd.Parent() == nil || nonGitCommands[cmd.Name()] {
+			return nil
+		}
+		if err := exec.Command("git", "rev-parse", "--git-dir").Run(); err != nil {
+			return fmt.Errorf("%s", i18n.T("error.not.git.repo"))
+		}
+		return nil
+	}
+
 	// Add language flag support
 	i18n.AddLanguageFlag(rootCmd)
 	// Add theme flag support (runtime priority, pre-parsed in main.go)
