@@ -61,19 +61,14 @@ func BuildConfigOptions() []Option {
 		options[1].Description = fmt.Sprintf(i18n.T("config.summary.push"), strings.Join(pushCfg.Remotes, ", "))
 	}
 
-	// 提交类型摘要(按 usage 排序,前 3 个,超长省略)
+	// 提交类型摘要(按 usage 排序,完整列出全部类型;
+	// 超宽时由渲染层 SafeTruncate 截断,数据层不再预省略)
 	commitTypes, _ := GetOptions()
-	labels := make([]string, 0, min(len(commitTypes), 3))
-	for i, o := range commitTypes {
-		if i >= 3 {
-			break
-		}
+	labels := make([]string, 0, len(commitTypes))
+	for _, o := range commitTypes {
 		labels = append(labels, o.Label)
 	}
 	summary := strings.Join(labels, ", ")
-	if len(commitTypes) > 3 {
-		summary += ", …"
-	}
 	options[2].Description = fmt.Sprintf(i18n.T("config.summary.commit.types"), summary)
 
 	// 标签版本上限摘要(读取失败回退默认值)

@@ -176,9 +176,15 @@ func TestBuildConfigOptions(t *testing.T) {
 		}
 	}
 
-	// 提交类型摘要包含默认类型
+	// 提交类型摘要完整列出全部类型(数据层不预省略,超宽由渲染层截断)
 	if !strings.Contains(opts[2].Description, "fix") {
 		t.Errorf("commit types summary = %q, want contains 'fix'", opts[2].Description)
+	}
+	commitTypes, _ := GetOptions()
+	for _, o := range commitTypes {
+		if !strings.Contains(opts[2].Description, o.Label) {
+			t.Errorf("commit types summary = %q, want contains %q(完整列出不省略)", opts[2].Description, o.Label)
+		}
 	}
 
 	// 标签版本上限摘要为默认 999.9.9
