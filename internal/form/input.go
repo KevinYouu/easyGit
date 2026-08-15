@@ -11,16 +11,20 @@ import (
 
 // newInputField 构造输入字段:占位符、提示符与非空校验统一在此配置,
 // NewInputForm 与 NewMultiInputForm 共用同一构造路径,防止两份配置漂移。
-// desc 可选:空串时不渲染描述行。提示符统一 ❯(与列表选中指示符一致)。
-func newInputField(title string, value *string, desc string) *huh.Input {
+// desc 可选:空串时不渲染描述行;allowEmpty 为 true 时跳过非空校验;
+// validate 可选:非空校验通过后执行的自定义校验。提示符统一 ❯(与列表选中指示符一致)。
+func newInputField(title string, value *string, desc string, allowEmpty bool, validate func(string) error) *huh.Input {
 	f := huh.NewInput().
 		Title(title).
 		Prompt("❯ ").
 		Placeholder(i18n.T("form.input.placeholder")).
 		Value(value).
 		Validate(func(str string) error {
-			if str == "" {
+			if str == "" && !allowEmpty {
 				return errors.New(i18n.T("form.input.empty.error"))
+			}
+			if validate != nil {
+				return validate(str)
 			}
 			return nil
 		})
@@ -36,7 +40,7 @@ func NewInputForm(title string, value *string) *Form {
 	// 直接使用紧凑模式
 	return newForm(
 		huh.NewForm(
-			huh.NewGroup(newInputField(title, value, "")),
+			huh.NewGroup(newInputField(title, value, "", false, nil)),
 		).WithTheme(theme.GetCompactTheme()).
 			WithShowHelp(false),
 		inputHelpKeys(),
@@ -44,11 +48,15 @@ func NewInputForm(title string, value *string) *Form {
 }
 
 // InputSpec 单页多输入表单的一项:标题、默认值与可选描述
-// (Desc 渲染为字段下方的弱化提示行,空串不显示)
+// (Desc 渲染为字段下方的弱化提示行,空串不显示);
+// AllowEmpty 为 true 时跳过非空校验(prefix/suffix 等可空字段);
+// Validate 可选:非空校验通过后执行的自定义校验(如数字格式)。
 type InputSpec struct {
-	Title   string
-	Default string
-	Desc    string
+	Title      string
+	Default    string
+	Desc       string
+	AllowEmpty bool
+	Validate   func(string) error
 }
 
 // NewMultiInputForm 构造单页多输入表单:所有输入框同页堆叠,Enter 逐字段推进、
@@ -62,7 +70,7 @@ func NewMultiInputForm(specs []InputSpec, values []*string) *Form {
 	for i, spec := range specs {
 		// 标准数字序号(1. 2. …)标识输入步骤,聚焦时与标题同加粗
 		title := stepTitle(i, spec.Title)
-		fields = append(fields, newInputField(title, values[i], spec.Desc))
+		fields = append(fields, newInputField(title, values[i], spec.Desc, spec.AllowEmpty, spec.Validate))
 	}
 	return newForm(
 		huh.NewForm(

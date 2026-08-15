@@ -68,6 +68,14 @@ var commandSelectCases = []struct {
 	}},
 	// 分支选项无装饰前缀
 	{command: "branch delete", title: i18n.T("branch.delete.select"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},
+	// 配置中心主列表:Label 为配置项名称 + 当前值单行摘要(代表值;
+	// 首词 ≤8 字符落入 hash 列不截断,其余入消息列,整行匹配)
+	{command: "config center", title: i18n.T("config.select.title"), labels: []string{
+		"Language " + i18n.T("config.summary.language.en"),
+		"Push " + i18n.T("config.summary.push.not.set"),
+		"Commit Types " + fmt.Sprintf(i18n.T("config.summary.commit.types"), "fix, feat, …"),
+		"Tag Version " + fmt.Sprintf(i18n.T("config.summary.tag.patch"), "999.9.9"),
+	}},
 	{command: "remote select", title: i18n.T("git.select.remote"), labels: []string{"origin", "upstream", "github"}},
 	{command: "remote branch", title: i18n.T("git.select.branch"), labels: []string{"main", "develop", "feature/login", "release/v2.0"}},
 	{command: "merge target", title: i18n.T("merge.select.target"), labels: []string{"main", "develop", "feature/login", "fix/typo", "release/v1.2.0"}},

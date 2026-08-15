@@ -328,6 +328,37 @@ func defaultTableStyles() table.Styles {
 // 若每次新建缓冲读取器,前一个表单会提前读走后续输入,后一个表单会误判为 EOF。
 var stdinBuf = bufio.NewReader(os.Stdin)
 
+// lineReader 包装共享 stdinBuf 的行级读取器,供 huh accessible 表单使用:
+// huh 内部 PromptString 每次新建 bufio.Scanner,Scanner 会从底层 Reader
+// 预读大块数据到私有缓冲,若直接传入共享 stdinBuf,多字段表单(如 MultiInput)
+// 的后续字段将读到 EOF(数据被废弃 Scanner 吞掉)。包装后每次 Read 至多返回
+// 一行,Scanner 消费一行后内部无残留,后续表单可继续从 stdinBuf 读下一行。
+type lineReader struct {
+	br      *bufio.Reader
+	pending []byte
+	eof     bool
+}
+
+// Read 每次至多返回一行数据;底层 EOF 且已消费完最后一行时返回 io.EOF。
+func (l *lineReader) Read(p []byte) (int, error) {
+	if len(l.pending) == 0 && !l.eof {
+		line, err := l.br.ReadString('\n')
+		l.pending = []byte(line)
+		if err != nil {
+			l.eof = true
+			if len(l.pending) == 0 {
+				return 0, err
+			}
+		}
+	}
+	n := copy(p, l.pending)
+	l.pending = l.pending[n:]
+	if len(l.pending) == 0 && l.eof {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
 // ListForm 列表选择入口:单选返回 1 个值,多选返回全部选中值(按选项顺序)。
 // 默认不循环导航;TERM=dumb 时走无障碍纯文本路径(脚本管道兼容)。
 func ListForm(title string, options []config.Option, kind ListKind, preselected ...string) ([]string, error) {

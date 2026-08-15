@@ -1,5 +1,17 @@
 # TODO
 
+## 已完成:配置中心(config)统一所有可配置项
+
+- [x] 新增 `easyGit config` 子命令:主列表(单选)列出全部可配置项,每项 Description 实时显示当前值摘要;选中进入子流程,完成后返回主列表循环,Esc 退出;语言切换后列表按新语言重建即时生效
+- [x] 四个配置项:界面语言(复用原 set-language 逻辑)、推送配置(子菜单「设置/清除/返回」,clear 参数并入菜单)、提交类型(新增 AddCommitType/DeleteCommitTypes,删除显示 usage 使用次数,不允许删空)、标签版本上限(单页 MultiInput 5 字段,数字校验非负整数,prefix/suffix 可空)
+- [x] `InputSpec` 新增 `AllowEmpty`(跳过非空校验)与 `Validate`(自定义校验)字段,向后兼容 → `internal/form/input.go`
+- [x] 移除一级命令 `set-language` / `set-push-config`,收敛到 config 单一入口 → `cmd/easygit/root.go`
+- [x] 修复 TERM=dumb 管道脚本输入源 bug:accessible 模式表单统一 `WithInput(stdinBuf)` + `lineReader` 行级包装(防 huh 内部 Scanner 预读吞掉 MultiInput 后续字段输入),顺带修复既有 pa 列表→输入流程 → `internal/form/form.go` / `list.go`
+- [x] 测试:commit_type CRUD + BuildConfigOptions + FormatPatch;InputSpec.AllowEmpty/Validate(pumpInit 模拟 Init 链);lineReader 顺序/完整性;config 主列表渲染用例 → `make all` 全绿
+- [x] TERM=dumb 全流程回归:语言切换、推送配置设置/清除、提交类型添加/删除、标签版本上限编辑与数字校验
+- [x] docs/features/配置中心.md + README 双语命令表同步 + TODO 登记
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:MultiInput 卡片化 UI 优化(焦点/模糊统一容器、序号标题、描述行)
 
 - [x] 新增 `GetMultiInputTheme`:所有字段统一带边框卡片(边框 + Padding(0,1)),焦点边框 `PrimaryColor` 高亮 + 标题加粗,模糊边框 `BorderColor` + 标题弱化;两态同尺寸,Enter 切换焦点零布局跳变(修复旧版焦点无框/模糊有框割裂)→ `internal/theme/theme.go`

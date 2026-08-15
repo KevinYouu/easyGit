@@ -1,6 +1,6 @@
 .vscode/
 .builds/
 coverage.out
-easyGit
+/easyGit
 test-repo
 rebase-test-repo

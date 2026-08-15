@@ -9,25 +9,48 @@ import (
 	"github.com/KevinYouu/easyGit/internal/gitcmd"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
-	"github.com/spf13/cobra"
 )
 
-var setPushConfigCmd = &cobra.Command{
-	Use:   "set-push-config",
-	Short: i18n.T("push.config.short"),
-	Run: func(cmd *cobra.Command, args []string) {
-		// 如果第一个参数是 "clear",清除配置
-		if len(args) > 0 && args[0] == "clear" {
-			clearPushConfig()
-			return
-		}
+// configPush 推送配置子流程:子菜单提供「设置推送配置 / 清除推送配置 / 返回」。
+func configPush() {
+	options := []config.Option{
+		{
+			Label:       i18n.T("config.push.setup"),
+			Description: i18n.T("config.push.setup.desc"),
+			Value:       "setup",
+		},
+		{
+			Label:       i18n.T("config.push.clear"),
+			Description: i18n.T("config.push.clear.desc"),
+			Value:       "clear",
+		},
+		{
+			Label:       i18n.T("config.back"),
+			Description: i18n.T("config.back.desc"),
+			Value:       "back",
+		},
+	}
 
-		// 否则,设置新配置(会先显示当前配置,然后询问是否修改)
+	selected, err := form.ListForm(i18n.T("config.push.menu.title"), options, form.ListSingle)
+	if err != nil {
+		// 取消:返回配置中心
+		return
+	}
+
+	switch selected[0] {
+	case "setup":
 		setPushConfig()
-	},
+	case "clear":
+		clearPushConfig()
+	}
 }
 
 func clearPushConfig() {
+	// 清除前确认(不可撤销)
+	if !form.Confirm(i18n.T("config.push.clear.confirm")) {
+		return
+	}
+
 	err := config.ClearPushConfig()
 	if err != nil {
 		logs.Error(i18n.T("error.clear.push.config"))
@@ -76,9 +99,4 @@ func setPushConfig() {
 	remotesStr := strings.Join(remotes, ", ")
 	logs.Success(fmt.Sprintf(i18n.T("push.config.saved.remotes"), remotesStr))
 	logs.Info(i18n.T("push.config.will.use.current.branch"))
-}
-
-// SetPushConfigCommand 返回 set-push-config 命令
-func SetPushConfigCommand() *cobra.Command {
-	return setPushConfigCmd
 }

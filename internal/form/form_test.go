@@ -1,7 +1,10 @@
 package form
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -83,6 +86,23 @@ func pumpForm(t *testing.T, model tea.Model, msg tea.Msg) tea.Model {
 		m, cmd = m.Update(msg)
 	}
 	return m
+}
+
+// pumpInit 模拟 tea 程序启动:执行模型 Init 命令链(聚焦首个字段、请求窗口尺寸),
+// 使首字段的 textinput 处于已聚焦状态,后续 Text 键才能插入字符。
+// 现有用例先按 Enter 触发导航再输入,不依赖本辅助;需要首字段直接输入时使用。
+func pumpInit(t *testing.T, model tea.Model) tea.Model {
+	t.Helper()
+	cmd := model.Init()
+	for cmd != nil {
+		msg := cmd()
+		if msg == nil {
+			break
+		}
+		model = pumpForm(t, model, msg)
+		cmd = nil
+	}
+	return model
 }
 
 // TestMultiInput_Construction 单页多输入表单构造断言:
@@ -175,6 +195,81 @@ func TestMultiInput_Construction(t *testing.T) {
 		}
 		if values[0] != "v1.1.0" || values[1] != "feat: 打标签" {
 			t.Errorf("values = %v, want [v1.1.0 feat: 打标签]", values)
+		}
+	})
+
+	t.Run("AllowEmpty 跳过非空校验", func(t *testing.T) {
+		// prefix/suffix 等可空字段:空值不触发非空校验,可正常推进
+		specs := []InputSpec{
+			{Title: "前缀", AllowEmpty: true},
+			{Title: "主版本号"},
+		}
+		values := make([]string, len(specs))
+		ptrs := make([]*string, len(values))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		f := pumpInit(t, NewMultiInputForm(specs, ptrs)).(*Form)
+		f = pumpForm(t, f, tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+
+		// 字段 1 空值 Enter:AllowEmpty 跳过非空校验,推进到字段 2
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateNormal {
+			t.Fatalf("AllowEmpty 空值 Enter 后 State = %v, want StateNormal", f.State)
+		}
+		if got := f.GetFocusedField().GetValue(); got != "" {
+			t.Errorf("应聚焦字段 2,当前值 = %q", got)
+		}
+
+		// 字段 2 空值 Enter:非空校验仍生效,不推进
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateNormal {
+			t.Fatalf("字段 2 空值 Enter 后 State = %v, want StateNormal", f.State)
+		}
+		errs := f.Errors()
+		if len(errs) != 1 || errs[0].Error() != i18n.T("form.input.empty.error") {
+			t.Errorf("Errors() = %v, want [%q]", errs, i18n.T("form.input.empty.error"))
+		}
+	})
+
+	t.Run("Validate 自定义校验生效", func(t *testing.T) {
+		validate := func(s string) error {
+			if s != "42" {
+				return errors.New("must be 42")
+			}
+			return nil
+		}
+		specs := []InputSpec{
+			{Title: "数字", Validate: validate},
+		}
+		values := make([]string, 1)
+		ptrs := make([]*string, len(values))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		f := pumpInit(t, NewMultiInputForm(specs, ptrs)).(*Form)
+		f = pumpForm(t, f, tea.WindowSizeMsg{Width: 80, Height: 12}).(*Form)
+
+		// 非法值:自定义校验报错,不推进
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "7"}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateNormal {
+			t.Fatalf("非法值 Enter 后 State = %v, want StateNormal", f.State)
+		}
+		errs := f.Errors()
+		if len(errs) != 1 || errs[0].Error() != "must be 42" {
+			t.Errorf("Errors() = %v, want [must be 42]", errs)
+		}
+
+		// 退格清空非法输入后输入合法值:提交成功
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyBackspace}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Text: "42"}).(*Form)
+		f = pumpForm(t, f, tea.KeyPressMsg{Code: tea.KeyEnter}).(*Form)
+		if f.State != huh.StateCompleted {
+			t.Fatalf("合法值 Enter 后 State = %v, want StateCompleted", f.State)
+		}
+		if values[0] != "42" {
+			t.Errorf("values[0] = %q, want 42", values[0])
 		}
 	})
 }
@@ -426,4 +521,61 @@ func TestListWrap(t *testing.T) {
 		m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 		m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	})
+}
+
+// TestLineReaderSequential 行级包装读取器:huh accessible 表单的 PromptString
+// 每次新建 bufio.Scanner,Scanner 会预读底层 Reader 到私有缓冲;lineReader
+// 每次 Read 至多返回一行,保证多字段表单(Input/Confirm/MultiInput)顺序读取
+// 共享 stdinBuf 时不会因前一个 Scanner 的预读吞掉后续输入。
+func TestLineReaderSequential(t *testing.T) {
+	src := bufio.NewReader(strings.NewReader("v\n2\n3\n"))
+	lr := &lineReader{br: src}
+
+	// 模拟 MultiInput 的 3 个字段:每个字段新建 Scanner
+	got := make([]string, 0, 3)
+	for i := range 3 {
+		sc := bufio.NewScanner(lr)
+		if !sc.Scan() {
+			t.Fatalf("第 %d 次读取失败: %v", i+1, sc.Err())
+		}
+		got = append(got, sc.Text())
+	}
+
+	want := []string{"v", "2", "3"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("第 %d 行 = %q, want %q", i+1, got[i], want[i])
+		}
+	}
+
+	// 读取耗尽后返回 EOF
+	sc := bufio.NewScanner(lr)
+	if sc.Scan() {
+		t.Errorf("预期 EOF,却读到 %q", sc.Text())
+	}
+}
+
+// TestLineReaderShortRead 小缓冲 Read 请求(调用方分段读取)数据完整不丢失。
+// lineReader 仅保证「Scanner 大缓冲场景每次 Read 至多一行」;小缓冲时按
+// Reader 常规语义分段返回,数据顺序与完整性不受影响。
+func TestLineReaderShortRead(t *testing.T) {
+	src := bufio.NewReader(strings.NewReader("hello world\nnext\n"))
+	lr := &lineReader{br: src}
+
+	// 用 4 字节小缓冲读取全部数据,验证无丢失、无错乱、EOF 正常
+	buf := make([]byte, 4)
+	all := make([]byte, 0, 18)
+	for {
+		n, err := lr.Read(buf)
+		all = append(all, buf[:n]...)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("Read failed: %v", err)
+		}
+	}
+	if string(all) != "hello world\nnext\n" {
+		t.Errorf("读取结果 = %q, want %q", all, "hello world\nnext\n")
+	}
 }

@@ -21,7 +21,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 
 - ⚡ **One-Command Workflows** - Push all changes or select specific files with a single command
 - 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus
-- 🔧 **Smart Configuration** - Save your push preferences (remote/branch) and language settings
+- 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences, commit types, and tag version cap
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components; full-width divider lines frame every screen, and a `❯` indicator follows your cursor across all selection lists
 - 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
@@ -176,11 +176,8 @@ easyGit squash  # or: easyGit sq
 # Drop/Delete specific commits
 easyGit drop  # or: easyGit d
 
-# Configure push settings (remote and branch)
-easyGit set-push-config
-
-# Set interface language
-easyGit set-language
+# Configure easyGit (language, push settings, commit types, tag version cap)
+easyGit config
 
 # Update easyGit
 easyGit update
@@ -216,13 +213,12 @@ easyGit update
 
 ### Configuration & Utilities
 
-| Command           | Alias | Description                                 | Use Case                             |
-| ----------------- | ----- | ------------------------------------------- | ------------------------------------ |
-| `init`            | -     | Initialize easyGit configuration            | First-time setup (usually automatic) |
-| `set-push-config` | -     | Configure default push remote(s) and branch | Save your preferred push settings    |
-| `set-language`    | -     | Set default language                        | Change interface language            |
-| `update`          | -     | Update easyGit to latest version            | Get new features and bug fixes       |
-| `version`         | `v`   | Show current version information            | Check installed version              |
+| Command           | Alias | Description                                              | Use Case                                            |
+| ----------------- | ----- | -------------------------------------------------------- | --------------------------------------------------- |
+| `init`            | -     | Initialize easyGit configuration                         | First-time setup (usually automatic)                |
+| `config`          | -     | Open the interactive configuration center                | Change language, push settings, commit types, tag version cap |
+| `update`          | -     | Update easyGit to latest version                         | Get new features and bug fixes                      |
+| `version`         | `v`   | Show current version information                         | Check installed version                             |
 
 ---
 

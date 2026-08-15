@@ -5,20 +5,12 @@ import (
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
-	"github.com/spf13/cobra"
 )
 
-var SetLanguageCmd = &cobra.Command{
-	Use:   "set-language",
-	Short: i18n.T("language.set.short"),
-	Long:  "Set the default language for easyGit (en/zh)",
-	Run: func(cmd *cobra.Command, args []string) {
-		setLanguageInteractive()
-	},
-}
-
-func setLanguageInteractive() {
-	// 获取当前语言设置
+// configLanguage 界面语言子流程:单选 en/zh,保存后立即应用,
+// 返回配置中心主列表时按新语言重建(即时生效)。
+func configLanguage() {
+	// 获取当前语言设置,预选对应选项
 	currentLang := i18n.GetCurrentLanguage()
 	var preselected string
 	if currentLang == i18n.LangZH {
@@ -41,7 +33,6 @@ func setLanguageInteractive() {
 		},
 	}
 
-	// 使用统一列表表单选择语言
 	selectedLangs, err := form.ListForm(i18n.T("language.select.title"), options, form.ListSingle, preselected)
 	if err != nil {
 		logs.Error(i18n.T("language.set.error") + ": " + err.Error())

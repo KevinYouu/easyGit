@@ -36,6 +36,13 @@ func newForm(f *huh.Form, keys []HelpKey) *Form {
 	km.Select.Filter = key.NewBinding(key.WithKeys("/"), key.WithDisabled())
 	km.MultiSelect.Filter = key.NewBinding(key.WithKeys("/"), key.WithDisabled())
 	f.WithKeyMap(km)
+	// accessible 模式统一输入源:列表表单经共享 stdinBuf 读取,
+	// Input/Confirm/MultiInput 若不指向同一缓冲,管道输入会被列表的
+	// 预读缓冲吞掉导致后续表单读不到数据(TERM=dumb 脚本管线回归)。
+	// 包装为 lineReader 防止 huh 内部 Scanner 预读吞掉多字段的后续输入。
+	if isAccessibleMode() {
+		f.WithInput(&lineReader{br: stdinBuf})
+	}
 	return &Form{
 		Form:     f,
 		helpKeys: keys,
