@@ -2,9 +2,9 @@ package gitcmd
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
-	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 )
 
@@ -13,8 +13,12 @@ type FileStatus struct {
 	Path   string
 }
 
+// getFileStatuses 获取工作区文件状态(git status --porcelain)。
+// 直接执行而非走 spinner:瞬时命令,spinner 只会拖慢响应,
+// 保证 ps 启动即显示选择列表。
 func getFileStatuses() ([]FileStatus, error) {
-	output, err := command.RunCmdWithSpinnerOptions("git", []string{"status", "--porcelain"}, i18n.T("progress.loading"), i18n.T("success.step.complete"), false)
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf(i18n.T("error.command.execution")+" %w", err)
 	}
