@@ -1,12 +1,15 @@
 package gitcmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"unicode"
 
 	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/config"
@@ -89,13 +92,24 @@ func handleInProgressRebase() error {
 		return nil
 	case "--continue":
 		output, err := runGitRebaseContinue()
-		if err != nil && !isRebaseInProgress() {
-			return handleRebaseError(output, err)
+		if err != nil {
+			// 失败但变基仍在进行(如 pre-commit hook 失败):先展示失败原因,避免被吞
+			if trimmed := strings.TrimSpace(output); trimmed != "" {
+				logs.Error(trimmed)
+			}
+			if !isRebaseInProgress() {
+				return handleRebaseError(output, err)
+			}
 		}
 	default: // --skip
 		output, err := command.RunCmd("git", []string{"rebase", "--skip"}, "")
-		if err != nil && !isRebaseInProgress() {
-			return handleRebaseError(output, err)
+		if err != nil {
+			if trimmed := strings.TrimSpace(output); trimmed != "" {
+				logs.Error(trimmed)
+			}
+			if !isRebaseInProgress() {
+				return handleRebaseError(output, err)
+			}
 		}
 	}
 
@@ -285,12 +299,28 @@ func handleRebaseConflict() error {
 		case "edit":
 			openConflictsInEditor(files)
 		case "continue":
-			// 暂存已解决的文件后继续(未解决文件也会被标记 resolved,由用户负责)
+			// 暂存已解决的文件后继续
 			if len(files) > 0 {
+				// 仍含冲突标记的文件:确认后按当前内容暂存,避免冲突标记误入提交
+				if hasUnresolvedMarkers(files) {
+					confirmed := form.Confirm(i18n.T("rebase.conflict.unresolved.confirm"))
+					if !confirmed {
+						continue
+					}
+				}
 				args := append([]string{"add"}, files...)
-				exec.Command("git", args...).CombinedOutput()
+				if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+					logs.Error(i18n.T("rebase.conflict.git.add.failed") + ": " + strings.TrimSpace(string(out)))
+					continue
+				}
 			}
 			output, err := runGitRebaseContinue()
+			if err != nil {
+				// 失败但变基仍在进行(如 pre-commit hook 失败):先展示失败原因,避免被吞
+				if trimmed := strings.TrimSpace(output); trimmed != "" {
+					logs.Error(trimmed)
+				}
+			}
 			if !isRebaseInProgress() {
 				if err != nil {
 					return handleRebaseError(output, err)
@@ -301,6 +331,11 @@ func handleRebaseConflict() error {
 			logs.Info(i18n.T("rebase.conflict.still"))
 		case "skip":
 			output, err := command.RunCmd("git", []string{"rebase", "--skip"}, "")
+			if err != nil {
+				if trimmed := strings.TrimSpace(output); trimmed != "" {
+					logs.Error(trimmed)
+				}
+			}
 			if !isRebaseInProgress() {
 				if err != nil {
 					return handleRebaseError(output, err)
@@ -310,7 +345,9 @@ func handleRebaseConflict() error {
 			}
 			logs.Info(i18n.T("rebase.conflict.still"))
 		case "abort":
-			command.RunCmd("git", []string{"rebase", "--abort"}, "")
+			if output, err := command.RunCmd("git", []string{"rebase", "--abort"}, ""); err != nil {
+				return handleRebaseError(output, err)
+			}
 			logs.Info(i18n.T("rebase.abort.message"))
 			return nil
 		case "quit":
@@ -348,15 +385,26 @@ func runGitRebaseContinue() (string, error) {
 	return string(output), err
 }
 
-// openConflictsInEditor 用 $EDITOR/$VISUAL 打开冲突文件(回退 vim/vi/nano);
-// 无可用编辑器时展示文件清单,提示手动解决后回到菜单继续
+// openConflictsInEditor 打开冲突文件:配置中心编辑器优先,其次 $EDITOR/$VISUAL,
+// 最后回退 vim/vi/nano(Windows 追加 notepad);已知异步编辑器(code/subl/atom)
+// 自动补 -w 等待标志;无可用编辑器时展示文件清单,提示手动解决后回到菜单继续
 func openConflictsInEditor(files []string) {
-	editor := os.Getenv("EDITOR")
+	editor := ""
+	if configured, err := config.GetConflictEditor(); err == nil && configured != "" {
+		editor = configured
+	}
+	if editor == "" {
+		editor = os.Getenv("EDITOR")
+	}
 	if editor == "" {
 		editor = os.Getenv("VISUAL")
 	}
 	if editor == "" {
-		for _, candidate := range []string{"vim", "vi", "nano"} {
+		candidates := []string{"vim", "vi", "nano"}
+		if runtime.GOOS == "windows" {
+			candidates = append(candidates, "notepad")
+		}
+		for _, candidate := range candidates {
 			if path, err := exec.LookPath(candidate); err == nil {
 				editor = path
 				break
@@ -373,13 +421,116 @@ func openConflictsInEditor(files []string) {
 		return
 	}
 
-	cmd := exec.Command(editor, files...)
+	program, args, perFile := resolveConflictEditor(editor, files)
+
+	// Windows 记事本:一次只支持一个文件且无等待标志,经 start /wait 逐个打开
+	if perFile && runtime.GOOS == "windows" {
+		for _, f := range files {
+			cmd := exec.Command("cmd", "/c", "start", "/wait", program, f)
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				logs.Error(i18n.T("rebase.conflict.editor.failed") + ": " + err.Error())
+			}
+		}
+		return
+	}
+
+	cmd := exec.Command(program, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		logs.Error(i18n.T("rebase.conflict.editor.failed") + ": " + err.Error())
 	}
+}
+
+// asyncEditors 启动后立即返回的编辑器:需补等待标志(-w/--wait)才能在编辑完成前阻塞流程
+var asyncEditors = map[string]bool{
+	"code": true, // VS Code
+	"subl": true, // Sublime Text
+	"atom": true, // Atom
+}
+
+// resolveConflictEditor 解析编辑器命令为可执行参数:
+// 1. 按空白拆分(支持 "code -w" 这类带参数配置;引号包裹的 Windows 路径原样保留)
+// 2. 已知异步编辑器自动补 -w(已带等待标志不重复)
+// 3. 返回 perFile=true 表示该编辑器一次只能打开一个文件(Windows notepad)
+func resolveConflictEditor(editor string, files []string) (program string, args []string, perFile bool) {
+	fields := splitCommand(editor)
+	program = fields[0]
+	args = fields[1:]
+
+	base := program
+	if idx := strings.LastIndexAny(base, `/\`); idx >= 0 {
+		base = base[idx+1:]
+	}
+	base = strings.TrimSuffix(base, ".exe")
+	if asyncEditors[base] && !hasWaitFlag(args) {
+		args = append(args, "-w")
+	}
+	args = append(args, files...)
+
+	if strings.EqualFold(base, "notepad") {
+		perFile = true
+	}
+	return program, args, perFile
+}
+
+// hasWaitFlag 检查参数中是否已有等待标志
+func hasWaitFlag(args []string) bool {
+	for _, a := range args {
+		if a == "-w" || a == "--wait" || a == "--wait-for-input" {
+			return true
+		}
+	}
+	return false
+}
+
+// conflictMarkers 冲突标记:文件含任一时视为未解决(git 不会拦截含标记内容的提交)
+var conflictMarkers = [][]byte{[]byte("<<<<<<<"), []byte(">>>>>>>")}
+
+// hasUnresolvedMarkers 检查文件列表是否仍有未解决文件(内容含冲突标记)
+func hasUnresolvedMarkers(files []string) bool {
+	for _, f := range files {
+		content, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		for _, marker := range conflictMarkers {
+			if bytes.Contains(content, marker) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// splitCommand 拆分命令字符串为参数:引号包裹的路径(如 Windows 带空格路径)
+// 原样保留,不在引号内的空白作为分隔符。
+// TODO: 如需支持 POSIX 单引号与反斜杠转义,在此扩展(当前 Windows 双引号场景已够用)。
+func splitCommand(s string) []string {
+	var args []string
+	var cur strings.Builder
+	inQuote := false
+	for _, r := range s {
+		switch {
+		case r == '"':
+			inQuote = !inQuote
+		case unicode.IsSpace(r) && !inQuote:
+			if cur.Len() > 0 {
+				args = append(args, cur.String())
+				cur.Reset()
+			}
+		default:
+			cur.WriteRune(r)
+		}
+	}
+	if cur.Len() > 0 {
+		args = append(args, cur.String())
+	}
+	return args
 }
 
 // getParentHash gets the parent hash of a specific commit

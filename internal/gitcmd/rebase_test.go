@@ -231,3 +231,165 @@ func TestHandleRebaseConflictQuit(t *testing.T) {
 		t.Error("rebase should remain pending after quit")
 	}
 }
+
+// ─── 冲突编辑器解析测试 ──────────────────────────────────────────────────────
+
+func TestResolveConflictEditor(t *testing.T) {
+	files := []string{"f.txt", "g.txt"}
+
+	tests := []struct {
+		name     string
+		editor   string
+		wantProg string
+		wantArgs []string
+		perFile  bool
+	}{
+		{
+			name:     "vim 直通",
+			editor:   "vim",
+			wantProg: "vim",
+			wantArgs: []string{"f.txt", "g.txt"},
+		},
+		{
+			name:     "code 自动补 -w",
+			editor:   "code",
+			wantProg: "code",
+			wantArgs: []string{"-w", "f.txt", "g.txt"},
+		},
+		{
+			name:     "code 已带 -w 不重复",
+			editor:   "code -w",
+			wantProg: "code",
+			wantArgs: []string{"-w", "f.txt", "g.txt"},
+		},
+		{
+			name:     "code --wait 不重复",
+			editor:   "code --wait",
+			wantProg: "code",
+			wantArgs: []string{"--wait", "f.txt", "g.txt"},
+		},
+		{
+			name:     "带参数自定义命令",
+			editor:   "code -r --new-window",
+			wantProg: "code",
+			wantArgs: []string{"-r", "--new-window", "-w", "f.txt", "g.txt"},
+		},
+		{
+			name:     "subl 自动补等待",
+			editor:   "subl",
+			wantProg: "subl",
+			wantArgs: []string{"-w", "f.txt", "g.txt"},
+		},
+		{
+			name:     "Windows 引号路径识别",
+			editor:   `"C:\Program Files\Microsoft VS Code\code.exe"`,
+			wantProg: `C:\Program Files\Microsoft VS Code\code.exe`,
+			wantArgs: []string{"-w", "f.txt", "g.txt"},
+		},
+		{
+			name:     "Windows 引号路径带参数",
+			editor:   `"C:\Program Files\Sublime Text\subl.exe" --wait`,
+			wantProg: `C:\Program Files\Sublime Text\subl.exe`,
+			wantArgs: []string{"--wait", "f.txt", "g.txt"},
+		},
+		{
+			name:     "notepad 逐文件标志",
+			editor:   "notepad",
+			wantProg: "notepad",
+			wantArgs: []string{"f.txt", "g.txt"},
+			perFile:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prog, args, perFile := resolveConflictEditor(tt.editor, files)
+			if prog != tt.wantProg {
+				t.Errorf("program = %q, want %q", prog, tt.wantProg)
+			}
+			if len(args) != len(tt.wantArgs) {
+				t.Fatalf("args = %v, want %v", args, tt.wantArgs)
+			}
+			for i := range args {
+				if args[i] != tt.wantArgs[i] {
+					t.Fatalf("args = %v, want %v", args, tt.wantArgs)
+				}
+			}
+			if perFile != tt.perFile {
+				t.Errorf("perFile = %v, want %v", perFile, tt.perFile)
+			}
+		})
+	}
+}
+
+func TestHasWaitFlag(t *testing.T) {
+	if !hasWaitFlag([]string{"-w"}) || !hasWaitFlag([]string{"--wait"}) || !hasWaitFlag([]string{"--wait-for-input"}) {
+		t.Error("hasWaitFlag 应识别全部等待标志")
+	}
+	if hasWaitFlag([]string{"-r", "--reuse-window"}) {
+		t.Error("hasWaitFlag 不应误判非等待标志")
+	}
+}
+
+// TestResolveConflictEditorPerFileNotepad 确认 notepad 在非 Windows 平台也标记逐文件
+func TestResolveConflictEditorPerFileNotepad(t *testing.T) {
+	prog, _, perFile := resolveConflictEditor("notepad", []string{"a.txt"})
+	if prog != "notepad" || !perFile {
+		t.Errorf("notepad 应标记 perFile, got prog=%q perFile=%v", prog, perFile)
+	}
+}
+
+func TestSplitCommand(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{"简单命令", "vim", []string{"vim"}},
+		{"带参数", "code -w", []string{"code", "-w"}},
+		{"Windows 引号路径", `"C:\Program Files\code.exe" -w`, []string{`C:\Program Files\code.exe`, "-w"}},
+		{"多空格", "code   -w  --new-window", []string{"code", "-w", "--new-window"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := splitCommand(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("splitCommand(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Fatalf("splitCommand(%q) = %v, want %v", tt.in, got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestHasUnresolvedMarkers(t *testing.T) {
+	tempDir := t.TempDir()
+	write := func(name, content string) string {
+		p := filepath.Join(tempDir, name)
+		os.WriteFile(p, []byte(content), 0644)
+		return p
+	}
+
+	// 含冲突标记的文件
+	unresolved := write("unresolved.txt", "line1\n<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> feat\n")
+	// 已解决文件(仅一个标记字面量不作为冲突判定)
+	resolved := write("resolved.txt", "line1\nline2\n")
+	// 含 "=======" 分隔线但不含 <<<<<<< / >>>>>>> 的文件不应误判
+	separator := write("separator.txt", "header\n=======\nbody\n")
+
+	if !hasUnresolvedMarkers([]string{unresolved}) {
+		t.Error("hasUnresolvedMarkers 应检测到含 <<<<<<< 的文件")
+	}
+	if hasUnresolvedMarkers([]string{resolved, separator}) {
+		t.Error("hasUnresolvedMarkers 不应误判已解决文件或含 ======= 分隔线的文件")
+	}
+	if !hasUnresolvedMarkers([]string{resolved, unresolved}) {
+		t.Error("多个文件中任一个含冲突标记即应判定未解决")
+	}
+	if hasUnresolvedMarkers([]string{filepath.Join(tempDir, "not-exist.txt")}) {
+		t.Error("读取失败的文件不应判定为未解决")
+	}
+}

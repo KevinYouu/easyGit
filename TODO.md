@@ -1,5 +1,17 @@
 # TODO
 
+## 已完成:配置中心新增冲突编辑器
+
+- [x] 新增 `config` 配置项「冲突编辑器」:settings 表 `conflict_editor` 键,GetConflictEditor/SaveConflictEditor(空串=清除恢复自动)→ `internal/config/conflictEditor.go`
+- [x] 子流程:单选 自动检测(默认)/vim/vi/nano/自定义…(输入任意命令如 code -w,留空恢复自动),预选当前值 → `cmd/easygit/commands/config_conflict_editor.go` + 分派键 `ConfigKeyConflictEditor`
+- [x] 主列表摘要:未设置显示「当前: 自动检测(EDITOR → vim/vi/nano)」,已设置显示编辑器命令 → `BuildConfigOptions`
+- [x] 生效:变基冲突菜单「打开编辑器解决冲突」优先级改为 配置 > $EDITOR/$VISUAL > vim/vi/nano → `internal/gitcmd/rebase.go`
+- [x] 编辑器解析:已知异步编辑器(code/subl/atom)自动补 -w 等待标志(已带不重复);引号感知拆分支持 Windows 带空格路径;Windows 回退链追加 notepad(经 start /wait 逐个打开)→ `resolveConflictEditor`/`splitCommand`
+- [x] i18n:`config.option/summary.conflict.editor.*` + `conflict.editor.*` 键(zh/en)
+- [x] 测试:未设置返回空/保存/覆盖/清空/主列表含新项 → `make all` 全绿
+- [x] 文档:配置中心.md(表格/主列表示例/子流程/实现位置)+ 变基冲突闭环.md + README 双语 + 测试用例.md
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:变基冲突解决闭环(多冲突自动循环)
 
 - [x] 冲突后不再退出:新增 `handleRebaseConflict` 冲突解决闭环,循环展示未合并文件(`git diff --diff-filter=U`)与操作菜单,直到变基完成/跳过/中止/退出 → `internal/gitcmd/rebase.go`

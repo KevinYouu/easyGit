@@ -53,6 +53,8 @@ func runConfigCenter() {
 			configTagPatch()
 		case config.ConfigKeyTheme:
 			configTheme()
+		case config.ConfigKeyConflictEditor:
+			configConflictEditor()
 		}
 	}
 }
