@@ -1,5 +1,17 @@
 # TODO
 
+## 已完成:变基冲突解决闭环(多冲突自动循环)
+
+- [x] 冲突后不再退出:新增 `handleRebaseConflict` 冲突解决闭环,循环展示未合并文件(`git diff --diff-filter=U`)与操作菜单,直到变基完成/跳过/中止/退出 → `internal/gitcmd/rebase.go`
+- [x] 菜单五项:打开编辑器解决冲突(EDITOR/VISUAL,回退 vim/vi/nano,无编辑器展示清单提示手动)/已解决继续(自动 git add + --continue)/跳过/中止/退出保持挂起;菜单函数可注入(测试驱动) → `rebaseConflictMenu`
+- [x] 三入口统一接入:标准变基 `handleStandardRebase`、进行中恢复菜单 `handleInProgressRebase`、交互式变基 `RunInternalRebase`(squash/drop 共用)
+- [x] continue/skip 后检查 `isRebaseInProgress()`:仍有冲突自动回到菜单(多提交多冲突一次搞定);`handleRebaseError` 冲突判定改为以 rebase-merge/rebase-apply 目录为主
+- [x] 编辑器防挂起:`runGitRebaseContinue` 注入 `GIT_EDITOR=true`(非 TTY 下 git 也会启动编辑器,pick 接受原始信息、reword 接受工具内已注入消息)
+- [x] i18n:`rebase.conflict.menu.*`/`rebase.conflict.files`/`rebase.abort.message` 等键(zh/en)
+- [x] 测试:冲突检测/未合并文件/多冲突自动循环(核心回归,两次冲突依次解决)/skip/abort/quit 路径,菜单注入驱动真实 git 仓库 → `make all` 全绿
+- [x] 文档:docs/features/变基冲突闭环.md + README 双语命令注释 + 测试用例.md 同步
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:死代码清理(colors/spinner 包及测试专用导出)
 
 - [x] 删除零引用包 `internal/colors`(仅自测使用)与 `internal/spinner`(全仓库无引用,command 包自带 spinner 实现)→ 同步删除 theme 中仅被 spinner 包使用的 5 个帧/图标函数

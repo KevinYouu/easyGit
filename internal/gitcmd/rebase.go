@@ -15,6 +15,15 @@ import (
 	"github.com/KevinYouu/easyGit/internal/logs"
 )
 
+// rebaseConflictMenu 冲突恢复菜单选择(测试可注入,默认走 form.ListForm)
+var rebaseConflictMenu = func(options []config.Option) (string, error) {
+	selected, err := form.ListForm(i18n.T("rebase.conflict.menu.title"), options, form.ListSingle)
+	if err != nil {
+		return "", err
+	}
+	return selected[0], nil
+}
+
 func RebaseIntoCurrent() error {
 	// Check if rebase is in progress
 	if isRebaseInProgress() {
@@ -70,9 +79,29 @@ func handleInProgressRebase() error {
 	}
 	action := actions[0]
 
-	output, err := command.RunCmd("git", []string{"rebase", action}, "")
-	if err != nil {
-		return handleRebaseError(output, err)
+	switch action {
+	case "--abort":
+		output, err := command.RunCmd("git", []string{"rebase", "--abort"}, "")
+		if err != nil {
+			return handleRebaseError(output, err)
+		}
+		logs.Info(i18n.T("rebase.abort.message"))
+		return nil
+	case "--continue":
+		output, err := runGitRebaseContinue()
+		if err != nil && !isRebaseInProgress() {
+			return handleRebaseError(output, err)
+		}
+	default: // --skip
+		output, err := command.RunCmd("git", []string{"rebase", "--skip"}, "")
+		if err != nil && !isRebaseInProgress() {
+			return handleRebaseError(output, err)
+		}
+	}
+
+	// continue/skip 后仍处于变基状态(新的冲突):进入冲突解决闭环
+	if isRebaseInProgress() {
+		return handleRebaseConflict()
 	}
 	logs.Info(i18n.T("rebase.success.message"))
 	return nil
@@ -98,6 +127,10 @@ func handleStandardRebase() error {
 	logs.Info(fmt.Sprintf(i18n.T("rebase.starting"), selectedBranch))
 	output, err := command.RunCmd("git", []string{"rebase", selectedBranch}, "")
 	if err != nil {
+		// 冲突:进入冲突解决闭环(不再直接退出)
+		if isRebaseInProgress() {
+			return handleRebaseConflict()
+		}
 		return handleRebaseError(output, err)
 	}
 
@@ -196,11 +229,9 @@ func RunInternalRebase(baseCommit, mode string, targets []string, newMessage str
 
 	err = rebaseCmd.Run()
 	if err != nil {
-		// Try to run git status to check if we're in conflict
+		// 冲突:进入冲突解决闭环(squash/drop 共用)
 		if isRebaseInProgress() {
-			logs.Error(i18n.T("rebase.conflict.detected"))
-			logs.Info(i18n.T("rebase.conflict.instructions"))
-			return fmt.Errorf("rebase conflict")
+			return handleRebaseConflict()
 		}
 		return fmt.Errorf("rebase failed: %w", err)
 	}
@@ -212,14 +243,143 @@ func RunInternalRebase(baseCommit, mode string, targets []string, newMessage str
 func handleRebaseError(output string, err error) error {
 	outputStr := strings.TrimSpace(output)
 
-	if strings.Contains(outputStr, "CONFLICT") {
-		logs.Error(i18n.T("rebase.conflict.detected"))
-		logs.Info(i18n.T("rebase.conflict.instructions"))
-		return fmt.Errorf("rebase conflict detected: use 'git status' to see conflicted files")
+	if strings.Contains(outputStr, "CONFLICT") && isRebaseInProgress() {
+		return handleRebaseConflict()
 	}
 
 	logs.Error(i18n.T("rebase.failed") + ": " + outputStr)
 	return fmt.Errorf("git rebase failed: %s", outputStr)
+}
+
+// ─── 冲突解决闭环 ────────────────────────────────────────────────────────────
+
+// handleRebaseConflict 冲突解决闭环:循环展示未合并文件与操作菜单,
+// 直到变基完成(continue/skip 后不再处于冲突状态)或用户选择中止/退出。
+// 多提交多冲突场景下自动循环,解决"第一次冲突后即退出"的问题。
+func handleRebaseConflict() error {
+	for {
+		files := getUnmergedFiles()
+
+		logs.Error(i18n.T("rebase.conflict.detected"))
+		if len(files) > 0 {
+			logs.Info(i18n.T("rebase.conflict.files"))
+			for _, f := range files {
+				fmt.Println("  " + f)
+			}
+		}
+
+		options := []config.Option{
+			{Label: i18n.T("rebase.conflict.menu.edit"), Description: i18n.T("rebase.conflict.menu.edit.desc"), Value: "edit"},
+			{Label: i18n.T("rebase.conflict.menu.continue"), Description: i18n.T("rebase.conflict.menu.continue.desc"), Value: "continue"},
+			{Label: i18n.T("rebase.conflict.menu.skip"), Description: i18n.T("rebase.conflict.menu.skip.desc"), Value: "skip"},
+			{Label: i18n.T("rebase.conflict.menu.abort"), Description: i18n.T("rebase.conflict.menu.abort.desc"), Value: "abort"},
+			{Label: i18n.T("rebase.conflict.menu.quit"), Description: i18n.T("rebase.conflict.menu.quit.desc"), Value: "quit"},
+		}
+
+		action, err := rebaseConflictMenu(options)
+		if err != nil {
+			return err
+		}
+
+		switch action {
+		case "edit":
+			openConflictsInEditor(files)
+		case "continue":
+			// 暂存已解决的文件后继续(未解决文件也会被标记 resolved,由用户负责)
+			if len(files) > 0 {
+				args := append([]string{"add"}, files...)
+				exec.Command("git", args...).CombinedOutput()
+			}
+			output, err := runGitRebaseContinue()
+			if !isRebaseInProgress() {
+				if err != nil {
+					return handleRebaseError(output, err)
+				}
+				logs.Info(i18n.T("rebase.success.message"))
+				return nil
+			}
+			logs.Info(i18n.T("rebase.conflict.still"))
+		case "skip":
+			output, err := command.RunCmd("git", []string{"rebase", "--skip"}, "")
+			if !isRebaseInProgress() {
+				if err != nil {
+					return handleRebaseError(output, err)
+				}
+				logs.Info(i18n.T("rebase.success.message"))
+				return nil
+			}
+			logs.Info(i18n.T("rebase.conflict.still"))
+		case "abort":
+			command.RunCmd("git", []string{"rebase", "--abort"}, "")
+			logs.Info(i18n.T("rebase.abort.message"))
+			return nil
+		case "quit":
+			return fmt.Errorf("rebase conflict remains: resolve manually or run 'easyGit rebase' again")
+		}
+	}
+}
+
+// getUnmergedFiles 获取当前未合并(冲突)文件列表
+func getUnmergedFiles() []string {
+	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=U")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	var files []string
+	for line := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			files = append(files, line)
+		}
+	}
+	return files
+}
+
+// runGitRebaseContinue 执行 git rebase --continue。
+// 注入 GIT_EDITOR=true:非 TTY 环境下 git 也会启动编辑器获取提交信息,
+// pick 提交直接接受原始信息,reword/squash 接受工具内已注入的消息,
+// 避免流程挂起等待编辑器输入。
+func runGitRebaseContinue() (string, error) {
+	env := append(os.Environ(), "GIT_EDITOR=true")
+	cmd := exec.Command("git", "rebase", "--continue")
+	cmd.Env = env
+	output, err := cmd.CombinedOutput()
+	return string(output), err
+}
+
+// openConflictsInEditor 用 $EDITOR/$VISUAL 打开冲突文件(回退 vim/vi/nano);
+// 无可用编辑器时展示文件清单,提示手动解决后回到菜单继续
+func openConflictsInEditor(files []string) {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = os.Getenv("VISUAL")
+	}
+	if editor == "" {
+		for _, candidate := range []string{"vim", "vi", "nano"} {
+			if path, err := exec.LookPath(candidate); err == nil {
+				editor = path
+				break
+			}
+		}
+	}
+
+	if editor == "" {
+		logs.Error(i18n.T("rebase.conflict.no.editor"))
+		for _, f := range files {
+			fmt.Println("  " + f)
+		}
+		logs.Info(i18n.T("rebase.conflict.manual.hint"))
+		return
+	}
+
+	cmd := exec.Command(editor, files...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logs.Error(i18n.T("rebase.conflict.editor.failed") + ": " + err.Error())
+	}
 }
 
 // getParentHash gets the parent hash of a specific commit

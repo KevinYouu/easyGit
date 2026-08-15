@@ -163,6 +163,7 @@ easyGit branch-delete  # 或: easyGit bd
 easyGit merge  # 或: easyGit m
 
 # 变基当前分支到另一分支
+# 冲突时进入工具内解决闭环(编辑 → 继续/跳过/中止)
 easyGit rebase  # 或: easyGit r
 
 # 拣选提交

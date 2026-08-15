@@ -163,6 +163,7 @@ easyGit branch-delete  # or: easyGit bd
 easyGit merge  # or: easyGit m
 
 # Rebase current branch onto another
+# Conflicts open an in-tool resolution loop (edit → continue/skip/abort)
 easyGit rebase  # or: easyGit r
 
 # Cherry-pick commits
