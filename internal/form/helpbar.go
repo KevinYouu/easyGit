@@ -52,12 +52,13 @@ func inputHelpKeys() []HelpKey {
 	}
 }
 
-// multiInputHelpKeys 单页多输入表单帮助栏:Enter 在非末字段为「继续」、
-// 末字段为「提交」,静态文案统一显示「继续/提交」;shift+tab 回退到上一字段
+// multiInputHelpKeys 单页多输入表单帮助栏:↑/↓ 上下导航(含 j/k),
+// Enter 在非末字段为「继续」、末字段为「提交」,静态文案统一显示「继续/提交」;
+// shift+tab 保留回退(帮助栏不展示,防冗长)
 func multiInputHelpKeys() []HelpKey {
 	return []HelpKey{
+		{Key: "↑/↓", Action: i18n.T("form.help.navigate")},
 		{Key: "Enter", Action: i18n.T("form.help.next")},
-		{Key: "Shift+Tab", Action: i18n.T("form.help.prev")},
 		{Key: "Esc", Action: i18n.T("form.help.cancel")},
 	}
 }

@@ -35,7 +35,7 @@ func renderMultiInputForm(specs []InputSpec, termHeight int) string {
 	for i := range values {
 		ptrs[i] = &values[i]
 	}
-	form := NewMultiInputForm(specs, ptrs)
+	form := NewMultiInputForm(specs, ptrs, nil)
 	form.Init()
 	m, _ := form.Update(tea.WindowSizeMsg{Width: 80, Height: termHeight})
 	return m.(*Form).View().Content
@@ -180,11 +180,11 @@ func TestCommandInputRender(t *testing.T) {
 }
 
 // TestMultiInputHelpBar 单页多输入帮助栏:键位与动作文案齐全
-// (Enter 继续/提交、shift+tab 上一步、Esc 取消),高度足够时随视图渲染。
+// (↑/↓ 导航、Enter 继续/提交、Esc 取消),高度足够时随视图渲染。
 func TestMultiInputHelpBar(t *testing.T) {
 	bar := RenderHelpBar(multiInputHelpKeys(), 80)
 	for _, want := range []string{
-		i18n.T("form.help.next"), i18n.T("form.help.prev"), i18n.T("form.help.cancel"),
+		i18n.T("form.help.navigate"), i18n.T("form.help.next"), i18n.T("form.help.cancel"),
 	} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("帮助栏缺少 %q: %q", want, bar)

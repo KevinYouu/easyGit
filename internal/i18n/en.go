@@ -177,7 +177,6 @@ var enTranslations = map[string]string{
 	"form.help.cancel":   "Cancel",
 	"form.help.submit":   "Submit",
 	"form.help.next":     "Next/Submit",
-	"form.help.prev":     "Back",
 	"form.help.toggle":   "Toggle",
 	"form.help.switch":   "Switch",
 	"form.help.quit":     "Quit",

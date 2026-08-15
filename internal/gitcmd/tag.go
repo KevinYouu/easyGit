@@ -22,11 +22,12 @@ func CreateAndPushTag() error {
 	newVersion := incrementVersion(latestVersion)
 
 	// 版本号与提交消息同一页输入:连续内联表单会在主屏残留堆叠,
-	// 单页多输入(单 tea 程序)由渲染器整体重绘,无残留
+	// 单页多输入(单 tea 程序)由渲染器整体重绘,无残留;
+	// preview 传 nil:版本号是完整字符串,无拆分组合预览需求
 	values, err := form.MultiInput([]form.InputSpec{
 		{Title: i18n.T("tag.input.version"), Default: newVersion, Desc: i18n.T("tag.input.version.desc")},
 		{Title: i18n.T("tag.input.commit.message"), Desc: i18n.T("tag.input.commit.message.desc")},
-	})
+	}, nil)
 	if err != nil {
 		return fmt.Errorf("get version and commit message error: %w", err)
 	}

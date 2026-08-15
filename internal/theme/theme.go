@@ -296,88 +296,12 @@ func GetCustomTheme() huh.Theme {
 	})
 }
 
-// GetMultiInputTheme 返回单页多输入表单主题:所有字段统一卡片容器,
-// 焦点/模糊同尺寸(切换焦点零布局跳变),焦点边框高亮、模糊弱化;
-// 提示符 ❯ 与列表选中指示符统一。仅 MultiInput 使用,不污染其他表单。
-func GetMultiInputTheme() huh.Theme {
-	return huh.ThemeFunc(func(_ bool) *huh.Styles {
-		st := huh.ThemeBase(true)
-
-		// 统一卡片:边框 + 左右留白。Focused 与 Blurred 完全同尺寸,
-		// 焦点切换仅换边框颜色,高度不跳变
-		card := lipgloss.NewStyle().
-			BorderStyle(lipgloss.NormalBorder()).
-			Padding(0, 1)
-
-		st.Focused.Base = card.BorderForeground(PrimaryColor)
-		st.Blurred.Base = card.BorderForeground(BorderColor)
-
-		st.Focused.Title = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		st.Blurred.Title = lipgloss.NewStyle().
-			Foreground(MutedForeground)
-
-		st.Focused.Description = lipgloss.NewStyle().
-			Foreground(MutedForeground)
-
-		st.Blurred.Description = lipgloss.NewStyle().
-			Foreground(MutedForeground)
-
-		st.Focused.TextInput.Cursor = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		st.Focused.TextInput.Placeholder = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Italic(true)
-
-		st.Focused.TextInput.Prompt = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Bold(true)
-
-		st.Focused.TextInput.Text = lipgloss.NewStyle().
-			Foreground(PrimaryColor)
-
-		st.Blurred.TextInput.Prompt = lipgloss.NewStyle().
-			Foreground(MutedForeground)
-
-		st.Blurred.TextInput.Text = lipgloss.NewStyle().
-			Foreground(MutedForeground)
-
-		st.Blurred.TextInput.Placeholder = lipgloss.NewStyle().
-			Foreground(MutedForeground).
-			Italic(true)
-
-		// 错误提示:红色加粗 + ✗ 图标(lipgloss SetString 作 Render 前缀)
-		errorStyle := lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Bold(true).
-			SetString("✗")
-		st.Focused.ErrorIndicator = errorStyle
-		st.Focused.ErrorMessage = errorStyle
-
-		// 隐藏帮助信息(与 GetCompactTheme 一致,帮助栏由 form 包统一渲染)
-		hidden := lipgloss.NewStyle().Width(0).Height(0)
-		st.Help.Ellipsis = hidden
-		st.Help.ShortKey = hidden
-		st.Help.ShortDesc = hidden
-		st.Help.ShortSeparator = hidden
-		st.Help.FullKey = hidden
-		st.Help.FullDesc = hidden
-		st.Help.FullSeparator = hidden
-
-		return st
-	})
-}
-
-// GetCompactMultiInputTheme 返回紧凑多输入表单主题(矮终端友好):
+// GetMultiInputTheme 返回单页多输入表单主题(矮终端友好,唯一布局):
 // 无边框卡片、字段间无空行(FieldSeparator 单换行)、标题与输入同行
-// (配合 Input.Inline),5 字段 + 预览 + 帮助 ≈ 9 行;焦点切换仅标题色变化,
-// 高度零跳变。错误提示与帮助隐藏同 GetMultiInputTheme。
-// 仅紧凑 MultiInput(配置中心版本号上限)使用,不影响其他表单。
-func GetCompactMultiInputTheme() huh.Theme {
+// (配合 Input.Inline),5 字段 + 预览 + 帮助 ≈ 9 行,8-10 行终端完整显示;
+// 焦点切换仅标题色变化,高度零跳变。提示符 ❯ 与列表选中指示符统一。
+// 仅 MultiInput 使用,不污染其他表单。
+func GetMultiInputTheme() huh.Theme {
 	return huh.ThemeFunc(func(_ bool) *huh.Styles {
 		st := huh.ThemeBase(true)
 

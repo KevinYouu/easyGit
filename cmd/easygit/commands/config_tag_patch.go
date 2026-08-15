@@ -39,7 +39,7 @@ func configTagPatch() {
 	}
 
 	// 预览行:任一字段输入变化即重算,实时显示组合后的版本号
-	values, err := form.MultiInputCompact(specs, func(v []string) string {
+	values, err := form.MultiInput(specs, func(v []string) string {
 		return fmt.Sprintf(i18n.T("config.tag.patch.current"), config.FormatPatch(parsePatchValues(v)))
 	})
 	if err != nil {

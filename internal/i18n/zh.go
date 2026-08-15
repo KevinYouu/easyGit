@@ -177,7 +177,6 @@ var zhTranslations = map[string]string{
 	"form.help.cancel":   "取消",
 	"form.help.submit":   "提交",
 	"form.help.next":     "继续/提交",
-	"form.help.prev":     "上一步",
 	"form.help.toggle":   "选择/取消",
 	"form.help.switch":   "切换",
 	"form.help.quit":     "退出",
