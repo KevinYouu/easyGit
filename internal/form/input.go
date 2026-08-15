@@ -13,8 +13,9 @@ import (
 // 单输入与列表输入共用同一构造路径,防止两份配置漂移。
 // desc 可选:空串时不渲染描述行;allowEmpty 为 true 时跳过非空校验;
 // validate 可选:非空校验通过后执行的自定义校验。提示符统一 ❯(与列表选中指示符一致)。
+// suggestions 非空时启用输入建议(↑/↓ 导航,tab/ctrl+e 接受),用于提交消息历史。
 // 注:多输入表单已自绘(multi_input.go),不经本构造器。
-func newInputField(title string, value *string, desc string, allowEmpty bool, validate func(string) error) *huh.Input {
+func newInputField(title string, value *string, desc string, allowEmpty bool, validate func(string) error, suggestions []string) *huh.Input {
 	f := huh.NewInput().
 		Title(title).
 		Prompt("❯ ").
@@ -29,6 +30,9 @@ func newInputField(title string, value *string, desc string, allowEmpty bool, va
 			}
 			return nil
 		})
+	if len(suggestions) > 0 {
+		f = f.Suggestions(suggestions)
+	}
 	if desc != "" {
 		f = f.Description(desc)
 	}
@@ -44,13 +48,24 @@ func NewInputForm(title string, value *string) *Form {
 // NewInputFormWithValidate 构造带自定义校验的输入表单:非空校验通过后
 // 执行 validate(如提交消息主题非空),为 nil 时跳过。
 func NewInputFormWithValidate(title string, value *string, validate func(string) error) *Form {
+	return NewInputFormWithSuggestions(title, value, validate, nil)
+}
+
+// NewInputFormWithSuggestions 构造带输入建议的输入表单:非空校验通过后
+// 执行 validate;suggestions 供 ↑/↓ 导航 + tab/ctrl+e 接受(如提交消息历史),
+// 帮助栏追加历史键位提示。
+func NewInputFormWithSuggestions(title string, value *string, validate func(string) error, suggestions []string) *Form {
 	// 直接使用紧凑模式
+	helpKeys := inputHelpKeys()
+	if len(suggestions) > 0 {
+		helpKeys = append(helpKeys, HelpKey{Key: "↑/↓", Action: i18n.T("form.help.history")})
+	}
 	return newForm(
 		huh.NewForm(
-			huh.NewGroup(newInputField(title, value, "", false, validate)),
+			huh.NewGroup(newInputField(title, value, "", false, validate, suggestions)),
 		).WithTheme(theme.GetCompactTheme()).
 			WithShowHelp(false),
-		inputHelpKeys(),
+		helpKeys,
 	)
 }
 
@@ -106,9 +121,15 @@ func Input(title string, defaultValue string) (string, error) {
 // InputWithValidate 输入表单,支持自定义校验(非空校验通过后执行),
 // 用于提交消息主题非空等业务级校验。
 func InputWithValidate(title string, defaultValue string, validate func(string) error) (string, error) {
+	return InputWithSuggestions(title, defaultValue, validate, nil)
+}
+
+// InputWithSuggestions 输入表单,支持自定义校验与输入建议:
+// suggestions 供 ↑/↓ 导航 + tab/ctrl+e 接受(如提交消息历史复用)。
+func InputWithSuggestions(title string, defaultValue string, validate func(string) error, suggestions []string) (string, error) {
 	inputValue := defaultValue
 
-	form := NewInputFormWithValidate(title, &inputValue, validate)
+	form := NewInputFormWithSuggestions(title, &inputValue, validate, suggestions)
 	if err := form.Run(); err != nil {
 		return "", err
 	}

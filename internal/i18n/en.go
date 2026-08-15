@@ -219,6 +219,7 @@ var enTranslations = map[string]string{
 	"form.help.submit":       "Submit",
 	"form.help.next":         "Next/Submit",
 	"form.help.toggle":       "Toggle",
+	"form.help.history":      "Choose history message",
 	"form.help.filter":       "Filter",
 	"form.help.filter.clear": "Clear filter",
 	"form.help.filter.done":  "Done",

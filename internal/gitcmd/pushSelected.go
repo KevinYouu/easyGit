@@ -67,7 +67,7 @@ func PushSelected() error {
 	}
 	suffix := suffixes[0]
 
-	commitMessage, err := form.InputWithValidate(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage)
+	commitMessage, err := form.InputWithSuggestions(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage, config.GetRecentCommitMessages())
 	if err != nil {
 		return fmt.Errorf("input: %w", err)
 	}
@@ -154,5 +154,7 @@ func PushSelected() error {
 
 	// 只有在所有Git操作都成功完成后才记录使用历史
 	config.IncrementUsage(suffix)
+	// 记忆本次提交消息(下次 ↑ 直接复用)
+	config.AddRecentCommitMessage(commitMessage)
 	return nil
 }

@@ -64,7 +64,7 @@ func PushAll() error {
 	}
 	suffix := suffixes[0]
 
-	commitMessage, err := form.InputWithValidate(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage)
+	commitMessage, err := form.InputWithSuggestions(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage, config.GetRecentCommitMessages())
 	if err != nil {
 		return fmt.Errorf("input: %w", err)
 	}
@@ -151,5 +151,7 @@ func PushAll() error {
 
 	// 只有全部操作成功后记录使用历史(与 ps 一致)
 	config.IncrementUsage(suffix)
+	// 记忆本次提交消息(下次 ↑ 直接复用)
+	config.AddRecentCommitMessage(commitMessage)
 	return nil
 }

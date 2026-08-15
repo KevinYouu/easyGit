@@ -156,6 +156,12 @@ func Initialize() error {
 		return err
 	}
 
+	// Create the recent_messages table (提交消息历史)
+	_, err = db.Exec(recentMessagesTable)
+	if err != nil {
+		return err
+	}
+
 	// Count the number of options
 	countQuery := `SELECT COUNT(*) FROM options`
 	var count int

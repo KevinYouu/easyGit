@@ -219,6 +219,7 @@ var zhTranslations = map[string]string{
 	"form.help.submit":       "提交",
 	"form.help.next":         "继续/提交",
 	"form.help.toggle":       "选择/取消",
+	"form.help.history":      "选择历史消息",
 	"form.help.filter":       "筛选",
 	"form.help.filter.clear": "清除筛选",
 	"form.help.filter.done":  "完成筛选",
