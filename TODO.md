@@ -1,5 +1,16 @@
 # TODO
 
+## 已完成:合并/摘取冲突闭环(通用冲突解决)
+
+- [x] 抽取通用闭环:conflictOps 配置(displayName/continue/skip/abort/inProgress/successKey/abortKey)+ runConflictResolution 驱动,编辑器解析/标记检测/状态检测收敛到 `internal/gitcmd/conflict.go`
+- [x] merge 接入:handleMergeError 冲突分支进入闭环,闭环完成同样记忆合并策略;merge 无 --skip 时菜单自动隐藏该选项
+- [x] cherry-pick 接入:executeCherryPick 冲突分支进入闭环;主动中止返回 errConflictAborted,批次优雅停止不报错
+- [x] rebase 迁移:handleRebaseConflict 变薄封装(rebaseConflictOps),既有调用点与回归测试不变(withConflictMenu 注入升级为带标题签名)
+- [x] i18n:rebase.conflict.* 键替换为通用 conflict.loop.* / conflict.editor.* / op.*.name;删除 merge.conflict.* 与 cherry.pick.conflict.* 死键;新增 merge.abort.message/cherry.pick.resolved/cherry.pick.abort.message/cherry.pick.stopped
+- [x] 测试:真实仓库集成回归(MERGE_HEAD/CHERRY_PICK_HEAD 状态判定、merge 解决+abort+无 skip 断言、cp skip/解决/abort 路径),rebase 既有回归全绿 → `make all` 全绿
+- [x] 文档:docs/features/合并摘取冲突闭环.md + README 双语注释同步
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:Amend 修改上次提交(am)
 
 - [x] 三模式单选:仅改消息(预填原消息 + ↑/↓ 历史)/ 追加暂存文件(M/A/D 状态列,--no-edit 保消息)/ 两者都做 → `internal/gitcmd/amend.go`

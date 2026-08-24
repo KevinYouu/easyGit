@@ -91,12 +91,14 @@ func runGitAllowFail(t *testing.T, dir string, args ...string) string {
 	return string(output)
 }
 
-// withConflictMenu 注入假菜单并返回恢复函数
+// withConflictMenu 注入假菜单并返回恢复函数(通用冲突闭环菜单)
 func withConflictMenu(t *testing.T, menu func(options []config.Option) (string, error)) func() {
 	t.Helper()
-	old := rebaseConflictMenu
-	rebaseConflictMenu = menu
-	return func() { rebaseConflictMenu = old }
+	old := conflictMenu
+	conflictMenu = func(title string, options []config.Option) (string, error) {
+		return menu(options)
+	}
+	return func() { conflictMenu = old }
 }
 
 func TestIsRebaseInProgress(t *testing.T) {

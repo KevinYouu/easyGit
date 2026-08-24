@@ -236,7 +236,7 @@ func performMerge(branch string, strategy MergeStrategy) error {
 
 	output, err := command.RunCmd("git", args, i18n.T("merge.success.message"))
 	if err != nil {
-		return handleMergeError(output, err)
+		return handleMergeError(output, err, strategy.Name)
 	}
 
 	// 记忆本次使用的策略,下次预选
@@ -244,15 +244,21 @@ func performMerge(branch string, strategy MergeStrategy) error {
 	return nil
 }
 
-// handleMergeError provides detailed error handling for merge failures
-func handleMergeError(output string, err error) error {
+// handleMergeError provides detailed error handling for merge failures.
+// 冲突时进入通用冲突解决闭环(rebase 同款体验),闭环内完成合并后同样记忆策略。
+func handleMergeError(output string, err error, strategyName string) error {
 	outputStr := strings.TrimSpace(output)
 
-	// Check for common merge issues
-	if strings.Contains(outputStr, "CONFLICT") {
-		logs.Error(i18n.T("merge.conflict.detected"))
-		logs.Info(i18n.T("merge.conflict.instructions"))
-		return fmt.Errorf("merge conflict detected: use 'git status' to see conflicted files")
+	// 冲突:进入通用冲突解决闭环
+	if strings.Contains(outputStr, "CONFLICT") && isMergeInProgress() {
+		aborted, loopErr := runConflictResolution(mergeConflictOps)
+		if loopErr != nil {
+			return loopErr
+		}
+		if !aborted {
+			config.SaveLastChoice(config.LastChoiceMergeStrategy, strategyName)
+		}
+		return nil
 	}
 
 	if strings.Contains(outputStr, "not possible to fast-forward") {

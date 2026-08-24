@@ -1,6 +1,7 @@
 package gitcmd
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"sort"
@@ -82,6 +83,11 @@ func CherryPick() error {
 	// Execute cherry-pick for each selected commit
 	for _, commit := range selectedCommits {
 		if err := executeCherryPick(commit, option); err != nil {
+			// 用户在冲突闭环中主动中止:优雅停止剩余批次
+			if errors.Is(err, errConflictAborted) {
+				logs.Info(i18n.T("cherry.pick.stopped"))
+				return nil
+			}
 			return fmt.Errorf(i18n.T("cherry.pick.error.execute")+": %v", err)
 		}
 		logs.Success(i18n.T("cherry.pick.success.commit") + ": " + commit.Hash[:8])
@@ -355,10 +361,15 @@ func executeCherryPick(commit Commit, option CherryPickOption) error {
 		outputStr := string(output)
 
 		if strings.Contains(outputStr, "CONFLICT") {
-			logs.Error(i18n.T("cherry.pick.conflict.detected"))
-			logs.Info(i18n.T("cherry.pick.conflict.instructions"))
-			logs.Info(i18n.T("cherry.pick.conflict.output") + ":\n" + outputStr)
-			return fmt.Errorf("%s", i18n.T("cherry.pick.conflict.resolution.needed"))
+			// 冲突:进入通用冲突解决闭环(与 rebase/merge 一致)
+			aborted, loopErr := runConflictResolution(cherryPickConflictOps)
+			if loopErr != nil {
+				return loopErr
+			}
+			if aborted {
+				return errConflictAborted
+			}
+			return nil // 闭环内已完成摘取
 		}
 
 		if strings.Contains(outputStr, "empty commit") {

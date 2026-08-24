@@ -178,6 +178,7 @@ easyGit stash  # or: easyGit st
 easyGit amend  # or: easyGit am
 
 # Merge selected branch into current branch
+# Conflicts open an in-tool resolution loop (edit → continue/abort)
 easyGit merge  # or: easyGit m
 
 # Rebase current branch onto another
@@ -185,6 +186,7 @@ easyGit merge  # or: easyGit m
 easyGit rebase  # or: easyGit r
 
 # Cherry-pick commits
+# Conflicts open the same resolution loop; batch stops gracefully on abort
 easyGit cherry-pick  # or: easyGit cp
 
 # Reset to selected commit

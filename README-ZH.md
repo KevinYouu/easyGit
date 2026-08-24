@@ -178,6 +178,7 @@ easyGit stash  # 或: easyGit st
 easyGit amend  # 或: easyGit am
 
 # 将选定分支合并到当前分支
+# 冲突时进入工具内解决闭环(编辑 → 继续/中止)
 easyGit merge  # 或: easyGit m
 
 # 变基当前分支到另一分支
@@ -185,6 +186,7 @@ easyGit merge  # 或: easyGit m
 easyGit rebase  # 或: easyGit r
 
 # 拣选提交
+# 冲突时进入同一解决闭环;主动中止时批次优雅停止
 easyGit cherry-pick  # 或: easyGit cp
 
 # 重置到选定提交
