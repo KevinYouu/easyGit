@@ -161,6 +161,21 @@ var enTranslations = map[string]string{
 	"undo.executing":    "Restoring to %s...",
 	"undo.success":      "HEAD restored to %s (%s)",
 
+	// Clean working directory
+	"clean.short":             "Discard local changes and remove untracked files",
+	"clean.select.title":      "Select items to clean up",
+	"clean.tag.modified":      "modified",
+	"clean.tag.untracked":     "untracked",
+	"clean.empty":             "Working directory is already clean.",
+	"clean.confirm.modified":  "%d modified file(s) will be DISCARDED:",
+	"clean.confirm.untracked": "%d untracked file(s) will be PERMANENTLY DELETED:",
+	"clean.discard.loading":   "Discarding modified files...",
+	"clean.discard.success":   "%d file(s) restored to HEAD",
+	"clean.delete.loading":    "Deleting untracked files...",
+	"clean.delete.success":    "%d untracked file(s) deleted",
+	"clean.success":           "Cleaned up %d item(s)",
+	"clean.cancelled":         "Cleanup cancelled.",
+
 	// Update command
 	"update.short": "Update easyGit to the latest version",
 

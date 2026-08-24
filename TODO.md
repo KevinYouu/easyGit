@@ -1,5 +1,15 @@
 # TODO
 
+## 已完成:工作区清理(cl)
+
+- [x] 单一多选列表混合呈现两类条目([已修改]/[未跟踪] 标注),Space 勾选 `/` 过滤 → `internal/gitcmd/clean.go`
+- [x] 执行分组:已跟踪修改 `checkout HEAD --` 还原(含暂存清空与被删文件恢复);未跟踪 `clean -f --` 物理删除(gitignore 忽略项保护)
+- [x] 破坏性确认:逐类计数 + 完整文件清单;干净仓库直接提示;空仓库 diff HEAD 失败优雅降级
+- [x] 命令注册:`clean (cl)` cobra + root 描述 + 主菜单(un 之后);i18n `clean.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(两类列表边界/还原与删除落地断言/gitignore 保护/流程注入含取消)→ `make all` 全绿
+- [x] 文档:docs/features/工作区清理.md + README 双语命令表
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:Undo 回滚(un / reflog 后悔药)
 
 - [x] 检查点列表:最近 50 条 reflog(短哈希+动作描述+时间+HEAD@{N} 标记),`/` 过滤可用 → `internal/gitcmd/undo.go`

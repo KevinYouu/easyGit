@@ -253,6 +253,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | `cherry-pick` | `cp`  | Cherry-pick commits from other branches | Apply specific commits to current branch |
 | `reset`       | `rs`  | Reset repository to selected commit     | Undo commits or move to previous state   |
 | `undo`        | `un`  | Restore HEAD to a reflog checkpoint     | "Oh no" recovery after a bad operation   |
+| `clean`       | `cl`  | Discard changes & remove untracked files| Selective cleanup with full preview      |
 | `squash`      | `sq`  | Squash contiguous commits into one      | Clean up local commit history (visual)   |
 | `drop`        | `d`   | Delete specific commits                 | Remove unwanted commits from history     |
 

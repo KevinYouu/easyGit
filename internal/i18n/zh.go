@@ -161,6 +161,21 @@ var zhTranslations = map[string]string{
 	"undo.executing":    "正在恢复到 %s...",
 	"undo.success":      "HEAD 已恢复到 %s (%s)",
 
+	// Clean working directory
+	"clean.short":             "丢弃本地修改并删除未跟踪文件",
+	"clean.select.title":      "选择要清理的条目",
+	"clean.tag.modified":      "已修改",
+	"clean.tag.untracked":     "未跟踪",
+	"clean.empty":             "工作区已经是干净的。",
+	"clean.confirm.modified":  "%d 个已修改文件将被丢弃:",
+	"clean.confirm.untracked": "%d 个未跟踪文件将被永久删除:",
+	"clean.discard.loading":   "正在还原修改的文件...",
+	"clean.discard.success":   "%d 个文件已还原到 HEAD",
+	"clean.delete.loading":    "正在删除未跟踪文件...",
+	"clean.delete.success":    "已删除 %d 个未跟踪文件",
+	"clean.success":           "共清理 %d 项",
+	"clean.cancelled":         "已取消清理。",
+
 	// Update command
 	"update.short": "更新 easyGit 到最新版本",
 
