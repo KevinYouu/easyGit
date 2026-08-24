@@ -27,6 +27,7 @@ var menuItems = []menuItem{
 	{key: "push-all", label: "push-all (pa)", descKey: "push.all.short", run: func() error { return gitcmd.PushAll() }},
 	{key: "push-selected", label: "push-selected (ps)", descKey: "push.selected.short", run: func() error { return gitcmd.PushSelected() }},
 	{key: "branch-switch", label: "branch-switch (sw)", descKey: "branch.switch.short", run: func() error { return gitcmd.SwitchBranch() }},
+	{key: "stash", label: "stash (st)", descKey: "stash.short", run: func() error { return gitcmd.Stash() }},
 	{key: "branch-create", label: "branch-create (bc)", descKey: "branch.create.short", run: func() error { return gitcmd.CreateBranch() }},
 	{key: "merge", label: "merge (m)", descKey: "merge.short", run: func() error { return gitcmd.MergeIntoCurrent() }},
 	{key: "rebase", label: "rebase (r)", descKey: "rebase.short", run: func() error { return gitcmd.RebaseIntoCurrent() }},

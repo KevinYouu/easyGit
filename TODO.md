@@ -1,5 +1,15 @@
 # TODO
 
+## 已完成:Stash 管理(st)
+
+- [x] 主菜单三选:保存(可选消息,form 新增 InputOptional 可空输入)/ 列表管理 / 清空全部 → `internal/gitcmd/stash.go`
+- [x] 列表管理:消息+`stash@{N} · 相对时间` 双列展示,条目操作 diff 预览/apply(保留)/pop(删除)/drop;diff 与 drop 后回列表循环
+- [x] 冲突安全:apply/pop 冲突明确提示 git 保留条目不丢失;drop 单条与 clear 全部均需确认(clear 展示条目数)
+- [x] 命令注册:`stash (st)` cobra + root 描述 + 主菜单高频位(sw 之后);i18n `stash.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(引用解析表驱动/列表顺序/apply-pop 行为差异/pop 冲突保留/drop-clear-show 状态断言/流程注入含 Esc 路径)→ `make all` 全绿
+- [x] 文档:docs/features/Stash管理.md + README/README-ZH 双语命令表
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:分支切换与新建(sw / bc)
 
 - [x] sw 分支切换:本地(排除当前)+ 远程分支列表(NameDescColumns 双列,`/` 过滤),远程项自动 `--track` 创建本地跟踪分支 → `internal/gitcmd/branch_switch.go`

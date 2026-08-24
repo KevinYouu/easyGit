@@ -171,6 +171,9 @@ easyGit branch-switch  # or: easyGit sw
 # Create a branch, optionally push with upstream
 easyGit branch-create  # or: easyGit bc
 
+# Manage stashes (save / browse / apply / drop / clear)
+easyGit stash  # or: easyGit st
+
 # Merge selected branch into current branch
 easyGit merge  # or: easyGit m
 
@@ -220,6 +223,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | --------------- | ----- | ---------------------------------------------- | ---------------------------------------- |
 | `push-all`      | `pa`  | Stage and commit all changed files             | Quick commits for all modifications      |
 | `push-selected` | `ps`  | Interactively select files to stage and commit | Fine-grained control over what to commit |
+| `stash`         | `st`  | Manage stashes: save / browse / apply / drop   | Park work-in-progress, rescue interrupted tasks |
 
 ### Branch & Tag Management
 

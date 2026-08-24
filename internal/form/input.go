@@ -118,6 +118,28 @@ func Input(title string, defaultValue string) (string, error) {
 	return InputWithValidate(title, defaultValue, nil)
 }
 
+// InputOptional 可空输入表单(跳过非空校验):可选消息、备注等场景,
+// Esc 取消返回错误,空值直接确认返回空串。
+func InputOptional(title string, defaultValue string) (string, error) {
+	inputValue := defaultValue
+	f := NewOptionalInputForm(title, &inputValue)
+	if err := f.Run(); err != nil {
+		return "", err
+	}
+	return inputValue, nil
+}
+
+// NewOptionalInputForm 构造可空输入 huh 表单(InputOptional 与测试共用构造路径)。
+func NewOptionalInputForm(title string, value *string) *Form {
+	return newForm(
+		huh.NewForm(
+			huh.NewGroup(newInputField(title, value, "", true, nil, nil)),
+		).WithTheme(theme.GetCompactTheme()).
+			WithShowHelp(false),
+		inputHelpKeys(),
+	)
+}
+
 // InputWithValidate 输入表单,支持自定义校验(非空校验通过后执行),
 // 用于提交消息主题非空等业务级校验。
 func InputWithValidate(title string, defaultValue string, validate func(string) error) (string, error) {

@@ -171,6 +171,9 @@ easyGit branch-switch  # 或: easyGit sw
 # 新建分支,可选推送并设置上游跟踪
 easyGit branch-create  # 或: easyGit bc
 
+# 管理 stash(保存 / 浏览 / 应用 / 删除 / 清空)
+easyGit stash  # 或: easyGit st
+
 # 将选定分支合并到当前分支
 easyGit merge  # 或: easyGit m
 
@@ -220,6 +223,7 @@ easyGit config   # → 界面主题 → 自动 / 深色 / 浅色
 | --------------- | ---- | -------------------------- | ---------------- |
 | `push-all`      | `pa` | 暂存并提交所有更改的文件   | 快速提交所有修改 |
 | `push-selected` | `ps` | 交互式选择文件进行暂存提交 | 精细控制提交内容 |
+| `stash`         | `st` | 管理 stash:保存/浏览/应用/删除 | 暂存半成品工作,救回中断任务 |
 
 ### 分支与标签管理
 
