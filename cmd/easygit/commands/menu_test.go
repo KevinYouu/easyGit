@@ -34,7 +34,7 @@ func TestMenuItems(t *testing.T) {
 	}
 
 	// 高频命令必须在列表前部(心智负担:入口即所见)
-	frontKeys := []string{"push-all", "push-selected", "merge"}
+	frontKeys := []string{"push-all", "push-selected", "branch-switch", "branch-create", "merge"}
 	for i, front := range frontKeys {
 		if menuItems[i].key != front {
 			t.Errorf("menuItems[%d] = %q, want %q", i, menuItems[i].key, front)

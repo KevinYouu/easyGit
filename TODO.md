@@ -1,5 +1,16 @@
 # TODO
 
+## 已完成:分支切换与新建(sw / bc)
+
+- [x] sw 分支切换:本地(排除当前)+ 远程分支列表(NameDescColumns 双列,`/` 过滤),远程项自动 `--track` 创建本地跟踪分支 → `internal/gitcmd/branch_switch.go`
+- [x] 脏工作区三选:携带修改 / 自动 stash 切换后 pop(冲突时 git 保留条目并提示手动处理)/ 取消;干净仓库跳过询问
+- [x] bc 分支新建:名称表单层校验 refname(空格/`..`/`~ ^ : ? * [ \`/`.lock` 结尾等),基点可选当前 HEAD/本地/远程引用,确认后并行推送 `-u` 设 upstream
+- [x] 命令注册:`branch-switch (sw)` / `branch-create (bc)` cobra 命令 + 主菜单高频位插入 + root 描述动态化
+- [x] i18n:`branch.switch.*` / `branch.create.*` / `branch.label.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(名称校验表驱动/列表去重规则/本地与远程切换/upstream 断言/stash 往返与冲突保留/流程注入),推送段同步执行器注入规避测试沙箱 TTY → `make all` 全绿
+- [x] 文档:docs/features/分支切换与新建.md + README/README-ZH 双语命令表
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:交互与流程优化批次(15 项,逐项独立提交)
 
 - [x] P0 提交消息空主题校验:form 层 InputWithValidate + validateCommitMessage 拦截 `fix: ` 空消息(commit fe264cb)

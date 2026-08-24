@@ -165,6 +165,12 @@ easyGit tag-delete  # or: easyGit td
 # Delete local or remote branches
 easyGit branch-delete  # or: easyGit bd
 
+# Switch branches interactively (dirty workdir offers carry-over / auto-stash)
+easyGit branch-switch  # or: easyGit sw
+
+# Create a branch, optionally push with upstream
+easyGit branch-create  # or: easyGit bc
+
 # Merge selected branch into current branch
 easyGit merge  # or: easyGit m
 
@@ -220,6 +226,8 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | Command         | Alias | Description                                   | Use Case                                  |
 | --------------- | ----- | --------------------------------------------- | ----------------------------------------- |
 | `merge`         | `m`   | Merge selected branch into current branch     | Integrate feature branches                |
+| `branch-switch` | `sw`  | Switch branches interactively (local + remote)| Move between branches; remote auto-tracks |
+| `branch-create` | `bc`  | Create a branch and optionally push with upstream | Start new work from any base point    |
 | `branch-delete` | `bd`  | Delete local or remote branches               | Clean up merged or obsolete branches      |
 | `tag-create`    | `tc`  | Create and push tags with semantic versioning | Release versioning (v1.0.0, v2.1.0, etc.) |
 | `tag-delete`    | `td`  | Delete tags locally and remotely              | Remove incorrect or obsolete tags         |
