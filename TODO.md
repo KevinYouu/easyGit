@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:Undo 回滚(un / reflog 后悔药)
+
+- [x] 检查点列表:最近 50 条 reflog(短哈希+动作描述+时间+HEAD@{N} 标记),`/` 过滤可用 → `internal/gitcmd/undo.go`
+- [x] 重置模式与 rs 完全复用(resetModeOptions/getModeDescription/LastChoiceResetMode 记忆互通);hard 确认内联不可恢复警告
+- [x] 命令注册:`undo (un)` cobra + root 描述 + 主菜单(am 之后);i18n `undo.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(列表解析/limit 生效/hard-soft-mixed 三模式落地断言/流程注入含取消与 Esc)→ `make all` 全绿
+- [x] 文档:docs/features/Undo回滚.md + README 双语命令表
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:合并/摘取冲突闭环(通用冲突解决)
 
 - [x] 抽取通用闭环:conflictOps 配置(displayName/continue/skip/abort/inProgress/successKey/abortKey)+ runConflictResolution 驱动,编辑器解析/标记检测/状态检测收敛到 `internal/gitcmd/conflict.go`

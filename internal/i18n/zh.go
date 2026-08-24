@@ -151,6 +151,16 @@ var zhTranslations = map[string]string{
 	"amend.force.skipped":       "已跳过强推:远程仍为原提交,请稍后手动同步。",
 	"amend.force.no.upstream":   "当前分支未设上游,跳过自动强推。",
 
+	// Undo (reflog)
+	"undo.short":        "后悔药:通过 reflog 将 HEAD 恢复到历史检查点",
+	"undo.select.title": "选择要恢复到的检查点",
+	"undo.empty":        "没有可用的 reflog 记录。",
+	"undo.mode.title":   "选择重置模式",
+	"undo.confirm.to":   "恢复到",
+	"undo.hard.warning": "⚠ 硬重置将丢弃该检查点之后的全部提交并覆盖本地修改,且不可恢复。",
+	"undo.executing":    "正在恢复到 %s...",
+	"undo.success":      "HEAD 已恢复到 %s (%s)",
+
 	// Update command
 	"update.short": "更新 easyGit 到最新版本",
 

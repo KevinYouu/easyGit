@@ -58,6 +58,8 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("stash.short")
 		case "amend":
 			cmd.Short = i18n.T("amend.short")
+		case "undo":
+			cmd.Short = i18n.T("undo.short")
 		case "merge":
 			cmd.Short = i18n.T("merge.short")
 		case "cherry-pick":
@@ -105,6 +107,7 @@ func init() {
 		commands.BranchCreateCommand(),
 		commands.StashCommand(),
 		commands.AmendCommand(),
+		commands.UndoCommand(),
 		commands.MergeCommand(),
 		commands.CherryPickCommand(),
 		commands.VersionCommand(),

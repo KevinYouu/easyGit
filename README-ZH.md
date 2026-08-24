@@ -192,6 +192,9 @@ easyGit cherry-pick  # 或: easyGit cp
 # 重置到选定提交
 easyGit reset  # 或: easyGit rs
 
+# 后悔药:通过 reflog 恢复到历史检查点
+easyGit undo  # 或: easyGit un
+
 # 将连续提交合并为一个
 easyGit squash  # 或: easyGit sq
 
@@ -249,6 +252,7 @@ easyGit config   # → 界面主题 → 自动 / 深色 / 浅色
 | `rebase`      | `r`  | 变基当前分支到另一分支 | 保持线性的提交历史     |
 | `cherry-pick` | `cp` | 从其他分支拣选提交 | 应用特定提交到当前分支 |
 | `reset`       | `rs` | 重置仓库到选定提交 | 撤销提交或回到之前状态 |
+| `undo`        | `un` | 通过 reflog 恢复到历史检查点 | 误操作后的"后悔药" |
 | `squash`      | `sq` | 将连续提交合并为一个 | 清理本地提交历史 (可视化) |
 | `drop`        | `d`  | 删除特定历史提交   | 从历史中移除不需要的提交 |
 

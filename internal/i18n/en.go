@@ -151,6 +151,16 @@ var enTranslations = map[string]string{
 	"amend.force.skipped":       "Force push skipped: remote still has the original commit. Sync manually when ready.",
 	"amend.force.no.upstream":   "Current branch has no upstream; skip auto force push.",
 
+	// Undo (reflog)
+	"undo.short":        "Undo: restore HEAD to a previous checkpoint via reflog",
+	"undo.select.title": "Select a checkpoint to restore",
+	"undo.empty":        "No reflog entries found.",
+	"undo.mode.title":   "Choose reset mode",
+	"undo.confirm.to":   "Restore to",
+	"undo.hard.warning": "⚠ Hard reset discards all commits after the checkpoint and overwrites local changes. This cannot be undone.",
+	"undo.executing":    "Restoring to %s...",
+	"undo.success":      "HEAD restored to %s (%s)",
+
 	// Update command
 	"update.short": "Update easyGit to the latest version",
 

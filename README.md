@@ -177,6 +177,9 @@ easyGit stash  # or: easyGit st
 # Amend the last commit (message / append files, safe force-push guidance)
 easyGit amend  # or: easyGit am
 
+# Undo: restore HEAD to a previous checkpoint via reflog
+easyGit undo  # or: easyGit un
+
 # Merge selected branch into current branch
 # Conflicts open an in-tool resolution loop (edit → continue/abort)
 easyGit merge  # or: easyGit m
@@ -249,6 +252,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | `rebase`      | `r`   | Rebase current branch onto another      | Keep a linear history                    |
 | `cherry-pick` | `cp`  | Cherry-pick commits from other branches | Apply specific commits to current branch |
 | `reset`       | `rs`  | Reset repository to selected commit     | Undo commits or move to previous state   |
+| `undo`        | `un`  | Restore HEAD to a reflog checkpoint     | "Oh no" recovery after a bad operation   |
 | `squash`      | `sq`  | Squash contiguous commits into one      | Clean up local commit history (visual)   |
 | `drop`        | `d`   | Delete specific commits                 | Remove unwanted commits from history     |
 
