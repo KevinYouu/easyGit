@@ -5,11 +5,13 @@ import (
 	"os/exec"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 // WorktreeInfo 一条 worktree 记录(porcelain 解析)
@@ -159,6 +161,7 @@ func worktreeRemovePaths(paths []string) error {
 // printWorktrees 输出工作树清单(纯展示)
 func printWorktrees(infos []WorktreeInfo) {
 	logs.Info(i18n.T("worktree.list.title"))
+	muted := lipgloss.NewStyle().Foreground(theme.MutedForeground)
 	for _, w := range infos {
 		label := fmt.Sprintf("%s (%s)", w.Path, w.Branch)
 		switch {
@@ -167,7 +170,7 @@ func printWorktrees(infos []WorktreeInfo) {
 		case w.IsMain:
 			label += " " + i18n.T("worktree.tag.main")
 		}
-		fmt.Println("  " + label)
+		fmt.Printf("  %s\n", muted.Render(label))
 	}
 }
 
@@ -224,7 +227,6 @@ func removeWorktreeFlow() error {
 	}
 
 	var options []config.Option
-	var targets []WorktreeInfo
 	for _, w := range infos {
 		if w.IsMain || w.IsBare {
 			continue
@@ -233,7 +235,6 @@ func removeWorktreeFlow() error {
 			Label: fmt.Sprintf("%s (%s)", w.Path, w.Branch),
 			Value: w.Path,
 		})
-		targets = append(targets, w)
 	}
 	if len(options) == 0 {
 		logs.Info(i18n.T("worktree.none.to.remove"))
@@ -246,7 +247,10 @@ func removeWorktreeFlow() error {
 		return nil
 	}
 
-	if !worktreeConfirm(fmt.Sprintf(i18n.T("worktree.remove.confirm"), len(selected))) {
+	// 确认文案含完整路径清单(与 clean 同一确认标准)
+	confirmMsg := fmt.Sprintf(i18n.T("worktree.remove.confirm"), len(selected)) + "\n" +
+		strings.Join(selected, "\n")
+	if !worktreeConfirm(confirmMsg) {
 		logs.Info(i18n.T("worktree.cancelled"))
 		return nil
 	}

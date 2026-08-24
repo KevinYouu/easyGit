@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/KevinYouu/easyGit/internal/config"
+	"github.com/KevinYouu/easyGit/internal/testutil"
 )
 
 // ─── 测试仓库构造 ────────────────────────────────────────────────────────────
@@ -202,8 +203,94 @@ func TestCherryPickConflictLoopSkip(t *testing.T) {
 	}
 }
 
-// executeCherryPickWithConflictLoop 验证 executeCherryPick 冲突路径接入闭环:
-// 解决后返回 nil,批次继续。
+// TestExecuteCherryPickBatchSequential 批次顺序摘取回归:
+// 每个提交独立调用 git cherry-pick <hash>,闭环 --continue 只完成当前提交,
+// 后续提交必须继续正常摘取(不得跳过)。
+// 批次 [side1(撞冲突→解决), side2(g.txt 干净应用)] 两个提交均应落地。
+func TestExecuteCherryPickBatchSequential(t *testing.T) {
+	// 构造:base(f.txt/g.txt)→ other 上两次提交(f.txt 与 g.txt 各一),
+	// main 独立修改 f.txt 制造首提交冲突
+	tempDir := setupTwoBranchRepo(t)
+	testutilCheckout(t, tempDir, "other")
+	writeFile(t, tempDir, "f.txt", "side f\n")
+	testutilRunGit(t, tempDir, "commit", "-am", "side one")
+	writeFile(t, tempDir, "g.txt", "side g\n")
+	testutil.RunGitCommand(t, tempDir, "add", "g.txt")
+	testutil.RunGitCommand(t, tempDir, "commit", "-m", "side two")
+	side2, _ := execOutput(t, tempDir, "rev-parse", "other")
+	side1, _ := execOutput(t, tempDir, "rev-parse", "other~1")
+
+	testutilCheckout(t, tempDir, "main")
+	writeFile(t, tempDir, "f.txt", "main conflicting\n")
+	testutilRunGit(t, tempDir, "commit", "-am", "main change")
+
+	menuCalls := 0
+	defer withConflictMenu(t, func(options []config.Option) (string, error) {
+		menuCalls++
+		if menuCalls > 1 {
+			return "abort", nil // 防御:正常路径不应二次进入菜单
+		}
+		writeFile(t, tempDir, "f.txt", "resolved\n")
+		return "continue", nil
+	})()
+
+	// 第一个提交:冲突 → 闭环解决完成
+	if err := executeCherryPick(Commit{Hash: strings.TrimSpace(side1)}, cherryPickOptions[0]); err != nil {
+		t.Fatalf("first pick error = %v", err)
+	}
+	if menuCalls != 1 || isCherryPickInProgress() {
+		t.Fatalf("menuCalls=%d inProgress=%v, want 单次闭环且状态结束", menuCalls, isCherryPickInProgress())
+	}
+
+	// 第二个提交:必须继续正常摘取(证明无 sequencer 跨调用遗留)
+	if err := executeCherryPick(Commit{Hash: strings.TrimSpace(side2)}, cherryPickOptions[0]); err != nil {
+		t.Fatalf("second pick error = %v", err)
+	}
+
+	out, _ := execOutput(t, tempDir, "log", "--oneline")
+	if !strings.Contains(out, "side one") || !strings.Contains(out, "side two") {
+		t.Errorf("批次两个提交均应落地:\n%s", out)
+	}
+	if content := readFileContent(t, tempDir, "g.txt"); !strings.Contains(content, "side g") {
+		t.Errorf("g.txt = %q, want 含 side g", content)
+	}
+}
+
+// TestExecuteCherryPickEmptyCommitSkips 内容重复时警告并跳过而非中断批次:
+// 冲突解决方案已包含后续提交改动时,该提交变 empty,按 already-applied 同等处理。
+func TestExecuteCherryPickEmptyCommitSkips(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t)
+
+	// other 分支提交 f.txt 改动
+	testutilCheckout(t, tempDir, "other")
+	writeFile(t, tempDir, "f.txt", "same content\n")
+	testutilRunGit(t, tempDir, "commit", "-am", "dup change")
+	dupHash, _ := execOutput(t, tempDir, "rev-parse", "other")
+
+	testutilCheckout(t, tempDir, "main")
+	// main 上做出完全相同的内容改动 → 对方摘取必然 empty
+	writeFile(t, tempDir, "f.txt", "same content\n")
+	testutilRunGit(t, tempDir, "commit", "-am", "identical change")
+
+	menuCalled := false
+	oldMenu := conflictMenu
+	conflictMenu = func(title string, options []config.Option) (string, error) {
+		menuCalled = true
+		return "", nil
+	}
+	defer func() { conflictMenu = oldMenu }()
+
+	err := executeCherryPick(Commit{Hash: strings.TrimSpace(dupHash)}, cherryPickOptions[0])
+	if err != nil {
+		t.Fatalf("empty commit 应警告跳过而非报错, got %v", err)
+	}
+	if menuCalled {
+		t.Error("empty commit 不应进入冲突闭环")
+	}
+}
+
+// TestExecuteCherryPickConflictResolved 验证 executeCherryPick 冲突路径接入闭环:
+// 解决后返回 viaLoop=true 且 err 为 nil。
 func TestExecuteCherryPickConflictResolved(t *testing.T) {
 	tempDir, sideHash := setupCherryPickConflictRepo(t)
 
@@ -222,6 +309,30 @@ func TestExecuteCherryPickConflictResolved(t *testing.T) {
 	out, _ := execOutput(t, tempDir, "log", "--oneline", "-1")
 	if !strings.Contains(out, "side change") {
 		t.Errorf("HEAD 应为摘取的提交:\n%s", out)
+	}
+}
+
+// TestExecuteCherryPickNormalPathNoLoop 常规无冲突路径 viaLoop=false
+func TestExecuteCherryPickNormalPathNoLoop(t *testing.T) {
+	tempDir, sideHash := setupCherryPickConflictRepo(t)
+
+	// 还原 main 对 f.txt 的独立修改,使摘取无冲突
+	testutilRunGit(t, tempDir, "reset", "--hard", "HEAD~1")
+
+	menuCalled := false
+	oldMenu := conflictMenu
+	conflictMenu = func(title string, options []config.Option) (string, error) {
+		menuCalled = true
+		return "", nil
+	}
+	defer func() { conflictMenu = oldMenu }()
+
+	err := executeCherryPick(Commit{Hash: strings.TrimSpace(sideHash)}, cherryPickOptions[0])
+	if err != nil {
+		t.Fatalf("executeCherryPick() error = %v", err)
+	}
+	if menuCalled {
+		t.Error("无冲突不应进入冲突闭环")
 	}
 }
 

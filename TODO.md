@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:代码审查修复(03d40ac → HEAD)
+
+- [x] Critical:i18n 补充 stash.diff.title 缺失键(zh/en)
+- [x] Major:clean listModifiedTrackedFiles 仅对空仓库特征错误(unknown revision)降级为空清单,其余错误 logs.Error 后上抛;新增 clean.diff.failed 键
+- [x] Major:Amend 暂存区额外内容防护——对比暂存区与勾选集(消息模式勾选集为空),差集逐个列出并确认后方可 amend;新增 listStagedFiles/amend.staged.extras.warning
+- [x] Minor:splitUpstreamRef 遍历 git remote 最长前缀匹配(兼容 my/origin/main 类 remote);undo reflog 格式改 %h|%cd|%gs(subject 移末段防 | 错位);fmt.Println 全部替换为主题化 Printf(conflict/stash/worktree);showStashDiff 失败不再吞错(stash.diff.failed);worktree 删除 targets 死代码移除且确认含完整路径清单;parseStashRefNumber 测试专用死代码删除;Amend getHeadSubject 冗余调用合并为单次;TODO.md 未完成条目清理
+- [x] 复核报告 #2(cherry-pick 批量重复执行):前提不成立——本实现逐提交独立调用 git cherry-pick <hash>,单提交调用无 sequencer 跨调用队列,--continue 只完成当前提交;按建议 break 反而会漏摘后续提交(已有回归证明)。真正残留问题已修:empty commit 改为警告跳过(cherry.pick.empty.commit.skipped),不再以误导性错误中断批次
+- [x] 新增回归:批次顺序摘取两提交均落地/empty-commit 跳过/splitUpstreamRef 表驱动/listStagedFiles/amend 暂存额外内容接受与取消/reflog 含 | 消息字段不错位/worktree 确认含路径 → make all 全绿
+
 ## 已完成:Worktree 管理(wk)
 
 - [x] 主菜单循环三选:查看(porcelain 解析,主树/裸仓标注)/ 添加(新分支 `-b` 或已有分支,名称复用 validateBranchName)/ 删除(多选确认,主树与裸仓自动排除)→ `internal/gitcmd/worktree.go`
@@ -7,7 +16,6 @@
 - [x] 命令注册:`worktree (wk)` cobra + root 描述 + 主菜单(cl 之后);i18n `worktree.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(porcelain 解析/占用集合/添加两模式落地断言/重复路径报错/移除后目录消失且占用解除/流程注入含 list 回环)→ `make all` 全绿
 - [x] 文档:docs/features/Worktree管理.md + README 双语命令表与示例
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:工作区清理(cl)
 
@@ -17,7 +25,6 @@
 - [x] 命令注册:`clean (cl)` cobra + root 描述 + 主菜单(un 之后);i18n `clean.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(两类列表边界/还原与删除落地断言/gitignore 保护/流程注入含取消)→ `make all` 全绿
 - [x] 文档:docs/features/工作区清理.md + README 双语命令表
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:Undo 回滚(un / reflog 后悔药)
 
@@ -26,7 +33,6 @@
 - [x] 命令注册:`undo (un)` cobra + root 描述 + 主菜单(am 之后);i18n `undo.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(列表解析/limit 生效/hard-soft-mixed 三模式落地断言/流程注入含取消与 Esc)→ `make all` 全绿
 - [x] 文档:docs/features/Undo回滚.md + README 双语命令表
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:合并/摘取冲突闭环(通用冲突解决)
 
@@ -37,7 +43,6 @@
 - [x] i18n:rebase.conflict.* 键替换为通用 conflict.loop.* / conflict.editor.* / op.*.name;删除 merge.conflict.* 与 cherry.pick.conflict.* 死键;新增 merge.abort.message/cherry.pick.resolved/cherry.pick.abort.message/cherry.pick.stopped
 - [x] 测试:真实仓库集成回归(MERGE_HEAD/CHERRY_PICK_HEAD 状态判定、merge 解决+abort+无 skip 断言、cp skip/解决/abort 路径),rebase 既有回归全绿 → `make all` 全绿
 - [x] 文档:docs/features/合并摘取冲突闭环.md + README 双语注释同步
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:Amend 修改上次提交(am)
 
@@ -46,7 +51,6 @@
 - [x] 命令注册:`amend (am)` cobra + root 描述 + 主菜单(cp 之后);i18n `amend.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(isHeadPushed 三态/upstream 解析/三种 amend 模式状态断言/流程注入含警告取消与拒绝强推)→ `make all` 全绿
 - [x] 文档:docs/features/Amend修改提交.md + README/README-ZH 双语命令表
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:Stash 管理(st)
 
@@ -56,7 +60,6 @@
 - [x] 命令注册:`stash (st)` cobra + root 描述 + 主菜单高频位(sw 之后);i18n `stash.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(引用解析表驱动/列表顺序/apply-pop 行为差异/pop 冲突保留/drop-clear-show 状态断言/流程注入含 Esc 路径)→ `make all` 全绿
 - [x] 文档:docs/features/Stash管理.md + README/README-ZH 双语命令表
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:分支切换与新建(sw / bc)
 
@@ -67,7 +70,6 @@
 - [x] i18n:`branch.switch.*` / `branch.create.*` / `branch.label.*` 全量键(zh/en)
 - [x] 测试:真实仓库集成回归(名称校验表驱动/列表去重规则/本地与远程切换/upstream 断言/stash 往返与冲突保留/流程注入),推送段同步执行器注入规避测试沙箱 TTY → `make all` 全绿
 - [x] 文档:docs/features/分支切换与新建.md + README/README-ZH 双语命令表
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:交互与流程优化批次(15 项,逐项独立提交)
 
@@ -99,7 +101,6 @@
 - [x] i18n:`config.option/summary.conflict.editor.*` + `conflict.editor.*` 键(zh/en)
 - [x] 测试:未设置返回空/保存/覆盖/清空/主列表含新项 → `make all` 全绿
 - [x] 文档:配置中心.md(表格/主列表示例/子流程/实现位置)+ 变基冲突闭环.md + README 双语 + 测试用例.md
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:变基冲突解决闭环(多冲突自动循环)
 
@@ -111,7 +112,6 @@
 - [x] i18n:`rebase.conflict.menu.*`/`rebase.conflict.files`/`rebase.abort.message` 等键(zh/en)
 - [x] 测试:冲突检测/未合并文件/多冲突自动循环(核心回归,两次冲突依次解决)/skip/abort/quit 路径,菜单注入驱动真实 git 仓库 → `make all` 全绿
 - [x] 文档:docs/features/变基冲突闭环.md + README 双语命令注释 + 测试用例.md 同步
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:死代码清理(colors/spinner 包及测试专用导出)
 
@@ -121,7 +121,6 @@
 - [x] i18n 死键:`git.select.remote`/`git.select.branch`(zh/en)已无引用,删除
 - [x] 排查确认活代码:NewInputForm/NewConfirmForm(被 Input/Confirm 调用)、GetAllBranches/GetLatestTag 等(包内间接调用)、GetSpinnerFrames/GetHorizontalRule 等(command 包使用)均保留
 - [x] 文档:docs/features/测试用例.md、docs/TEST_STRATEGY.md 移除 colors/spinner 条目 → `make all` 全绿
-- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
 
 ## 已完成:主题双色板(默认自动 + 手动切换)
 
@@ -132,7 +131,6 @@
 - [x] i18n:config.option/summary.theme.* + theme.option.*(zh/en)
 - [x] 测试:浅色板精确色值断言、样式重建(渲染 SGR 含浅色主色)、dark/light 往返、ResolveMode/ValidMode、config Get/SaveTheme(含非法值 errors.Is)、Mode 与 config 常量防漂移、BuildConfigOptions 5 项 → `make all` 全绿
 - [x] 文档:README/README-ZH 主题章节、docs/ui-shadcn-tui-refactor.md 双色板与模式机制
-- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
 
 ## 已完成:多远程并行推送(pa/ps/tc/td/bd)
 
@@ -147,7 +145,6 @@
 - [x] i18n:`progress.executing.parallel`(zh/en)
 - [x] 测试:并行状态机(串行推进→并行段一次性启动→乱序完成→全部结束)、并行段部分失败收集、串行段失败立即终止、并行渲染(多 running spinner/失败 ✗/进度含失败)、摘要多失败;真实 git 集成验证(/tmp 裸仓库×2 并行推送,两个远程 HEAD 一致) → `make all` 全绿
 - [x] docs/features/推送配置持久化.md 实现位置同步(并发真实落地),TODO 登记
-- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
 
 ## 已完成:配置中心(config)统一所有可配置项
 
@@ -163,7 +160,6 @@
 - [x] 多输入表单组件统一:自绘 multi_input.go(不经 huh 渲染,简介行尾弱化不占额外行),tc 命令(tag.go)与配置中心版本号上限共用 form.MultiInput(specs, preview);删除 huh 版卡片式/紧凑主题与构造器
 - [x] 多输入表单体验优化:输入列统一宽度(简介紧贴且列对齐)、循环导航(末字段 ↓/j 不误触保存)、聚焦行整行背景(逐段携带 SelectionBg 无"打洞",含行尾补白;测试断言背景色码/行宽/焦点跟随)
 - [x] docs/features/配置中心.md + README 双语命令表同步 + TODO 登记
-- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
 
 ## 已完成:MultiInput 卡片化 UI 优化(焦点/模糊统一容器、序号标题、描述行)
 
@@ -174,7 +170,6 @@
 - [x] i18n:标题去冒号精简(版本号 / 提交信息、Version / Commit message)+ 新增 `tag.input.version.desc`、`tag.input.commit.message.desc` → `internal/i18n/zh.go` / `en.go`
 - [x] 调用方 `tag.go` 传入描述(与测试 specs 一致);渲染测试阈值重测:自然高度 13 行,≥13 完整断言、≥8 标题齐全、≥4 仅首字段 → `make all` 全绿
 - [x] docs/features/单页多输入表单.md 渲染/测试/注意事项同步 + TODO 登记
-- [ ] 提交:代码 + i18n + 测试 + docs + TODO.md 单一 commit,不推送
 
 ## 已完成:tc 连续输入表单堆叠修复(单页多输入 MultiInput)
 
@@ -185,7 +180,6 @@
 - [x] 帮助栏键位 `multiInputHelpKeys`:Enter 继续/提交、Shift+Tab 上一步、Esc 取消 → `internal/form/helpbar.go`
 - [x] 测试:构造断言(空 specs/空值校验阻挡推进/Enter 推进、shift+tab 回退、末字段提交)+ 单帧渲染双标题 + 帮助栏渲染,`pumpForm` 跳过 `cursor.BlinkMsg` 防命令链死循环 → `make all` 全绿
 - [x] docs/features/单页多输入表单.md + TODO 登记
-- [ ] 提交:代码 + i18n + 测试 + docs/features + TODO.md 单一 commit,不推送
 
 ## 已完成:列表消息完整显示(移除固定上限与仓库层预截断)
 

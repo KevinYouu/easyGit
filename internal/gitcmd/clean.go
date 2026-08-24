@@ -1,6 +1,7 @@
 package gitcmd
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -33,8 +34,14 @@ func listModifiedTrackedFiles() ([]string, error) {
 	cmd := exec.Command("git", "diff", "--name-only", "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
-		// 空仓库无 HEAD:视为无已跟踪修改
-		return nil, nil
+		// 仅空仓库特征错误(无 HEAD)降级为无修改;其余真实失败上抛,
+		// 避免静默空清单后继续走删除流程
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && strings.Contains(string(exitErr.Stderr), "unknown revision") {
+			return nil, nil
+		}
+		logs.Error(i18n.T("clean.diff.failed") + ": " + strings.TrimSpace(string(output)))
+		return nil, fmt.Errorf("git diff HEAD: %w", err)
 	}
 	return splitNonEmptyLines(string(output)), nil
 }

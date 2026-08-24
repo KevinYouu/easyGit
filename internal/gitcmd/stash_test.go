@@ -8,27 +8,6 @@ import (
 	"github.com/KevinYouu/easyGit/internal/testutil"
 )
 
-// ─── 纯函数单元测试 ──────────────────────────────────────────────────────────
-
-func TestParseStashRefNumber(t *testing.T) {
-	tests := []struct {
-		ref  string
-		want int
-	}{
-		{"stash@{0}", 0},
-		{"stash@{12}", 12},
-		{"stash@{}", -1},
-		{"stash@", -1},
-		{"stash@{abc}", -1},
-		{"", -1},
-	}
-	for _, tt := range tests {
-		if got := parseStashRefNumber(tt.ref); got != tt.want {
-			t.Errorf("parseStashRefNumber(%q) = %d, want %d", tt.ref, got, tt.want)
-		}
-	}
-}
-
 // ─── 列表解析 ────────────────────────────────────────────────────────────────
 
 func TestListStashesEmpty(t *testing.T) {

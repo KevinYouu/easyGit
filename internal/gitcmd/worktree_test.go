@@ -202,11 +202,16 @@ func TestWorktreeFlowAddNew(t *testing.T) {
 	}
 }
 
-// TestWorktreeFlowRemove 主菜单 remove → 多选 → 确认 → 移除成功
+// TestWorktreeFlowRemove 主菜单 remove → 多选 → 确认(含路径清单)→ 移除成功
 func TestWorktreeFlowRemove(t *testing.T) {
 	tempDir := setupWorktreeRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "flow-rm")
 	testutilRunGit(t, tempDir, "worktree", "add", wtPath, "other")
+
+	// macOS 符号链接归一(git porcelain 输出真实路径)
+	if resolved, err := filepath.EvalSymlinks(wtPath); err == nil {
+		wtPath = resolved
+	}
 
 	restoreMenu := stubMenu(t, &worktreeMenu, "remove")
 	defer restoreMenu()
@@ -222,11 +227,19 @@ func TestWorktreeFlowRemove(t *testing.T) {
 	})
 	defer restoreSelect()
 
-	restoreConfirm := stubBool(t, &worktreeConfirm, true)
-	defer restoreConfirm()
+	var confirmMsg string
+	oldConfirm := worktreeConfirm
+	worktreeConfirm = func(title string) bool {
+		confirmMsg = title
+		return true
+	}
+	defer func() { worktreeConfirm = oldConfirm }()
 
 	if err := removeWorktreeFlow(); err != nil {
 		t.Fatalf("removeWorktreeFlow() error = %v", err)
+	}
+	if !strings.Contains(confirmMsg, wtPath) {
+		t.Errorf("删除确认应包含完整路径清单 %q, got:\n%s", wtPath, confirmMsg)
 	}
 	if _, err := os.Stat(wtPath); !os.IsNotExist(err) {
 		t.Error("工作树应已被移除")

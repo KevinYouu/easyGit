@@ -43,10 +43,11 @@ var undoModeSelect = func(options []config.Option, preselected string) (string, 
 // undoConfirm 恢复确认(测试可注入)
 var undoConfirm = form.Confirm
 
-// listReflog 获取最近 limit 条 reflog 记录(最新在前)
+// listReflog 获取最近 limit 条 reflog 记录(最新在前)。
+// 格式 %h|%cd|%gs:可变长的 subject 放末段,含 "|" 时字段不错位。
 func listReflog(limit int) ([]ReflogEntry, error) {
 	cmd := exec.Command("git", "reflog", "-n", fmt.Sprintf("%d", limit),
-		"--pretty=format:%h|%gs|%cd", "--date=format:%m-%d %H:%M")
+		"--pretty=format:%h|%cd|%gs", "--date=format:%m-%d %H:%M")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("git reflog: %w", err)
@@ -65,8 +66,8 @@ func listReflog(limit int) ([]ReflogEntry, error) {
 		}
 		entries = append(entries, ReflogEntry{
 			Hash:   parts[0],
-			Action: parts[1],
-			Date:   parts[2],
+			Date:   parts[1],
+			Action: parts[2],
 			Sel:    fmt.Sprintf("HEAD@{%d}", i),
 		})
 	}

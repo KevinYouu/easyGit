@@ -77,6 +77,39 @@ func getUpstreamRef() string {
 	return strings.TrimSpace(string(output))
 }
 
+// listStagedFiles 当前暂存区文件列表(空仓库 diff --cached 对空树,不报错)
+func listStagedFiles() ([]string, error) {
+	cmd := exec.Command("git", "diff", "--cached", "--name-only")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git diff --cached: %w", err)
+	}
+	return splitNonEmptyLines(string(output)), nil
+}
+
+// splitUpstreamRef 将上游引用拆分为 remote 与分支名:
+// 遍历 git remote 做最长前缀匹配,兼容 my/origin/main 类含斜杠的 remote 名;
+// 无匹配时回退按首个斜杠拆分。
+func splitUpstreamRef(upstream string) (remote, branch string) {
+	remotes, _ := GetAllRemotes()
+	bestLen := 0
+	for _, r := range remotes {
+		prefix := r + "/"
+		if strings.HasPrefix(upstream, prefix) && len(prefix) > bestLen {
+			remote, branch = r, strings.TrimPrefix(upstream, prefix)
+			bestLen = len(prefix)
+		}
+	}
+	if bestLen > 0 {
+		return remote, branch
+	}
+	parts := strings.SplitN(upstream, "/", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return upstream, ""
+}
+
 // executeAmend 执行 amend(核心执行,交互层与测试共用):
 // files 非空时先暂存这些文件并追加进上次提交;message 非空时改写消息,
 // 否则保留原消息(--no-edit)。
@@ -121,12 +154,7 @@ func forcePushAmended() error {
 		return nil
 	}
 
-	parts := strings.SplitN(upstream, "/", 2)
-	remote := parts[0]
-	branch := upstream
-	if len(parts) == 2 {
-		branch = parts[1]
-	}
+	remote, branch := splitUpstreamRef(upstream)
 
 	_, err := command.RunCmdWithSpinnerOptions("git",
 		[]string{"push", "--force-with-lease", remote, branch},
@@ -141,7 +169,9 @@ func forcePushAmended() error {
 // HEAD 已推送时先警告需 force push 并确认,完成后可选用
 // force-with-lease 安全覆盖远程。
 func Amend() error {
-	if _, err := getHeadSubject(); err != nil {
+	// 单次获取原消息:既作存在性检查,又作消息模式预填(避免重复 Git 调用)
+	subject, err := getHeadSubject()
+	if err != nil {
 		return fmt.Errorf("%s", i18n.T("amend.no.commits"))
 	}
 
@@ -198,12 +228,33 @@ func Amend() error {
 		}
 	}
 
+	// 暂存区额外内容防护:commit --amend 会把暂存区全部内容并入上次提交。
+	// 对比暂存区与用户勾选(消息模式下勾选集为空),存在差集时逐个列出并确认,
+	// 防止无关改动被不可逆地卷入历史改写。
+	staged, err := listStagedFiles()
+	if err != nil {
+		return err
+	}
+	selected := make(map[string]bool, len(files))
+	for _, f := range files {
+		selected[f] = true
+	}
+	var extras []string
+	for _, s := range staged {
+		if !selected[s] {
+			extras = append(extras, s)
+		}
+	}
+	if len(extras) > 0 {
+		msg := fmt.Sprintf(i18n.T("amend.staged.extras.warning"), len(extras)) + "\n" + strings.Join(extras, "\n")
+		if !amendConfirm(msg) {
+			logs.Info(i18n.T("amend.cancelled"))
+			return nil
+		}
+	}
+
 	message := ""
 	if changeMessage {
-		subject, err := getHeadSubject()
-		if err != nil {
-			return err
-		}
 		message, err = amendMessageInput(subject)
 		if err != nil {
 			return nil // Esc 取消

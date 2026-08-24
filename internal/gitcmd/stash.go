@@ -3,7 +3,6 @@ package gitcmd
 import (
 	"fmt"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -150,14 +149,19 @@ func clearStashes() error {
 	return err
 }
 
-// showStashDiff 输出指定条目的改动内容(stash show -p)
+// showStashDiff 输出指定条目的改动内容(stash show -p)。
+// 失败时错误详情经 logs 输出后仍上抛,由调用方决定后续流程。
 func showStashDiff(entry StashEntry) error {
 	cmd := exec.Command("git", "stash", "show", "-p", entry.Index)
 	output, err := cmd.CombinedOutput()
 	titleStyle := lipgloss.NewStyle().Foreground(theme.PrimaryColor).Bold(true)
+	mutedStyle := lipgloss.NewStyle().Foreground(theme.MutedForeground)
 	fmt.Printf("\n%s %s\n", titleStyle.Render(entry.Index),
-		lipgloss.NewStyle().Foreground(theme.MutedForeground).Render(i18n.T("stash.diff.title")))
-	fmt.Println(string(output))
+		mutedStyle.Render(i18n.T("stash.diff.title")))
+	fmt.Printf("%s\n", mutedStyle.Render(strings.TrimRight(string(output), "\n")))
+	if err != nil {
+		logs.Error(i18n.T("stash.diff.failed") + ": " + strings.TrimSpace(string(output)))
+	}
 	return err
 }
 
@@ -271,18 +275,4 @@ func stashEntryCount() int {
 		return 0
 	}
 	return len(entries)
-}
-
-// parseStashRefNumber 从 stash@{N} 提取 N(-1 表示格式非法)
-func parseStashRefNumber(ref string) int {
-	start := strings.Index(ref, "{")
-	end := strings.Index(ref, "}")
-	if start < 0 || end <= start {
-		return -1
-	}
-	n, err := strconv.Atoi(ref[start+1 : end])
-	if err != nil {
-		return -1
-	}
-	return n
 }

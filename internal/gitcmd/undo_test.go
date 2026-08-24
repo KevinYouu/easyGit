@@ -51,6 +51,28 @@ func TestListReflogParsing(t *testing.T) {
 	}
 }
 
+// TestListReflogPipeInSubject 字段错位回归:提交消息含 "|" 时
+// subject 位于末段(格式 %h|%cd|%gs),解析仍完整。
+func TestListReflogPipeInSubject(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t)
+
+	writeFile(t, tempDir, "f.txt", "pipe\n")
+	testutil.RunGitCommand(t, tempDir, "commit", "-am", "feat: a|b|c pipe subject")
+
+	entries, err := listReflog(undoReflogLimit)
+	if err != nil {
+		t.Fatalf("listReflog() error = %v", err)
+	}
+	first := entries[0]
+	if !strings.Contains(first.Action, "a|b|c pipe subject") {
+		t.Errorf("Action 应保留含 | 的完整消息, got %q", first.Action)
+	}
+	// Date 段应为 "MM-DD HH:MM"(11 字符),而非消息片段
+	if len(first.Date) != 11 || first.Date[2] != '-' || first.Date[5] != ' ' || first.Date[8] != ':' {
+		t.Errorf("Date 段格式异常: %q", first.Date)
+	}
+}
+
 // TestListReflogLimit limit 生效
 func TestListReflogLimit(t *testing.T) {
 	tempDir := setupTwoBranchRepo(t)

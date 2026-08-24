@@ -81,6 +81,8 @@ func CherryPick() error {
 	}
 
 	// Execute cherry-pick for each selected commit
+	// 注意:每个提交独立调用 git cherry-pick <hash>(非区间),
+	// 冲突闭环的 --continue 仅完成当前提交,后续提交仍需逐一摘取。
 	for _, commit := range selectedCommits {
 		if err := executeCherryPick(commit, option); err != nil {
 			// 用户在冲突闭环中主动中止:优雅停止剩余批次
@@ -342,6 +344,8 @@ func selectCherryPickOption() (CherryPickOption, error) {
 	return cherryPickOptions[0], nil // fallback to default
 }
 
+// executeCherryPick 执行单个提交摘取(每次独立调用 git cherry-pick <hash>,
+// 不存在跨调用的 sequencer 队列)。
 func executeCherryPick(commit Commit, option CherryPickOption) error {
 	// Build the git cherry-pick command
 	args := []string{"cherry-pick"}
@@ -373,9 +377,11 @@ func executeCherryPick(commit Commit, option CherryPickOption) error {
 		}
 
 		if strings.Contains(outputStr, "empty commit") {
+			// 内容已被此前操作覆盖(如冲突解决方案已包含本提交改动):
+			// 与 already-applied 同等对待,警告并跳过而非中断整个批次
 			logs.Warning(i18n.T("cherry.pick.empty.commit") + ": " + commit.Hash[:8])
-			// For empty commits, we might want to continue with --allow-empty or skip
-			return fmt.Errorf("%s", i18n.T("cherry.pick.empty.commit.error"))
+			logs.Info(i18n.T("cherry.pick.empty.commit.skipped"))
+			return nil
 		}
 
 		if strings.Contains(outputStr, "already exists") || strings.Contains(outputStr, "nothing to commit") {

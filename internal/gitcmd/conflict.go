@@ -11,10 +11,12 @@ import (
 	"strings"
 	"unicode"
 
+	"charm.land/lipgloss/v2"
 	"github.com/KevinYouu/easyGit/internal/config"
 	"github.com/KevinYouu/easyGit/internal/form"
 	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/KevinYouu/easyGit/internal/logs"
+	"github.com/KevinYouu/easyGit/internal/theme"
 )
 
 // ─── 通用冲突解决闭环(rebase / merge / cherry-pick 共用) ─────────────────────
@@ -53,8 +55,9 @@ func runConflictResolution(ops conflictOps) (bool, error) {
 		logs.Error(fmt.Sprintf(i18n.T("conflict.loop.detected"), ops.displayName()))
 		if len(files) > 0 {
 			logs.Info(i18n.T("conflict.loop.files"))
+			muted := lipgloss.NewStyle().Foreground(theme.MutedForeground)
 			for _, f := range files {
-				fmt.Println("  " + f)
+				fmt.Printf("  %s\n", muted.Render(f))
 			}
 		}
 
@@ -245,8 +248,9 @@ func openConflictsInEditor(files []string) {
 	editor := resolveAvailableEditor()
 	if editor == "" {
 		logs.Error(i18n.T("conflict.editor.none"))
+		muted := lipgloss.NewStyle().Foreground(theme.MutedForeground)
 		for _, f := range files {
-			fmt.Println("  " + f)
+			fmt.Printf("  %s\n", muted.Render(f))
 		}
 		logs.Info(i18n.T("conflict.editor.manual.hint"))
 		return
