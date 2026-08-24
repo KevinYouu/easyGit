@@ -127,6 +127,30 @@ var enTranslations = map[string]string{
 	"stash.clear.success":     "All stash entries cleared",
 	"stash.cancelled":         "Operation cancelled.",
 
+	// Amend last commit
+	"amend.short":               "Modify the last commit (message / files)",
+	"amend.action.title":        "How do you want to amend the last commit?",
+	"amend.option.message":      "Change message only",
+	"amend.option.message.desc": "Rewrite the commit message, keep files unchanged",
+	"amend.option.files":        "Append staged files",
+	"amend.option.files.desc":   "Add more file changes into the last commit, keep message",
+	"amend.option.both":         "Both message and files",
+	"amend.option.both.desc":    "Rewrite the message and append file changes together",
+	"amend.message.input":       "New commit message",
+	"amend.select.files":        "Select files to append into the last commit",
+	"amend.no.files":            "No local changes to append.",
+	"amend.no.commits":          "No commits yet: nothing to amend.",
+	"amend.pushed.warning":      "The last commit has been pushed to a remote. Amending rewrites history and requires a force push to overwrite it. Continue?",
+	"amend.cancelled":           "Amend cancelled.",
+	"amend.executing":           "Amending last commit...",
+	"amend.message.success":     "Commit message rewritten",
+	"amend.append.success":      "Changes appended into the last commit",
+	"amend.force.confirm":       "Force push the amended commit to %s (force-with-lease)?",
+	"amend.force.loading":       "Force pushing to %s...",
+	"amend.force.success":       "Amended commit pushed to %s",
+	"amend.force.skipped":       "Force push skipped: remote still has the original commit. Sync manually when ready.",
+	"amend.force.no.upstream":   "Current branch has no upstream; skip auto force push.",
+
 	// Update command
 	"update.short": "Update easyGit to the latest version",
 

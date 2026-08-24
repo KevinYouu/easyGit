@@ -127,6 +127,30 @@ var zhTranslations = map[string]string{
 	"stash.clear.success":     "全部 stash 条目已清空",
 	"stash.cancelled":         "已取消操作。",
 
+	// Amend last commit
+	"amend.short":               "修改上次提交(消息 / 文件)",
+	"amend.action.title":        "如何修改上次提交?",
+	"amend.option.message":      "仅修改消息",
+	"amend.option.message.desc": "改写提交消息,文件保持不变",
+	"amend.option.files":        "追加暂存文件",
+	"amend.option.files.desc":   "把更多文件改动并入上次提交,消息不变",
+	"amend.option.both":         "同时修改消息与文件",
+	"amend.option.both.desc":    "改写消息并一并追加文件改动",
+	"amend.message.input":       "新的提交消息",
+	"amend.select.files":        "选择要并入上次提交的文件",
+	"amend.no.files":            "没有可追加的本地修改。",
+	"amend.no.commits":          "还没有任何提交,无法修改。",
+	"amend.pushed.warning":      "上次提交已推送到远程。修改会改写历史,需要强制推送才能覆盖远程。是否继续?",
+	"amend.cancelled":           "已取消修改。",
+	"amend.executing":           "正在修改上次提交...",
+	"amend.message.success":     "提交消息已改写",
+	"amend.append.success":      "改动已并入上次提交",
+	"amend.force.confirm":       "将修改后的提交强制推送到 %s(force-with-lease)吗?",
+	"amend.force.loading":       "正在强制推送到 %s...",
+	"amend.force.success":       "已覆盖推送到 %s",
+	"amend.force.skipped":       "已跳过强推:远程仍为原提交,请稍后手动同步。",
+	"amend.force.no.upstream":   "当前分支未设上游,跳过自动强推。",
+
 	// Update command
 	"update.short": "更新 easyGit 到最新版本",
 

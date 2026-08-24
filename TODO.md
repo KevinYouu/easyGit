@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:Amend 修改上次提交(am)
+
+- [x] 三模式单选:仅改消息(预填原消息 + ↑/↓ 历史)/ 追加暂存文件(M/A/D 状态列,--no-edit 保消息)/ 两者都做 → `internal/gitcmd/amend.go`
+- [x] 历史改写安全:已推送前置警告;完成后基于「改写前是否在远程」提供 force-with-lease 安全覆盖询问(无上游提示跳过)
+- [x] 命令注册:`amend (am)` cobra + root 描述 + 主菜单(cp 之后);i18n `amend.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(isHeadPushed 三态/upstream 解析/三种 amend 模式状态断言/流程注入含警告取消与拒绝强推)→ `make all` 全绿
+- [x] 文档:docs/features/Amend修改提交.md + README/README-ZH 双语命令表
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:Stash 管理(st)
 
 - [x] 主菜单三选:保存(可选消息,form 新增 InputOptional 可空输入)/ 列表管理 / 清空全部 → `internal/gitcmd/stash.go`

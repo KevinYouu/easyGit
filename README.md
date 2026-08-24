@@ -174,6 +174,9 @@ easyGit branch-create  # or: easyGit bc
 # Manage stashes (save / browse / apply / drop / clear)
 easyGit stash  # or: easyGit st
 
+# Amend the last commit (message / append files, safe force-push guidance)
+easyGit amend  # or: easyGit am
+
 # Merge selected branch into current branch
 easyGit merge  # or: easyGit m
 
@@ -224,6 +227,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | `push-all`      | `pa`  | Stage and commit all changed files             | Quick commits for all modifications      |
 | `push-selected` | `ps`  | Interactively select files to stage and commit | Fine-grained control over what to commit |
 | `stash`         | `st`  | Manage stashes: save / browse / apply / drop   | Park work-in-progress, rescue interrupted tasks |
+| `amend`         | `am`  | Amend last commit: message / append files      | Fix the previous commit without leaving the flow |
 
 ### Branch & Tag Management
 

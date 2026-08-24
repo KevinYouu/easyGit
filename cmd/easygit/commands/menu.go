@@ -32,6 +32,7 @@ var menuItems = []menuItem{
 	{key: "merge", label: "merge (m)", descKey: "merge.short", run: func() error { return gitcmd.MergeIntoCurrent() }},
 	{key: "rebase", label: "rebase (r)", descKey: "rebase.short", run: func() error { return gitcmd.RebaseIntoCurrent() }},
 	{key: "cherry-pick", label: "cherry-pick (cp)", descKey: "cherry.pick.short", run: func() error { return gitcmd.CherryPick() }},
+	{key: "amend", label: "amend (am)", descKey: "amend.short", run: func() error { return gitcmd.Amend() }},
 	{key: "reset", label: "reset (rs)", descKey: "reset.short", run: func() error { return gitcmd.Reset() }},
 	{key: "squash", label: "squash (sq)", descKey: "squash.short", run: func() error { return gitcmd.Squash() }},
 	{key: "drop", label: "drop (d)", descKey: "drop.short", run: func() error { return gitcmd.Drop() }},

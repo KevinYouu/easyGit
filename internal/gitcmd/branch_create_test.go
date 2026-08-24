@@ -159,7 +159,7 @@ func TestCreateBranchFlowWithPush(t *testing.T) {
 	tempDir := setupTwoBranchRepo(t)
 	createBareRemote(t, tempDir)
 
-	restoreInput := stubString(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
+	restoreInput := stubFunc(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
 		if err := validate("flow-branch"); err != nil {
 			return "", err
 		}
@@ -203,7 +203,7 @@ func TestCreateBranchFlowWithPush(t *testing.T) {
 func TestCreateBranchFlowNoPush(t *testing.T) {
 	tempDir := setupTwoBranchRepo(t)
 
-	restoreInput := stubString(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
+	restoreInput := stubFunc(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
 		return "local-only", nil
 	})
 	defer restoreInput()
@@ -231,7 +231,7 @@ func TestCreateBranchFlowInvalidName(t *testing.T) {
 	setupTwoBranchRepo(t)
 
 	var capturedErr error
-	restoreInput := stubString(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
+	restoreInput := stubFunc(t, &branchCreateNameInput, func(validate func(string) error) (string, error) {
 		capturedErr = validate("bad name")
 		return "", capturedErr
 	})
@@ -248,8 +248,8 @@ func TestCreateBranchFlowInvalidName(t *testing.T) {
 
 // ─── 注入辅助 ────────────────────────────────────────────────────────────────
 
-// stubString 注入函数变量(签名 func(func(string) error) (string, error))并返回恢复函数
-func stubString(t *testing.T, target *func(validate func(string) error) (string, error), impl func(validate func(string) error) (string, error)) func() {
+// stubFunc 通用函数变量注入(替换为 impl 并返回恢复函数)
+func stubFunc[T any](t *testing.T, target *T, impl T) func() {
 	t.Helper()
 	old := *target
 	*target = impl
