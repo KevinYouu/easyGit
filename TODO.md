@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:Worktree 管理(wk)
+
+- [x] 主菜单循环三选:查看(porcelain 解析,主树/裸仓标注)/ 添加(新分支 `-b` 或已有分支,名称复用 validateBranchName)/ 删除(多选确认,主树与裸仓自动排除)→ `internal/gitcmd/worktree.go`
+- [x] 占用感知:worktreesInUse 过滤已被其他工作树检出的分支,从源头避免 git 双检出报错;删除顺序执行(共享元数据不并行)
+- [x] 命令注册:`worktree (wk)` cobra + root 描述 + 主菜单(cl 之后);i18n `worktree.*` 全量键(zh/en)
+- [x] 测试:真实仓库集成回归(porcelain 解析/占用集合/添加两模式落地断言/重复路径报错/移除后目录消失且占用解除/流程注入含 list 回环)→ `make all` 全绿
+- [x] 文档:docs/features/Worktree管理.md + README 双语命令表与示例
+- [ ] 提交:代码 + i18n + 测试 + docs + README + TODO.md 单一 commit,不推送
+
 ## 已完成:工作区清理(cl)
 
 - [x] 单一多选列表混合呈现两类条目([已修改]/[未跟踪] 标注),Space 勾选 `/` 过滤 → `internal/gitcmd/clean.go`

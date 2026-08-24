@@ -62,6 +62,8 @@ func updateRootCommandDescriptions() {
 			cmd.Short = i18n.T("undo.short")
 		case "clean":
 			cmd.Short = i18n.T("clean.short")
+		case "worktree":
+			cmd.Short = i18n.T("worktree.short")
 		case "merge":
 			cmd.Short = i18n.T("merge.short")
 		case "cherry-pick":
@@ -111,6 +113,7 @@ func init() {
 		commands.AmendCommand(),
 		commands.UndoCommand(),
 		commands.CleanCommand(),
+		commands.WorktreeCommand(),
 		commands.MergeCommand(),
 		commands.CherryPickCommand(),
 		commands.VersionCommand(),

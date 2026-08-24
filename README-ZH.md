@@ -177,6 +177,9 @@ easyGit stash  # 或: easyGit st
 # 修改上次提交(改消息 / 追加文件,含安全强推引导)
 easyGit amend  # 或: easyGit am
 
+# 丢弃本地修改/删除未跟踪文件(交互式选择 + 确认)
+easyGit clean  # 或: easyGit cl
+
 # 将选定分支合并到当前分支
 # 冲突时进入工具内解决闭环(编辑 → 继续/中止)
 easyGit merge  # 或: easyGit m
@@ -194,6 +197,9 @@ easyGit reset  # 或: easyGit rs
 
 # 后悔药:通过 reflog 恢复到历史检查点
 easyGit undo  # 或: easyGit un
+
+# 管理 git 工作树(查看/添加/删除)
+easyGit worktree  # 或: easyGit wk
 
 # 将连续提交合并为一个
 easyGit squash  # 或: easyGit sq
