@@ -13,10 +13,18 @@ import (
 
 // ─── 测试辅助 ────────────────────────────────────────────────────────────────
 
-// chdirTempRepo 切换到临时仓库目录,返回恢复函数(gitcmd 函数在当前目录执行 git)
+// chdirTempRepo 切换到临时仓库目录,返回恢复函数(gitcmd 函数在当前目录执行 git)。
+// 显式指定初始分支 main,不依赖用户环境 init.defaultBranch 配置。
 func chdirTempRepo(t *testing.T) (string, func()) {
 	t.Helper()
-	tempDir, _ := testutil.CreateTempGitRepo(t)
+	tempDir := t.TempDir()
+	cmd := exec.Command("git", "init", "--initial-branch=main")
+	cmd.Dir = tempDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init --initial-branch=main failed: %v", err)
+	}
+	testutil.RunGitCommand(t, tempDir, "config", "user.name", "Test User")
+	testutil.RunGitCommand(t, tempDir, "config", "user.email", "test@example.com")
 	originalDir, _ := os.Getwd()
 	os.Chdir(tempDir)
 	return tempDir, func() { os.Chdir(originalDir) }

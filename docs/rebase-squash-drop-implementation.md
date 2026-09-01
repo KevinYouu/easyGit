@@ -34,7 +34,7 @@
 - 该拦截器读取通过环境变量 `EASYGIT_REBASE_CONFIG` 传入的 JSON 配置，自动解析并重写 `git-rebase-todo` 文件，实现非交互式的静默变基。
 
 ### 3.2 自动化消息注入 (GIT_EDITOR)
-- 在 Squash 模式下，系统会自动创建一个临时的 shell 脚本作为 `GIT_EDITOR`。
+- 在 Squash 模式下，系统会自动创建一个临时的消息注入脚本作为 `GIT_EDITOR`（Windows 为 `.bat`，其他平台为 `.sh`），脚本路径与可执行文件路径统一经 `QuoteForEditorEnv` 双引号转义，兼容含空格的 Windows 安装路径（如 `C:\Program Files\...`）。
 - 该脚本会自动将用户在 `easyGit` 界面输入的合并信息写入 Git 的提交编辑缓冲区，实现“填完即走”的一站式体验。
 
 ### 3.3 TUI 组件优化 (`TableMultiSelectForm`)
@@ -48,6 +48,7 @@
 | 类别 | 文件路径 | 说明 |
 | :--- | :--- | :--- |
 | 核心逻辑 | `internal/gitcmd/rebase.go` | 变基核心引擎、状态检测、公共提交获取逻辑 |
+| | `internal/gitcmd/editor_env.go` | 编辑器环境变量路径转义统一入口 `QuoteForEditorEnv`(Windows 含空格路径) |
 | | `internal/gitcmd/squash.go` | 基于变基引擎重写的合并逻辑 |
 | | `internal/gitcmd/drop.go` | 新增的删除提交逻辑 |
 | UI 组件 | `internal/form/table_multi_select.go` | 专门用于 Git 提交多选的表格组件 |

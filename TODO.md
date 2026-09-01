@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:Windows 路径转义支持(sq)
+
+- [x] 统一函数:`QuoteForEditorEnv`(internal/gitcmd/editor_env.go)——仅对 git 编辑器环境变量(GIT_SEQUENCE_EDITOR/GIT_EDITOR)做 shell 级路径转义,含空格/反斜杠时加双引号、已含引号不二次包裹;全库仅此 2 处 env 注入需要转义,其余 exec.Command 参数数组直传无需改动
+- [x] GIT_SEQUENCE_EDITOR 注入可执行文件路径转义:Windows 含空格安装路径(如 C:\Program Files\...)不再被截断
+- [x] squash 消息注入脚本平台自适应:Windows 生成 .bat(cmd 语法),其他平台 .sh;脚本路径同样转义;临时目录 MkdirTemp + defer RemoveAll 清理,WriteFile 错误不再吞
+- [x] 回归测试:QuoteForEditorEnv 表驱动(含空格/反斜杠/已含引号)/脚本平台分支与消息完整保留/端到端 env 注入断言/临时目录清理 → make all 全绿
+- [x] 测试基建:chdirTempRepo 显式 --initial-branch=main,不依赖用户 init.defaultBranch(worktree 等测试在 master 默认环境回归修复)
+- [x] 文档:docs/rebase-squash-drop-implementation.md 3.2 + 文件清单、docs/features/提交合并.md 流程与对比表同步
+
 ## 已完成:代码审查修复(03d40ac → HEAD)
 
 - [x] Critical:i18n 补充 stash.diff.title 缺失键(zh/en)
