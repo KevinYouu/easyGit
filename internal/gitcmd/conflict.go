@@ -124,7 +124,8 @@ func conflictContinue(ops conflictOps, files []string) (done bool, err error) {
 				return false, nil
 			}
 		}
-		args := append([]string{"add"}, files...)
+		absFiles := resolveAbsolutePaths(files)
+		args := append([]string{"add"}, absFiles...)
 		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
 			logs.Error(i18n.T("conflict.loop.git.add.failed") + ": " + strings.TrimSpace(string(out)))
 			return false, nil
@@ -241,6 +242,36 @@ func getUnmergedFiles() []string {
 	return files
 }
 
+// getGitWorkTree 获取工作树根绝对路径(Windows 相对路径解析需要)
+func getGitWorkTree() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// resolveAbsolutePaths 将相对路径列表转为工作树根下的绝对路径
+func resolveAbsolutePaths(files []string) []string {
+	if len(files) == 0 {
+		return files
+	}
+	workTree, err := getGitWorkTree()
+	if err != nil {
+		return files
+	}
+	absFiles := make([]string, 0, len(files))
+	for _, f := range files {
+		if filepath.IsAbs(f) {
+			absFiles = append(absFiles, f)
+		} else {
+			absFiles = append(absFiles, filepath.Join(workTree, f))
+		}
+	}
+	return absFiles
+}
+
 // openConflictsInEditor 打开冲突文件:配置中心编辑器优先,其次 $EDITOR/$VISUAL,
 // 最后回退 vim/vi/nano(Windows 追加 notepad);已知异步编辑器(code/subl/atom)
 // 自动补 -w 等待标志;无可用编辑器时展示文件清单,提示手动解决后回到菜单继续
@@ -256,6 +287,7 @@ func openConflictsInEditor(files []string) {
 		return
 	}
 
+	files = resolveAbsolutePaths(files)
 	program, args, perFile := resolveConflictEditor(editor, files)
 
 	// Windows 记事本:一次只支持一个文件且无等待标志,经 start /wait 逐个打开
@@ -282,7 +314,7 @@ func openConflictsInEditor(files []string) {
 }
 
 // resolveAvailableEditor 编辑器解析顺序:配置中心 > $EDITOR > $VISUAL >
-// vim/vi/nano 回退链(Windows 追加 notepad)
+// Windows 优先检测 notepad, code, notepad++, subl, atom;其他平台回退 vim/vi/nano
 func resolveAvailableEditor() string {
 	if configured, err := config.GetConflictEditor(); err == nil && configured != "" {
 		return configured
@@ -295,7 +327,7 @@ func resolveAvailableEditor() string {
 	}
 	candidates := []string{"vim", "vi", "nano"}
 	if runtime.GOOS == "windows" {
-		candidates = append(candidates, "notepad")
+		candidates = []string{"notepad", "code", "notepad++", "subl", "atom", "vim", "nano"}
 	}
 	for _, candidate := range candidates {
 		if path, err := exec.LookPath(candidate); err == nil {

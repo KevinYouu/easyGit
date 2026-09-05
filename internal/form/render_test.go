@@ -256,7 +256,7 @@ func assertTableView(t *testing.T, view string, w, h int, options []config.Optio
 	// 高度足够时每个提交的 hash 前缀都应可见
 	if expectRows == n {
 		for _, opt := range options {
-			hash := strings.SplitN(opt.Label, " ", 2)[0]
+			hash, _, _ := strings.Cut(opt.Label, " ")
 			if !strings.Contains(view, hash) {
 				t.Errorf("提交 %s 未出现在视图中", hash)
 			}

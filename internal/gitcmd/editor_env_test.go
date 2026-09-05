@@ -69,7 +69,7 @@ func TestRunInternalRebaseEnvInjection(t *testing.T) {
 	defer os.Chdir(originalDir)
 	os.Chdir(tempDir)
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		os.WriteFile(filepath.Join(tempDir, "file.txt"), []byte(fmt.Sprintf("content %d", i)), 0644)
 		testutil.RunGitCommand(t, tempDir, "add", "file.txt")
 		testutil.RunGitCommand(t, tempDir, "commit", "-m", fmt.Sprintf("commit %d", i))
@@ -156,8 +156,8 @@ func TestRunInternalRebaseScriptCleanup(t *testing.T) {
 
 	// 调用结束后脚本目录必须已删除
 	for _, kv := range capturedEnv {
-		if strings.HasPrefix(kv, "GIT_EDITOR=") {
-			editor := strings.Trim(strings.TrimPrefix(kv, "GIT_EDITOR="), `"`)
+		if after, ok := strings.CutPrefix(kv, "GIT_EDITOR="); ok {
+			editor := strings.Trim(after, `"`)
 			dir := filepath.Dir(editor)
 			if _, err := os.Stat(dir); !os.IsNotExist(err) {
 				t.Errorf("脚本临时目录未被清理: %s", dir)
@@ -215,8 +215,18 @@ func TestWriteSquashMessageScript(t *testing.T) {
 				}
 			}
 			// 消息必须原样出现在脚本中(断言不丢失,不依赖跨平台语法细节)
+			// 注意:含特殊字符的消息会被转义,需要检查转义后的版本
 			if !strings.Contains(text, tt.message) {
-				t.Errorf("脚本内容缺少完整消息:\n got  %q\n want 包含 %q", text, tt.message)
+				// 消息可能因转义而不直接匹配;验证转义版本存在
+				if runtime.GOOS == "windows" {
+					if !strings.Contains(text, escapeBatMessage(tt.message)) {
+						t.Errorf("脚本内容缺少消息:\n got  %q\n want 包含 %q 或 %q", text, tt.message, escapeBatMessage(tt.message))
+					}
+				} else {
+					if !strings.Contains(text, escapeShMessage(tt.message)) {
+						t.Errorf("脚本内容缺少消息:\n got  %q\n want 包含 %q 或 %q", text, tt.message, escapeShMessage(tt.message))
+					}
+				}
 			}
 		})
 	}

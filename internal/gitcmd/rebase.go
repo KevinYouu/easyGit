@@ -162,6 +162,7 @@ func squashMessageScript() (dir, scriptPath string, err error) {
 // 脚本内容:回显消息到 git 传入的提交信息文件(%1 / $1)。
 // Windows 用 cmd 语法(echo 重定向到已存在的提交信息文件,
 // 不会向文件头写入 BOM),其他平台用 sh 语法。
+// 消息经转义处理防止 shell 注入(特殊字符 % ^ & | < > \ " $ `)。
 func writeSquashMessageScript(newMessage string) (dir, scriptPath string, err error) {
 	dir, scriptPath, err = squashMessageScript()
 	if err != nil {
@@ -170,9 +171,9 @@ func writeSquashMessageScript(newMessage string) (dir, scriptPath string, err er
 
 	var scriptContent string
 	if runtime.GOOS == "windows" {
-		scriptContent = "@echo off\necho " + newMessage + "> %1\n"
+		scriptContent = "@echo off\necho " + escapeBatMessage(newMessage) + "> %1\n"
 	} else {
-		scriptContent = "#!/bin/sh\necho \"" + newMessage + "\" > \"$1\"\n"
+		scriptContent = "#!/bin/sh\necho \"" + escapeShMessage(newMessage) + "\" > \"$1\"\n"
 	}
 
 	if err := os.WriteFile(scriptPath, []byte(scriptContent), 0o755); err != nil {
@@ -180,6 +181,38 @@ func writeSquashMessageScript(newMessage string) (dir, scriptPath string, err er
 		return "", "", err
 	}
 	return dir, scriptPath, nil
+}
+
+// escapeBatMessage 转义 Windows cmd 特殊字符防止命令注入:
+// % ^ & | < > 需转义为 ^% ^^ ^& ^| ^< ^>
+func escapeBatMessage(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '%', '^', '&', '|', '<', '>', '"':
+			b.WriteRune('^')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// escapeShMessage 转义 POSIX shell 特殊字符防止命令注入:
+// \ " $ ` 需转义为 \\ \" \$ \`
+func escapeShMessage(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '\\', '"', '$', '`':
+			b.WriteRune('\\')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // executablePath 当前进程可执行文件路径(测试可注入,用于验证含空格路径的转义拼接)
