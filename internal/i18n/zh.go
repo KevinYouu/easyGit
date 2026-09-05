@@ -761,6 +761,7 @@ var zhTranslations = map[string]string{
 	"conflict.loop.still":              "仍有冲突,请继续处理。",
 	"conflict.editor.none":             "未找到可用编辑器(EDITOR/VISUAL/vim/vi/nano),请手动编辑以下文件:",
 	"conflict.editor.manual.hint":      "编辑完成后回到菜单选择「已解决,继续」。",
+	"conflict.editor.resolve.hint":     "编辑器已打开,解决冲突后按回车继续。",
 	"conflict.editor.failed":           "打开编辑器失败:",
 	"conflict.loop.menu.title":         "检测到%s冲突,请选择操作:",
 	"conflict.loop.menu.edit":          "打开编辑器解决冲突",

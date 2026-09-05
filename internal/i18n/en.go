@@ -761,6 +761,7 @@ var enTranslations = map[string]string{
 	"conflict.loop.still":              "Still in conflict, please continue.",
 	"conflict.editor.none":             "No editor found (EDITOR/VISUAL/vim/vi/nano). Please edit the following files manually:",
 	"conflict.editor.manual.hint":      "After editing, return to the menu and choose 'Resolved, continue'.",
+	"conflict.editor.resolve.hint":     "Editor opened. Press Enter after resolving conflicts.",
 	"conflict.editor.failed":           "Failed to open editor:",
 	"conflict.loop.menu.title":         "%s conflict detected, choose an action:",
 	"conflict.loop.menu.edit":          "Open editor to resolve conflicts",

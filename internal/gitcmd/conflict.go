@@ -275,6 +275,7 @@ func resolveAbsolutePaths(files []string) []string {
 // openConflictsInEditor 打开冲突文件:配置中心编辑器优先,其次 $EDITOR/$VISUAL,
 // 最后回退 vim/vi/nano(Windows 追加 notepad);已知异步编辑器(code/subl/atom)
 // 自动补 -w 等待标志;无可用编辑器时展示文件清单,提示手动解决后回到菜单继续
+// 编辑器启动后不阻塞,提示用户手动确认解决完成(避免 code 等复用进程的编辑器 -w 失效)
 func openConflictsInEditor(files []string) {
 	editor := resolveAvailableEditor()
 	if editor == "" {
@@ -304,13 +305,27 @@ func openConflictsInEditor(files []string) {
 		return
 	}
 
+	// 启动编辑器不阻塞,提示用户手动确认解决完成
 	cmd := exec.Command(program, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
 		logs.Error(i18n.T("conflict.editor.failed") + ": " + err.Error())
+		return
 	}
+
+	// 提示用户编辑完成后按 Enter 继续
+	muted := lipgloss.NewStyle().Foreground(theme.MutedForeground)
+	for _, f := range files {
+		fmt.Printf("  %s\n", muted.Render(f))
+	}
+	fmt.Println()
+	logs.Info(i18n.T("conflict.editor.resolve.hint"))
+
+	// 等待用户确认
+	var dummy string
+	fmt.Scanln(&dummy)
 }
 
 // resolveAvailableEditor 编辑器解析顺序:配置中心 > $EDITOR > $VISUAL >
