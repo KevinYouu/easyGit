@@ -45,6 +45,7 @@ var zhTranslations = map[string]string{
 	"branch.delete.select":         "选择要删除的分支",
 	"branch.delete.confirm":        "您确定要删除分支 '%s' 吗？",
 	"branch.delete.cancelled":      "分支删除已取消。",
+	"branch.delete.force.confirm":  "分支 '%s' 未完全合并,强制删除将丢失其中未合并的提交。确定要强制删除吗？",
 	"branch.delete.local":          "正在删除本地分支",
 	"branch.delete.local.loading":  "正在删除本地分支 %s...",
 	"branch.delete.local.success":  "本地分支 %s 删除成功",

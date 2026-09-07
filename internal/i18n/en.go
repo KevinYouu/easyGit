@@ -45,6 +45,7 @@ var enTranslations = map[string]string{
 	"branch.delete.select":         "Choose a branch to delete",
 	"branch.delete.confirm":        "Are you sure you want to delete branch '%s'?",
 	"branch.delete.cancelled":      "Branch deletion cancelled.",
+	"branch.delete.force.confirm":  "Branch '%s' is not fully merged. Force-deleting will lose its unmerged commits. Force delete anyway?",
 	"branch.delete.local":          "Deleting local branch",
 	"branch.delete.local.loading":  "Deleting local branch %s...",
 	"branch.delete.local.success":  "Local branch %s deleted successfully",

@@ -125,3 +125,35 @@ func TestGetAllBranches_NotGitRepo(t *testing.T) {
 		t.Error("GetAllBranches() expected error in non-git repo, got nil")
 	}
 }
+
+func TestIsBranchMerged(t *testing.T) {
+	tempDir, cleanup := testutil.CreateTempGitRepo(t)
+	defer cleanup()
+
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+	os.Chdir(tempDir)
+
+	// 创建初始提交
+	testFile := filepath.Join(tempDir, "test.txt")
+	os.WriteFile(testFile, []byte("test"), 0644)
+	testutil.RunGitCommand(t, tempDir, "add", "test.txt")
+	testutil.RunGitCommand(t, tempDir, "commit", "-m", "initial commit")
+
+	// 已合并分支:从当前 HEAD 创建,应判定为已合并
+	testutil.RunGitCommand(t, tempDir, "branch", "merged-branch")
+	if !IsBranchMerged("merged-branch") {
+		t.Error("IsBranchMerged(merged-branch) = false, want true")
+	}
+
+	// 未合并分支:在独立分支上提交独有内容,应判定为未合并
+	testutil.RunGitCommand(t, tempDir, "checkout", "-b", "unmerged-branch")
+	os.WriteFile(filepath.Join(tempDir, "unmerged.txt"), []byte("unmerged"), 0644)
+	testutil.RunGitCommand(t, tempDir, "add", "unmerged.txt")
+	testutil.RunGitCommand(t, tempDir, "commit", "-m", "unmerged commit")
+	testutil.RunGitCommand(t, tempDir, "checkout", "-")
+
+	if IsBranchMerged("unmerged-branch") {
+		t.Error("IsBranchMerged(unmerged-branch) = true, want false")
+	}
+}

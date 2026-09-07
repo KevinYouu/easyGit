@@ -1,5 +1,12 @@
 # TODO
 
+## 已完成:分支删除未合并分支强制删除二次确认(bd)
+
+- [x] `IsBranchMerged`(internal/gitcmd/branch.go):`git merge-base --is-ancestor <branch> HEAD` 判定分支是否已合并进 HEAD,与 `git branch -d` 的安全检查同口径
+- [x] DeleteBranch 在选定分支后预检:未合并时追加强制删除确认(form.Confirm),拒绝则取消;确认后本地删除改用 `-D`,不再出现 `git branch -d` 失败中断后续远程删除
+- [x] i18n 新增 branch.delete.force.confirm(zh/en),文案明确提示未合并提交将丢失
+- [x] 回归测试 TestIsBranchMerged(已合并/未合并分支)→ make all 全绿;README/README-ZH 命令表同步
+
 ## 已完成:单列列表分支名截断修复(NameDescColumns 宽度回补)
 
 - [x] `CalculateAdaptiveColumns`(internal/form/layout.go)增加空 Flex 列检测:所有行该列内容为空白时宽度置 0,剩余宽度按 Auto 列数平均回补(余数逐列分配),突破 `MaxAutoColumnWidth` 上限——200 列终端长分支名完整显示,不再硬截 24

@@ -47,6 +47,13 @@ func GetAllBranches() ([]string, error) {
 	return branches, nil
 }
 
+// IsBranchMerged reports whether the branch is fully merged into HEAD.
+// Mirrors the condition git uses for `git branch -d` (relative to HEAD).
+func IsBranchMerged(branch string) bool {
+	cmd := exec.Command("git", "merge-base", "--is-ancestor", branch, "HEAD")
+	return cmd.Run() == nil
+}
+
 // DeleteBranch prompts the user to select a branch to delete and optionally deletes the remote branch.
 func DeleteBranch() error {
 	allBranches, err := GetAllBranches()
@@ -92,12 +99,23 @@ func DeleteBranch() error {
 		return nil
 	}
 
+	// 未完全合并的分支需要二次确认后强制删除,避免 `git branch -d` 直接失败
+	deleteFlag := "-d"
+	if !IsBranchMerged(selectedBranch) {
+		forceMsg := fmt.Sprintf(i18n.T("branch.delete.force.confirm"), selectedBranch)
+		if !form.Confirm(forceMsg) {
+			fmt.Printf("%s %s\n", theme.InfoIconStyle.Render("ℹ"), theme.InfoStyle.Render(i18n.T("branch.delete.cancelled")))
+			return nil
+		}
+		deleteFlag = "-D"
+	}
+
 	deleteRemote := form.Confirm(i18n.T("branch.delete.remote.confirm"))
 
 	var commands []command.CommandInfo
 	commands = append(commands, command.CommandInfo{
 		Command:     "git",
-		Args:        []string{"branch", "-d", selectedBranch},
+		Args:        []string{"branch", deleteFlag, selectedBranch},
 		Description: i18n.T("branch.delete.local"),
 		LoadingMsg:  fmt.Sprintf(i18n.T("branch.delete.local.loading"), selectedBranch),
 		SuccessMsg:  fmt.Sprintf(i18n.T("branch.delete.local.success"), selectedBranch),
