@@ -1,5 +1,11 @@
 # TODO
 
+## 已完成:单列列表分支名截断修复(NameDescColumns 宽度回补)
+
+- [x] `CalculateAdaptiveColumns`(internal/form/layout.go)增加空 Flex 列检测:所有行该列内容为空白时宽度置 0,剩余宽度按 Auto 列数平均回补(余数逐列分配),突破 `MaxAutoColumnWidth` 上限——200 列终端长分支名完整显示,不再硬截 24
+- [x] 有非空 Flex 列时行为不变:非空列平分剩余(保 MinWidth 下限),空列宽度置 0(此前空 Flex 列仍占用 MinWidth 宽度,现修复为 0)
+- [x] 回归测试:Flex 全空回补(长分支名/短内容)/描述非空仍上限截断/多 Flex 部分空仅非空列分配/全 Auto 无回补 → `make all` 全绿
+
 ## 已完成:Windows 路径转义支持(sq)
 
 - [x] 统一函数:`QuoteForEditorEnv`(internal/gitcmd/editor_env.go)——仅对 git 编辑器环境变量(GIT_SEQUENCE_EDITOR/GIT_EDITOR)做 shell 级路径转义,含空格/反斜杠时加双引号、已含引号不二次包裹;全库仅此 2 处 env 注入需要转义,其余 exec.Command 参数数组直传无需改动

@@ -336,11 +336,70 @@ func TestCalculateAdaptiveColumns(t *testing.T) {
 		}
 	})
 
-	t.Run("Auto 上限截断极长名称", func(t *testing.T) {
+	t.Run("Auto 上限截断极长名称(描述列非空时保持截断)", func(t *testing.T) {
 		longRows := [][]string{{"A Very Long Name That Exceeds The Cap", "x"}}
 		widths := CalculateAdaptiveColumns(80, specs, longRows, false)
 		if widths[0] != 24 {
 			t.Errorf("名称列宽 = %d, want 24(上限截断)", widths[0])
+		}
+	})
+
+	t.Run("Flex 全空:剩余宽度回补给 Auto 列(长分支名完整显示)", func(t *testing.T) {
+		branchRows := [][]string{
+			{"main"},
+			{"feature/very-long-branch-name-for-issue-1234"},
+			{"release/v2.14.0-hotfix"},
+		}
+		widths := CalculateAdaptiveColumns(80, NameDescColumns(), branchRows, false)
+		longest := len("feature/very-long-branch-name-for-issue-1234")
+		// 固定占位 = 指示 1 + 三列内边距 3*2 = 7;剩余 80-7-44=29 全部回补名称列
+		if want := longest + 29; widths[0] != want {
+			t.Errorf("名称列宽 = %d, want %d(突破上限回补,不被截断)", widths[0], longest+29)
+		}
+		if widths[1] != 0 {
+			t.Errorf("空 Flex 列宽 = %d, want 0", widths[1])
+		}
+	})
+
+	t.Run("Flex 全空:短内容时 Auto 列获得全部剩余宽度", func(t *testing.T) {
+		rows := [][]string{{"main"}, {"dev"}}
+		widths := CalculateAdaptiveColumns(81, NameDescColumns(), rows, false)
+		// 固定占位 = 指示 1 + 三列内边距 3*2 = 7;剩余 81-7-4=70 全部回补名称列
+		if want := 81 - 7 - 4 + 4; widths[0] != want {
+			t.Errorf("名称列宽 = %d, want %d", widths[0], want)
+		}
+		if widths[1] != 0 {
+			t.Errorf("空 Flex 列宽 = %d, want 0", widths[1])
+		}
+	})
+
+	t.Run("混合:多 Flex 列部分空仅非空列分配宽度", func(t *testing.T) {
+		mixed := []ColumnSpec{
+			{Kind: ColumnAuto, MaxWidth: 24},
+			{Kind: ColumnFlex},
+			{Kind: ColumnFlex},
+		}
+		mixedRows := [][]string{
+			{"name", "description here", ""},
+			{"other", "another desc", ""},
+		}
+		widths := CalculateAdaptiveColumns(100, mixed, mixedRows, false)
+		if widths[0] != 5 {
+			t.Errorf("Auto 列宽 = %d, want 5", widths[0])
+		}
+		if widths[1] == 0 {
+			t.Error("非空 Flex 列宽不应为 0")
+		}
+		if widths[2] != 0 {
+			t.Errorf("空 Flex 列宽 = %d, want 0", widths[2])
+		}
+	})
+
+	t.Run("全 Auto 列无 Flex 不回补(行为不变)", func(t *testing.T) {
+		autoOnly := []ColumnSpec{{Kind: ColumnAuto}, {Kind: ColumnAuto}}
+		widths := CalculateAdaptiveColumns(100, autoOnly, [][]string{{"a", "b"}}, false)
+		if widths[0] != 1 || widths[1] != 1 {
+			t.Errorf("Auto 列宽 = [%d %d], want [1 1]", widths[0], widths[1])
 		}
 	})
 

@@ -1,6 +1,8 @@
 package form
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/table"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -105,7 +107,14 @@ func CalculateAdaptiveColumns(width int, specs []ColumnSpec, rows [][]string, wi
 	if withCheckbox {
 		fixed += checkboxColWidth + cellPaddingWidth
 	}
-	flexCount := 0
+
+	// Flex 列信息:是否全空(所有行该列内容为空白)与最小宽度
+	type flexInfo struct {
+		index    int
+		empty    bool
+		minWidth int
+	}
+	var flexCols []flexInfo
 	for i, spec := range specs {
 		switch spec.Kind {
 		case ColumnAuto:
@@ -121,19 +130,58 @@ func CalculateAdaptiveColumns(width int, specs []ColumnSpec, rows [][]string, wi
 			widths[i] = maxW
 			fixed += maxW
 		case ColumnFlex:
-			flexCount++
+			empty := true
+			for _, row := range rows {
+				if i < len(row) && strings.TrimSpace(row[i]) != "" {
+					empty = false
+					break
+				}
+			}
+			minW := spec.MinWidth
+			if minW == 0 {
+				minW = messageColMin
+			}
+			flexCols = append(flexCols, flexInfo{i, empty, minW})
 		}
 	}
-	if flexCount > 0 {
-		remaining := max(width-fixed, 0)
-		per := remaining / flexCount
-		for i, spec := range specs {
-			if spec.Kind == ColumnFlex {
-				minW := spec.MinWidth
-				if minW == 0 {
-					minW = messageColMin
+
+	nonEmptyFlex := 0
+	for _, f := range flexCols {
+		if !f.empty {
+			nonEmptyFlex++
+		}
+	}
+	remaining := max(width-fixed, 0)
+
+	switch {
+	case nonEmptyFlex > 0:
+		// 有非空 Flex 列:非空列平分剩余,空列宽度置 0
+		per := remaining / nonEmptyFlex
+		for _, f := range flexCols {
+			if !f.empty {
+				widths[f.index] = max(per, f.minWidth)
+			}
+		}
+	case len(flexCols) > 0:
+		// 所有 Flex 列全空(如分支/标签列表只有名称列):剩余宽度回补给
+		// Auto 列,突破 MaxWidth 上限,长分支名按终端宽度完整显示
+		autoCount := 0
+		for _, spec := range specs {
+			if spec.Kind == ColumnAuto {
+				autoCount++
+			}
+		}
+		if autoCount > 0 {
+			extra := remaining / autoCount
+			remainder := remaining % autoCount
+			for i, spec := range specs {
+				if spec.Kind == ColumnAuto {
+					widths[i] += extra
+					if remainder > 0 {
+						widths[i]++
+						remainder--
+					}
 				}
-				widths[i] = max(per, minW)
 			}
 		}
 	}
