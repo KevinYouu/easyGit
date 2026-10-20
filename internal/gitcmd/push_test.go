@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KevinYouu/easyGit/internal/command"
 	"github.com/KevinYouu/easyGit/internal/config"
 )
 
@@ -82,83 +81,76 @@ func TestComposeCommitMessage(t *testing.T) {
 	}
 }
 
-// TestAppendPushSteps 拉取与并行推送步骤:parallelFrom 等于串行步数,
-// pull 可选(未设上游时跳过),每个远程一步
-func TestAppendPushSteps(t *testing.T) {
+// TestBuildPushSteps 完整步骤序列:干净工作区只有 pull + push(有远程),
+// 有改动时才是 add → commit → pull → push;串行段不含 push
+func TestBuildPushSteps(t *testing.T) {
 	tests := []struct {
 		name         string
-		existing     []command.CommandInfo
+		hasChanges   bool
 		remotes      []string
 		pullBefore   bool
-		wantLen      int
+		wantArgs     []string
 		wantParallel int
 	}{
 		{
-			name:         "无 pull 单远程",
-			existing:     []command.CommandInfo{{Command: "git"}, {Command: "git"}},
-			remotes:      []string{"origin"},
-			wantLen:      3,
-			wantParallel: 2,
-		},
-		{
-			name:         "pull + 多远程",
-			existing:     []command.CommandInfo{{Command: "git"}},
-			remotes:      []string{"origin", "backup"},
-			pullBefore:   true,
-			wantLen:      4,
-			wantParallel: 2,
-		},
-		{
-			name:         "干净工作区(无 add/commit)+ pull + 单远程",
-			existing:     nil,
-			remotes:      []string{"origin"},
-			pullBefore:   true,
-			wantLen:      2,
+			name:       "干净工作区 + 单远程 + pull",
+			hasChanges: false,
+			remotes:    []string{"origin"},
+			pullBefore: true,
+			wantArgs:   []string{"pull", "push origin main"},
+			// pull 串行,只有 push 并行
 			wantParallel: 1,
+		},
+		{
+			name:       "干净工作区 + 单远程 + 无 pull",
+			hasChanges: false,
+			remotes:    []string{"origin"},
+			pullBefore: false,
+			wantArgs:   []string{"push origin main"},
+			// 首步即可并行
+			wantParallel: 0,
+		},
+		{
+			name:       "有改动 + 多远程 + pull",
+			hasChanges: true,
+			remotes:    []string{"origin", "backup"},
+			pullBefore: true,
+			wantArgs: []string{
+				"add -A", "commit -m fix: msg\n\nbody", "pull",
+				"push origin main", "push backup main",
+			},
+			wantParallel: 3,
+		},
+		{
+			name:       "有改动 + 无远程(仅本地提交)",
+			hasChanges: true,
+			remotes:    nil,
+			wantArgs:   []string{"add -A", "commit -m fix: msg\n\nbody"},
+			// 全部串行
+			wantParallel: 2,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, parallelFrom := appendPushSteps(tt.existing, tt.remotes, "main", tt.pullBefore)
-			if len(got) != tt.wantLen {
-				t.Fatalf("步骤数 = %d, want %d", len(got), tt.wantLen)
+			steps, parallelFrom := buildPushSteps(tt.hasChanges, "fix: msg\n\nbody", tt.remotes, "main", tt.pullBefore)
+
+			var got []string
+			for _, step := range steps {
+				got = append(got, strings.Join(step.Args, " "))
+			}
+			if strings.Join(got, "|") != strings.Join(tt.wantArgs, "|") {
+				t.Errorf("步骤 = %v, want %v", got, tt.wantArgs)
 			}
 			if parallelFrom != tt.wantParallel {
 				t.Errorf("parallelFrom = %d, want %d", parallelFrom, tt.wantParallel)
 			}
-			// 串行段内的命令不得是 push;并行段必须全是 push
-			for i, step := range got {
+			for i, step := range steps {
 				isPush := len(step.Args) > 0 && step.Args[0] == "push"
-				if isPush && i < parallelFrom {
-					t.Errorf("第 %d 步是 push,不应在串行段(parallelFrom=%d)", i, parallelFrom)
-				}
-				if !isPush && i >= parallelFrom {
-					t.Errorf("第 %d 步不是 push,不应在并行段", i)
+				if isPush != (i >= parallelFrom) {
+					t.Errorf("第 %d 步 push=%v 与 parallelFrom=%d 不符", i, isPush, parallelFrom)
 				}
 			}
 		})
-	}
-}
-
-// TestCommitSteps 工作区干净时不生成 add/commit 步骤(否则 commit 失败中断推送),
-// 有改动时按 add → commit 顺序生成
-func TestCommitSteps(t *testing.T) {
-	add := command.CommandInfo{Command: "git", Args: []string{"add", "-A"}}
-
-	if steps := commitSteps(false, add, "fix: msg"); len(steps) != 0 {
-		t.Fatalf("干净工作区不应生成提交步骤, got %d", len(steps))
-	}
-
-	steps := commitSteps(true, add, "fix: msg\n\nbody")
-	if len(steps) != 2 {
-		t.Fatalf("步骤数 = %d, want 2", len(steps))
-	}
-	if strings.Join(steps[0].Args, " ") != "add -A" {
-		t.Errorf("第 1 步 = %v, want add -A", steps[0].Args)
-	}
-	want := "commit -m fix: msg\n\nbody"
-	if strings.Join(steps[1].Args, " ") != want {
-		t.Errorf("第 2 步 = %v, want %s", steps[1].Args, want)
 	}
 }
 

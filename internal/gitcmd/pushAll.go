@@ -97,22 +97,30 @@ func appendPushSteps(cmds []command.CommandInfo, remotes []string, branch string
 	return cmds, parallelFrom
 }
 
-// commitSteps 暂存 + 提交步骤;工作区干净时返回空——此时 git commit 必然失败
-// 并中断后续 pull/push,只同步与推送。
-func commitSteps(hasChanges bool, add command.CommandInfo, message string) []command.CommandInfo {
-	if !hasChanges {
-		return nil
+// buildPushSteps 组装完整步骤序列:暂存 + 提交(仅有改动时)→ pull(串行)
+// → 各远程 push(并行),返回并行分段起点。
+// 工作区干净时不生成暂存/提交步骤——git commit 此时必然失败并中断 pull/push。
+func buildPushSteps(hasChanges bool, message string, remotes []string, branch string, pullBefore bool) ([]command.CommandInfo, int) {
+	var steps []command.CommandInfo
+	if hasChanges {
+		steps = []command.CommandInfo{
+			{
+				Command:     "git",
+				Args:        []string{"add", "-A"},
+				Description: i18n.T("git.add.all.description"),
+				LoadingMsg:  i18n.T("git.add.all.loading"),
+				SuccessMsg:  i18n.T("git.add.all.success"),
+			},
+			{
+				Command:     "git",
+				Args:        []string{"commit", "-m", message},
+				Description: i18n.T("git.commit.description"),
+				LoadingMsg:  i18n.T("git.commit.loading"),
+				SuccessMsg:  i18n.T("git.commit.success"),
+			},
+		}
 	}
-	return []command.CommandInfo{
-		add,
-		{
-			Command:     "git",
-			Args:        []string{"commit", "-m", message},
-			Description: i18n.T("git.commit.description"),
-			LoadingMsg:  i18n.T("git.commit.loading"),
-			SuccessMsg:  i18n.T("git.commit.success"),
-		},
-	}
+	return appendPushSteps(steps, remotes, branch, pullBefore)
 }
 
 // commitMessageInputs 收集主题(单行,带历史建议)与可选正文(Enter 跳过),
@@ -131,15 +139,14 @@ func commitMessageInputs(defaultSubject string) (message, subject string, err er
 }
 
 func PushAll() error {
-	fileStatus, err := getFileStatuses()
+	hasChanges, err := hasPendingChanges()
 	if err != nil {
 		logs.Error(i18n.T("error.get.file.status"))
 		return fmt.Errorf("get file status: %w", err)
 	}
-	hasChanges := len(fileStatus) > 0
 
-	remotes, remotesErr := GetAllRemotes()
-	hasRemote := remotesErr == nil && len(remotes) > 0
+	availableRemotes, remotesErr := GetAllRemotes()
+	hasRemote := remotesErr == nil && len(availableRemotes) > 0
 
 	if !hasChanges && !hasRemote {
 		logs.Info(i18n.T("push.no.changes.no.remote"))
@@ -176,17 +183,11 @@ func PushAll() error {
 		}
 	}
 
-	addAll := command.CommandInfo{
-		Command:     "git",
-		Args:        []string{"add", "-A"},
-		Description: i18n.T("git.add.all.description"),
-		LoadingMsg:  i18n.T("git.add.all.loading"),
-		SuccessMsg:  i18n.T("git.add.all.success"),
-	}
-	allCommands := commitSteps(hasChanges, addAll, message)
-
+	var remotes []string
+	branch := ""
+	pullBefore := false
 	if hasRemote {
-		currentBranch, err := GetCurrentBranch()
+		branch, err = GetCurrentBranch()
 		if err != nil {
 			logs.Error(i18n.T("error.get.current.branch"))
 			return fmt.Errorf("get current branch: %w", err)
@@ -196,14 +197,11 @@ func PushAll() error {
 		if err != nil {
 			return fmt.Errorf("select remote: %w", err)
 		}
+		pullBefore = shouldPullBeforePush()
+	}
 
-		pullBefore := shouldPullBeforePush()
-		allCommands, parallelFrom := appendPushSteps(allCommands, remotes, currentBranch, pullBefore)
-
-		if err := command.RunMultipleCommandsParallel(allCommands, parallelFrom); err != nil {
-			return err
-		}
-	} else if err := command.RunMultipleCommandsParallel(allCommands, len(allCommands)); err != nil {
+	steps, parallelFrom := buildPushSteps(hasChanges, message, remotes, branch, pullBefore)
+	if err := command.RunMultipleCommandsParallel(steps, parallelFrom); err != nil {
 		return err
 	}
 
