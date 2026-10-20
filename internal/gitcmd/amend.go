@@ -58,24 +58,26 @@ var amendMessageInput = func(subject, body string) (string, error) {
 // amendConfirm 确认框(测试可注入)
 var amendConfirm = form.Confirm
 
-// getHeadBody 获取当前 HEAD 提交消息正文(%b,不含主题);无正文返回空串
-func getHeadBody() (string, error) {
-	cmd := exec.Command("git", "log", "-1", "--pretty=%b")
+// getHeadMessage 当前 HEAD 提交的完整消息(%B)。
+// %s 会把首段并成一行、%b 因此为空,拆分主题与正文只能用 %B。
+func getHeadMessage() (string, error) {
+	cmd := exec.Command("git", "log", "-1", "--pretty=%B")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("%s %w", i18n.T("error.git.log"), err)
 	}
-	return strings.TrimRight(strings.ReplaceAll(string(output), "\r\n", "\n"), " \t\n"), nil
+	return trimBlankEdgeLines(strings.ReplaceAll(string(output), "\r\n", "\n")), nil
 }
 
-// getHeadSubject 获取当前 HEAD 提交消息主题(%s);无提交时报错
-func getHeadSubject() (string, error) {
-	cmd := exec.Command("git", "log", "-1", "--pretty=%s")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("%s %w", i18n.T("error.git.log"), err)
+// splitCommitMessage 把完整消息拆成主题(首行)与正文(其余内容,去掉一个前导空行):
+// 允许消息没有正文,也兼容首段未用空行分隔的历史提交。
+func splitCommitMessage(message string) (subject, body string) {
+	message = strings.ReplaceAll(message, "\r\n", "\n")
+	subject, rest, found := strings.Cut(message, "\n")
+	if !found {
+		return strings.TrimRight(subject, " \t"), ""
 	}
-	return strings.TrimSpace(string(output)), nil
+	return strings.TrimRight(subject, " \t"), trimBlankEdgeLines(rest)
 }
 
 // isHeadPushed 判断 HEAD 提交是否已存在于任何远程分支
@@ -189,10 +191,11 @@ func forcePushAmended() error {
 // force-with-lease 安全覆盖远程。
 func Amend() error {
 	// 单次获取原消息:既作存在性检查,又作消息模式预填(避免重复 Git 调用)
-	subject, err := getHeadSubject()
-	if err != nil {
+	original, err := getHeadMessage()
+	if err != nil || original == "" {
 		return fmt.Errorf("%s", i18n.T("amend.no.commits"))
 	}
+	subject, body := splitCommitMessage(original)
 
 	options := []config.Option{
 		{Label: i18n.T("amend.option.message"), Description: i18n.T("amend.option.message.desc"), Value: "message"},
@@ -274,13 +277,15 @@ func Amend() error {
 
 	message := ""
 	if changeMessage {
-		body, err := getHeadBody()
-		if err != nil {
-			return err
-		}
-		message, err = amendMessageInput(subject, body)
+		prefilled := composeCommitMessage(subject, body)
+		edited, err := amendMessageInput(subject, body)
 		if err != nil {
 			return nil // Esc 取消
+		}
+		// 未编辑时不重写消息(--no-edit):预填只能携带能重建的部分,
+		// 无辜重写会丢掉原消息里的细节。
+		if edited != prefilled {
+			message = edited
 		}
 	}
 

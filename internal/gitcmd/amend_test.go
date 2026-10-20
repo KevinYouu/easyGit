@@ -1,6 +1,8 @@
 package gitcmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -50,43 +52,53 @@ func TestIsHeadPushed(t *testing.T) {
 	}
 }
 
-func TestGetHeadSubject(t *testing.T) {
-	setupTwoBranchRepo(t) // 最后一个提交为 "base"
+// TestGetHeadMessage 完整消息读取:%B 保留首段换行,%s/%b 会把首段折成一行
+func TestGetHeadMessage(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t) // 最后一个提交为 "base"
 
-	subject, err := getHeadSubject()
+	message, err := getHeadMessage()
 	if err != nil {
-		t.Fatalf("getHeadSubject() error = %v", err)
+		t.Fatalf("getHeadMessage() error = %v", err)
 	}
-	if subject != "base" {
-		t.Errorf("subject = %q, want base", subject)
-	}
-}
-
-// TestGetHeadBody 提交正文读取:%b 只取正文(不含主题),无正文返回空串,
-// 多行正文与内部空行原样保留
-func TestGetHeadBody(t *testing.T) {
-	tempDir := setupTwoBranchRepo(t) // 最后一个提交为 "base",无正文
-
-	body, err := getHeadBody()
-	if err != nil {
-		t.Fatalf("getHeadBody() error = %v", err)
-	}
-	if body != "" {
-		t.Errorf("无正文时 = %q, want 空", body)
+	if message != "base" {
+		t.Errorf("message = %q, want base", message)
 	}
 
 	writeFile(t, tempDir, "f.txt", "with body\n")
-	testutil.RunGitCommand(t, tempDir, "commit", "-am", "feat: subject", "-m", "body line 1\n\nbody line 2")
+	testutil.RunGitCommand(t, tempDir, "commit", "-q", "-am", "feat: subject", "-m", "body line 1\n\nbody line 2")
 
-	body, err = getHeadBody()
+	message, err = getHeadMessage()
 	if err != nil {
-		t.Fatalf("getHeadBody() error = %v", err)
+		t.Fatalf("getHeadMessage() error = %v", err)
 	}
-	if body != "body line 1\n\nbody line 2" {
-		t.Errorf("body = %q, want %q", body, "body line 1\n\nbody line 2")
+	if want := "feat: subject\n\nbody line 1\n\nbody line 2"; message != want {
+		t.Errorf("message = %q, want %q", message, want)
 	}
-	if subject, _ := getHeadSubject(); subject != "feat: subject" {
-		t.Errorf("subject = %q, want feat: subject", subject)
+}
+
+// TestSplitCommitMessage 主题与正文拆分:首行是主题,其余为正文;
+// 首段未用空行分隔的历史提交不舍弃后续行
+func TestSplitCommitMessage(t *testing.T) {
+	tests := []struct {
+		name        string
+		message     string
+		wantSubject string
+		wantBody    string
+	}{
+		{name: "仅主题", message: "fix: subject", wantSubject: "fix: subject"},
+		{name: "主题 + 正文", message: "fix: subject\n\nbody line 1\n\nbody line 2", wantSubject: "fix: subject", wantBody: "body line 1\n\nbody line 2"},
+		{name: "首段未空行分隔", message: "subject line one\nsecond line of same paragraph", wantSubject: "subject line one", wantBody: "second line of same paragraph"},
+		{name: "CRLF", message: "fix: subject\r\n\r\nbody", wantSubject: "fix: subject", wantBody: "body"},
+		{name: "尾部空行", message: "fix: subject\n\nbody\n\n", wantSubject: "fix: subject", wantBody: "body"},
+		{name: "空消息", message: "", wantSubject: "", wantBody: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			subject, body := splitCommitMessage(tt.message)
+			if subject != tt.wantSubject || body != tt.wantBody {
+				t.Errorf("splitCommitMessage(%q) = (%q, %q), want (%q, %q)", tt.message, subject, body, tt.wantSubject, tt.wantBody)
+			}
+		})
 	}
 }
 
@@ -191,8 +203,8 @@ func TestExecuteAmendEmptyRepo(t *testing.T) {
 	_, restore := chdirTempRepo(t)
 	defer restore()
 
-	if _, err := getHeadSubject(); err == nil {
-		t.Error("空仓库 getHeadSubject 应报错")
+	if _, err := getHeadMessage(); err == nil {
+		t.Error("空仓库 getHeadMessage 应报错")
 	}
 }
 
@@ -321,5 +333,50 @@ func TestAmendFlowEsc(t *testing.T) {
 
 	if err := Amend(); err != nil {
 		t.Errorf("Esc 取消不应报错, got %v", err)
+	}
+}
+
+// writeMessageFile 把提交消息写入临时文件(git commit -F,保留首段换行结构)
+func writeMessageFile(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "msg.txt")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// TestAmendKeepsMessageWhenUnedited 两次 Enter(未编辑)不重写消息:
+// 预填只能携带可重建的部分,首段未空行分隔的历史消息必须原样保留
+func TestAmendKeepsMessageWhenUnedited(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t)
+	original := "subject line one\nsecond line of same paragraph"
+	writeFile(t, tempDir, "f.txt", "changed\n")
+	testutil.RunGitCommand(t, tempDir, "commit", "-q", "-a", "-F", writeMessageFile(t, original))
+
+	restoreMenu := stubMenu(t, &amendActionMenu, "message")
+	defer restoreMenu()
+
+	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
+		if subject != "subject line one" {
+			t.Errorf("预填主题 = %q, want subject line one", subject)
+		}
+		if body != "second line of same paragraph" {
+			t.Errorf("预填正文 = %q, want second line of same paragraph", body)
+		}
+		return composeCommitMessage(subject, body), nil // 用户未改动直接确认
+	})
+	defer restoreInput()
+
+	if err := Amend(); err != nil {
+		t.Fatalf("Amend() error = %v", err)
+	}
+
+	out, err := execOutput(t, tempDir, "log", "-1", "--pretty=%B")
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	if got := strings.TrimRight(out, "\n"); got != original {
+		t.Errorf("未编辑时消息应保持不变, got %q", got)
 	}
 }
