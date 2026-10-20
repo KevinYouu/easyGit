@@ -7,12 +7,10 @@
 
 - [ ] `sync`（或 `pull`）：当前分支 `fetch --prune` → `pull --ff-only`；分叉时提供 `rebase`/`merge` 选项并复用冲突闭环
 - [ ] `push`（不提交）：列出 `@{u}..HEAD` 待推送提交 → 选 remote（复用 `SelectAndSaveRemotes`）→ 推送；无 upstream 时走 `push -u`
-- [ ] 修 pa/ps 硬伤：`git add -A` 后无改动时跳过 commit 步骤继续 pull/push（进度屏步骤动态生成），当前干净工作区必然中断
 
-## P1 回滚与消息编辑
+## P1 回滚
 
 - [ ] `revert`：复用 `GetCommitsOptions` 多选列表 + `runConflictResolution` 冲突闭环，默认消息 `revert: <原主题>` 且可用 `form.TextInput` 编辑
-- [ ] pa/ps/am 支持多行提交信息：单行主题（含历史建议）后可选「补充正文」多行表单，复用 `form.TextInput`
 
 ## P2 查看与远端
 

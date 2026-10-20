@@ -34,8 +34,9 @@ var amendFilesSelect = func(options []config.Option) ([]string, error) {
 	)
 }
 
-// amendMessageInput 新消息输入(预填原消息,测试可注入)
-var amendMessageInput = func(current string) (string, error) {
+// amendMessageInput 编辑新提交信息:主题单行(历史建议) + 正文多行,
+// 均预填原消息,正文 Enter 直接保留。
+var amendMessageInput = func(subject, body string) (string, error) {
 	// 仅校验非空:历史提交可能不含类型前缀,不强加约定
 	validate := func(msg string) error {
 		if strings.TrimSpace(msg) == "" {
@@ -43,11 +44,29 @@ var amendMessageInput = func(current string) (string, error) {
 		}
 		return nil
 	}
-	return form.InputWithSuggestions(i18n.T("amend.message.input"), current, validate, config.GetRecentCommitMessages())
+	newSubject, err := form.InputWithSuggestions(i18n.T("amend.message.input"), subject, validate, config.GetRecentCommitMessages())
+	if err != nil {
+		return "", err
+	}
+	newBody, err := form.TextInputOptional(i18n.T("amend.input.body"), body)
+	if err != nil {
+		return "", err
+	}
+	return composeCommitMessage(newSubject, newBody), nil
 }
 
 // amendConfirm 确认框(测试可注入)
 var amendConfirm = form.Confirm
+
+// getHeadBody 获取当前 HEAD 提交消息正文(%b,不含主题);无正文返回空串
+func getHeadBody() (string, error) {
+	cmd := exec.Command("git", "log", "-1", "--pretty=%b")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("%s %w", i18n.T("error.git.log"), err)
+	}
+	return strings.TrimRight(strings.ReplaceAll(string(output), "\r\n", "\n"), " \t\n"), nil
+}
 
 // getHeadSubject 获取当前 HEAD 提交消息主题(%s);无提交时报错
 func getHeadSubject() (string, error) {
@@ -255,7 +274,11 @@ func Amend() error {
 
 	message := ""
 	if changeMessage {
-		message, err = amendMessageInput(subject)
+		body, err := getHeadBody()
+		if err != nil {
+			return err
+		}
+		message, err = amendMessageInput(subject, body)
 		if err != nil {
 			return nil // Esc 取消
 		}

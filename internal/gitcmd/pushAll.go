@@ -35,6 +35,30 @@ func validateCommitMessage(msg string) error {
 	return nil
 }
 
+// composeCommitMessage 拼装主题 + 可选正文:正文内部空行与缩进不折叠,
+// 仅去掉首尾空白行(否则空正文会留下悬空空行),CRLF 规范为 LF。
+func composeCommitMessage(subject, body string) string {
+	subject = strings.TrimRight(subject, " \t\r\n")
+	body = trimBlankEdgeLines(strings.ReplaceAll(body, "\r\n", "\n"))
+	if body == "" {
+		return subject
+	}
+	return subject + "\n\n" + body
+}
+
+// trimBlankEdgeLines 去掉文本首尾的空白行,保留中间空行与行内缩进
+func trimBlankEdgeLines(text string) string {
+	lines := strings.Split(text, "\n")
+	start, end := 0, len(lines)
+	for start < end && strings.TrimSpace(lines[start]) == "" {
+		start++
+	}
+	for end > start && strings.TrimSpace(lines[end-1]) == "" {
+		end--
+	}
+	return strings.Join(lines[start:end], "\n")
+}
+
 // shouldPullBeforePush 判断推送前是否执行 pull:
 // 配置 never 时跳过;当前分支未设上游分支时跳过
 // (无参数 git pull 必然失败,提前跳过避免终止整个流程)。
@@ -49,109 +73,144 @@ func shouldPullBeforePush() bool {
 	return true
 }
 
-func PushAll() error {
-	options, err := config.GetOptions()
-	if err != nil {
-		logs.Error(i18n.T("error.get.options"))
-		return fmt.Errorf("get options: %w", err)
+// appendPushSteps 追加拉取与并行推送,返回命令列表与并行分段起点(串行步数)。
+func appendPushSteps(cmds []command.CommandInfo, remotes []string, branch string, pullBefore bool) ([]command.CommandInfo, int) {
+	if pullBefore {
+		cmds = append(cmds, command.CommandInfo{
+			Command:     "git",
+			Args:        []string{"pull"},
+			Description: i18n.T("git.pull.description"),
+			LoadingMsg:  i18n.T("git.pull.loading"),
+			SuccessMsg:  i18n.T("git.pull.success"),
+		})
 	}
-	options = applyCommitTypeDescriptions(options)
-
-	// pa 提交类型选择开启循环导航(选项固定且多,循环提升操作效率)
-	suffixes, err := form.ListFormWrap(i18n.T("push.select.commit.type"), options, form.ListSingle)
-	if err != nil {
-		return fmt.Errorf("select form: %w", err)
+	parallelFrom := len(cmds)
+	for _, remote := range remotes {
+		cmds = append(cmds, command.CommandInfo{
+			Command:     "git",
+			Args:        []string{"push", remote, branch},
+			Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
+			LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
+			SuccessMsg:  fmt.Sprintf(i18n.T("git.push.success.remote"), remote),
+		})
 	}
-	suffix := suffixes[0]
+	return cmds, parallelFrom
+}
 
-	commitMessage, err := form.InputWithSuggestions(i18n.T("push.input.commit.message"), suffix+": ", validateCommitMessage, config.GetRecentCommitMessages())
-	if err != nil {
-		return fmt.Errorf("input: %w", err)
+// commitSteps 暂存 + 提交步骤;工作区干净时返回空——此时 git commit 必然失败
+// 并中断后续 pull/push,只同步与推送。
+func commitSteps(hasChanges bool, add command.CommandInfo, message string) []command.CommandInfo {
+	if !hasChanges {
+		return nil
 	}
-
-	// 获取当前分支
-	currentBranch, err := GetCurrentBranch()
-	if err != nil {
-		logs.Error(i18n.T("error.get.current.branch"))
-		return fmt.Errorf("get current branch: %w", err)
-	}
-
-	// 检测是否有远程仓库
-	remotes, remotesErr := GetAllRemotes()
-	hasRemote := remotesErr == nil && len(remotes) > 0
-
-	// 是否需要 pull(在 hasRemote 块内赋值;未设 upstream 或配置 never 时跳过)
-	pullBefore := false
-
-	if !hasRemote {
-		logs.Info(i18n.T("push.no.remote.commit.only"))
-	}
-
-	// 构建基础命令列表: add -> commit
-	allCommands := []command.CommandInfo{
+	return []command.CommandInfo{
+		add,
 		{
 			Command:     "git",
-			Args:        []string{"add", "-A"},
-			Description: i18n.T("git.add.all.description"),
-			LoadingMsg:  i18n.T("git.add.all.loading"),
-			SuccessMsg:  i18n.T("git.add.all.success"),
-		},
-		{
-			Command:     "git",
-			Args:        []string{"commit", "-m", commitMessage},
+			Args:        []string{"commit", "-m", message},
 			Description: i18n.T("git.commit.description"),
 			LoadingMsg:  i18n.T("git.commit.loading"),
 			SuccessMsg:  i18n.T("git.commit.success"),
 		},
 	}
+}
+
+// commitMessageInputs 收集主题(单行,带历史建议)与可选正文(Enter 跳过),
+// 返回完整提交信息与主题。
+func commitMessageInputs(defaultSubject string) (message, subject string, err error) {
+	subject, err = form.InputWithSuggestions(i18n.T("push.input.commit.message"), defaultSubject, validateCommitMessage, config.GetRecentCommitMessages())
+	if err != nil {
+		return "", "", fmt.Errorf("input: %w", err)
+	}
+
+	body, err := form.TextInputOptional(i18n.T("push.input.commit.body"), "")
+	if err != nil {
+		return "", "", fmt.Errorf("input body: %w", err)
+	}
+	return composeCommitMessage(subject, body), subject, nil
+}
+
+func PushAll() error {
+	fileStatus, err := getFileStatuses()
+	if err != nil {
+		logs.Error(i18n.T("error.get.file.status"))
+		return fmt.Errorf("get file status: %w", err)
+	}
+	hasChanges := len(fileStatus) > 0
+
+	remotes, remotesErr := GetAllRemotes()
+	hasRemote := remotesErr == nil && len(remotes) > 0
+
+	if !hasChanges && !hasRemote {
+		logs.Info(i18n.T("push.no.changes.no.remote"))
+		return nil
+	}
+	if !hasChanges {
+		logs.Info(i18n.T("push.no.changes"))
+	} else if !hasRemote {
+		logs.Info(i18n.T("push.no.remote.commit.only"))
+	}
+
+	// 干净工作区不收集提交信息,直接进入同步与推送
+	suffix := ""
+	message := ""
+	subject := ""
+	if hasChanges {
+		options, err := config.GetOptions()
+		if err != nil {
+			logs.Error(i18n.T("error.get.options"))
+			return fmt.Errorf("get options: %w", err)
+		}
+		options = applyCommitTypeDescriptions(options)
+
+		// 类型选项固定且多,开启循环导航
+		suffixes, err := form.ListFormWrap(i18n.T("push.select.commit.type"), options, form.ListSingle)
+		if err != nil {
+			return fmt.Errorf("select form: %w", err)
+		}
+		suffix = suffixes[0]
+
+		message, subject, err = commitMessageInputs(suffix + ": ")
+		if err != nil {
+			return err
+		}
+	}
+
+	addAll := command.CommandInfo{
+		Command:     "git",
+		Args:        []string{"add", "-A"},
+		Description: i18n.T("git.add.all.description"),
+		LoadingMsg:  i18n.T("git.add.all.loading"),
+		SuccessMsg:  i18n.T("git.add.all.success"),
+	}
+	allCommands := commitSteps(hasChanges, addAll, message)
 
 	if hasRemote {
-		// 选择远程仓库(支持配置持久化和多选,输出保存/使用日志)
+		currentBranch, err := GetCurrentBranch()
+		if err != nil {
+			logs.Error(i18n.T("error.get.current.branch"))
+			return fmt.Errorf("get current branch: %w", err)
+		}
+
 		remotes, err = SelectAndSaveRemotes()
 		if err != nil {
 			return fmt.Errorf("select remote: %w", err)
 		}
 
-		// 是否需要 pull:未设 upstream 或配置 never 时跳过
-		pullBefore = shouldPullBeforePush()
+		pullBefore := shouldPullBeforePush()
+		allCommands, parallelFrom := appendPushSteps(allCommands, remotes, currentBranch, pullBefore)
 
-		// 添加 pull 步骤
-		if pullBefore {
-			allCommands = append(allCommands, command.CommandInfo{
-				Command:     "git",
-				Args:        []string{"pull"},
-				Description: i18n.T("git.pull.description"),
-				LoadingMsg:  i18n.T("git.pull.loading"),
-				SuccessMsg:  i18n.T("git.pull.success"),
-			})
+		if err := command.RunMultipleCommandsParallel(allCommands, parallelFrom); err != nil {
+			return err
 		}
-
-		// 添加每个远程的推送命令
-		for _, remote := range remotes {
-			allCommands = append(allCommands, command.CommandInfo{
-				Command:     "git",
-				Args:        []string{"push", remote, currentBranch},
-				Description: fmt.Sprintf(i18n.T("git.push.to.remote"), remote),
-				LoadingMsg:  fmt.Sprintf(i18n.T("git.push.loading.remote"), remote),
-				SuccessMsg:  fmt.Sprintf(i18n.T("git.push.success.remote"), remote),
-			})
-		}
-	}
-
-	// 使用统一的进度条执行所有命令:add → commit → (pull) 串行,
-	// 随后所有远程推送一次性并行启动;parallelFrom = 串行步数
-	parallelFrom := 2
-	if pullBefore {
-		parallelFrom = 3
-	}
-	err = command.RunMultipleCommandsParallel(allCommands, parallelFrom)
-	if err != nil {
+	} else if err := command.RunMultipleCommandsParallel(allCommands, len(allCommands)); err != nil {
 		return err
 	}
 
-	// 只有全部操作成功后记录使用历史(与 ps 一致)
-	config.IncrementUsage(suffix)
-	// 记忆本次提交消息(下次 ↑ 直接复用)
-	config.AddRecentCommitMessage(commitMessage)
+	if hasChanges {
+		config.IncrementUsage(suffix)
+		// 只记忆主题:建议栏是单行输入,正文入历史会污染候选
+		config.AddRecentCommitMessage(subject)
+	}
 	return nil
 }

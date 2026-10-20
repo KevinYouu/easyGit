@@ -18,11 +18,19 @@ const (
 	maxTextLines = 14
 )
 
-// newTextField 构造多行文本字段(提交信息正文编辑):
-// Enter 提交、ctrl+j/alt+enter 换行、esc 取消;默认值原样带入(含换行)。
-// 关闭 huh 的外部编辑器(ctrl+e):TUI 自身即编辑器,再调起外部编辑器
-// 会阻塞界面(历史问题),且外部编辑器退出后仍要回到表单。
-func newTextField(title string, value *string) *huh.Text {
+// textValidate 多行文本校验:allowEmpty 放行空内容(可选正文,Enter 跳过)。
+func textValidate(allowEmpty bool) func(string) error {
+	return func(str string) error {
+		if allowEmpty || strings.TrimSpace(str) != "" {
+			return nil
+		}
+		return errors.New(i18n.T("form.input.empty.error"))
+	}
+}
+
+// newTextField 多行文本字段:Enter 提交、ctrl+j/alt+enter 换行、esc 取消,
+// 默认值(含换行)原样带入。
+func newTextField(title string, value *string, allowEmpty bool) *huh.Text {
 	lines := min(max(strings.Count(*value, "\n")+2, minTextLines), maxTextLines)
 
 	return huh.NewText().
@@ -31,29 +39,22 @@ func newTextField(title string, value *string) *huh.Text {
 		Lines(lines).
 		Placeholder(i18n.T("form.input.placeholder")).
 		ExternalEditor(false).
-		Validate(func(str string) error {
-			if strings.TrimSpace(str) == "" {
-				return errors.New(i18n.T("form.input.empty.error"))
-			}
-			return nil
-		})
+		Validate(textValidate(allowEmpty))
 }
 
-// applyTextInputKeyMap 禁用 huh 多行文本默认绑定的 ctrl+e(打开外部编辑器):
-// 该键会挂起 TUI 并阻塞在外部编辑器进程上(历史问题),而表单本身已是编辑器;
-// ExternalEditor(false) 只影响帮助栏键位展示,实际分发取 keymap,必须在此禁用。
+// applyTextInputKeyMap 禁用 ctrl+e 外部编辑器:该键会挂起 TUI 并阻塞在外编辑器进程上;
+// ExternalEditor(false) 只影响帮助栏展示,实际分发取 keymap,必须在此禁用。
 func applyTextInputKeyMap(km *huh.KeyMap) {
 	km.Text.Editor = key.NewBinding(key.WithKeys("ctrl+e"), key.WithDisabled())
 }
 
-// NewTextInputForm 构造多行文本表单(TextInput 与渲染测试共用构造路径)。
-// 启动时派发一次 ctrl+home(textarea 的 InputBegin):huh 预填值后光标停在末尾,
-// 视图会从最后几行开始,合并多条提交信息时看不到主题;该键把光标与视图移回首行,
-// 之后可正常向下滚动。
-func NewTextInputForm(title string, value *string) *Form {
+// newTextInputForm 多行文本表单统一构造路径(必填/可空共用)。
+// 启动时派发 ctrl+home(textarea InputBegin):huh 预填值后光标在末尾,
+// 视图会停在最后几行,该键把光标与视图移回首行。
+func newTextInputForm(title string, value *string, allowEmpty bool) *Form {
 	return newForm(
 		huh.NewForm(
-			huh.NewGroup(newTextField(title, value)),
+			huh.NewGroup(newTextField(title, value, allowEmpty)),
 		).WithTheme(theme.GetCompactTheme()).
 			WithShowHelp(false),
 		textInputHelpKeys(),
@@ -61,12 +62,32 @@ func NewTextInputForm(title string, value *string) *Form {
 	).WithInitialMsg(tea.KeyPressMsg{Code: tea.KeyHome, Mod: tea.ModCtrl})
 }
 
+// NewTextInputForm 构造必填多行文本表单(TextInput 与渲染测试共用构造路径)。
+func NewTextInputForm(title string, value *string) *Form {
+	return newTextInputForm(title, value, false)
+}
+
+// NewOptionalTextInputForm 构造可空多行文本表单(可选正文等,Enter 跳过)。
+func NewOptionalTextInputForm(title string, value *string) *Form {
+	return newTextInputForm(title, value, true)
+}
+
 // TextInput 多行文本输入(提交信息含正文/多段文本的场景):
 // 默认值中的换行与空行原样保留,确认后按原样返回,不做任何折叠。
 func TextInput(title, defaultValue string) (string, error) {
-	textValue := defaultValue
-	if err := NewTextInputForm(title, &textValue).Run(); err != nil {
+	value := defaultValue
+	if err := NewTextInputForm(title, &value).Run(); err != nil {
 		return "", err
 	}
-	return textValue, nil
+	return value, nil
+}
+
+// TextInputOptional 可空多行文本输入(可选正文):空内容直接确认返回空串,
+// Esc 取消返回错误。
+func TextInputOptional(title, defaultValue string) (string, error) {
+	value := defaultValue
+	if err := NewOptionalTextInputForm(title, &value).Run(); err != nil {
+		return "", err
+	}
+	return value, nil
 }

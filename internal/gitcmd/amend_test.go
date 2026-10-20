@@ -62,6 +62,53 @@ func TestGetHeadSubject(t *testing.T) {
 	}
 }
 
+// TestGetHeadBody 提交正文读取:%b 只取正文(不含主题),无正文返回空串,
+// 多行正文与内部空行原样保留
+func TestGetHeadBody(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t) // 最后一个提交为 "base",无正文
+
+	body, err := getHeadBody()
+	if err != nil {
+		t.Fatalf("getHeadBody() error = %v", err)
+	}
+	if body != "" {
+		t.Errorf("无正文时 = %q, want 空", body)
+	}
+
+	writeFile(t, tempDir, "f.txt", "with body\n")
+	testutil.RunGitCommand(t, tempDir, "commit", "-am", "feat: subject", "-m", "body line 1\n\nbody line 2")
+
+	body, err = getHeadBody()
+	if err != nil {
+		t.Fatalf("getHeadBody() error = %v", err)
+	}
+	if body != "body line 1\n\nbody line 2" {
+		t.Errorf("body = %q, want %q", body, "body line 1\n\nbody line 2")
+	}
+	if subject, _ := getHeadSubject(); subject != "feat: subject" {
+		t.Errorf("subject = %q, want feat: subject", subject)
+	}
+}
+
+// TestExecuteAmendMultilineMessage 多行消息(主题 + 正文)原样写入提交信息,
+// 主体与正文之间的空行保留
+func TestExecuteAmendMultilineMessage(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t)
+
+	message := composeCommitMessage("feat: rewritten", "body line 1\n\nbody line 2")
+	if err := executeAmend(nil, message); err != nil {
+		t.Fatalf("executeAmend() error = %v", err)
+	}
+
+	out, err := execOutput(t, tempDir, "log", "-1", "--pretty=%B")
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	if got := strings.TrimRight(out, "\n"); got != message {
+		t.Errorf("提交信息 = %q, want %q", got, message)
+	}
+}
+
 func TestGetUpstreamRef(t *testing.T) {
 	tempDir := setupTwoBranchRepo(t)
 
@@ -174,9 +221,12 @@ func TestAmendFlowMessage(t *testing.T) {
 	}
 	defer func() { amendConfirm = oldConfirm }()
 
-	restoreInput := stubFunc(t, &amendMessageInput, func(current string) (string, error) {
-		if current != "base" {
-			t.Errorf("输入应预填原消息 base, got %q", current)
+	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
+		if subject != "base" {
+			t.Errorf("输入应预填原主题 base, got %q", subject)
+		}
+		if body != "" {
+			t.Errorf("原提交无正文,预填应为空, got %q", body)
 		}
 		return "flow rewritten", nil
 	})
@@ -216,7 +266,7 @@ func TestAmendFlowPushedWarningCancel(t *testing.T) {
 	defer func() { amendConfirm = oldConfirm }()
 
 	inputCalled := false
-	restoreInput := stubFunc(t, &amendMessageInput, func(current string) (string, error) {
+	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
 		inputCalled = true
 		return "should not happen", nil
 	})

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"charm.land/bubbles/v2/cursor"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
@@ -30,21 +31,34 @@ func dispatchInitCmd(form *Form) *Form {
 }
 
 func dispatchCmd(form *Form, cmd tea.Cmd) *Form {
-	if cmd == nil {
+	// 深度上限:光标闪烁等周期命令会自我续期,不能无限展开
+	return dispatchCmdDepth(form, cmd, 32)
+}
+
+func dispatchCmdDepth(form *Form, cmd tea.Cmd, budget int) *Form {
+	if cmd == nil || budget <= 0 {
 		return form
 	}
 	msg := cmd()
 	if msg == nil {
 		return form
 	}
+	// 光标闪烁等周期命令会延时后自我续期:执行会拖慢测试且与断言无关,跳过
+	if _, ok := msg.(cursor.BlinkMsg); ok {
+		return form
+	}
 	if batch, ok := msg.(tea.BatchMsg); ok {
 		for _, sub := range batch {
-			form = dispatchCmd(form, sub)
+			form = dispatchCmdDepth(form, sub, budget-1)
 		}
 		return form
 	}
-	m, _ := form.Update(msg)
-	return m.(*Form)
+	// huh 的字段推进命令可能再次返回命令(nextFieldMsg → nextGroupMsg → …)
+	if sub, ok := msg.(tea.Cmd); ok {
+		return dispatchCmdDepth(form, sub, budget-1)
+	}
+	m, next := form.Update(msg)
+	return dispatchCmdDepth(m.(*Form), next, budget-1)
 }
 
 // TestSquashTextInputRender 合并消息表单(squash 实际构造路径):
@@ -86,9 +100,8 @@ func TestSquashTextInputRender(t *testing.T) {
 	}
 }
 
-// TestSquashTextInputStartsAtFirstLine 长消息必须从第一行开始显示:
-// huh 预填值后光标在末尾,视图会停在最后几行(sq 只看到最后一行的缺陷);
-// 表单启动时派发 ctrl+home 把光标与视图移回首行,其余行可向下滚动看到。
+// TestSquashTextInputStartsAtFirstLine 长消息必须从第一行开始显示
+// (huh 预填后光标在末尾会让视图停在最后几行)。
 func TestSquashTextInputStartsAtFirstLine(t *testing.T) {
 	title := i18n.T("squash.input.message")
 	lines := make([]string, 0, 18)
@@ -123,8 +136,7 @@ func TestTextInputHelpBar(t *testing.T) {
 	}
 }
 
-// TestTextInputKeyMapDisablesExternalEditor ctrl+e(外部编辑器)必须禁用:
-// 该键会挂起 TUI 并阻塞在外部编辑器进程上
+// TestTextInputKeyMapDisablesExternalEditor ctrl+e 必须禁用(会阻塞 TUI)
 func TestTextInputKeyMapDisablesExternalEditor(t *testing.T) {
 	km := huh.NewDefaultKeyMap()
 	if !km.Text.Editor.Enabled() {
@@ -136,6 +148,4 @@ func TestTextInputKeyMapDisablesExternalEditor(t *testing.T) {
 	if km.Text.Editor.Enabled() {
 		t.Error("ctrl+e 外部编辑器仍启用,阻塞 TUI 的风险未消除")
 	}
-	// 键位仍记录 ctrl+e(WithDisabled 只关闭匹配),此处显式钉住语义:
-	// 禁用即不再分发,帮助栏也不展示
 }

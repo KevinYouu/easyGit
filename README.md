@@ -229,8 +229,8 @@ Priority: `--theme` flag > config center setting > auto-detect.
 
 | Command         | Alias | Description                                    | Use Case                                 |
 | --------------- | ----- | ---------------------------------------------- | ---------------------------------------- |
-| `push-all`      | `pa`  | Stage and commit all changed files             | Quick commits for all modifications      |
-| `push-selected` | `ps`  | Interactively select files to stage and commit | Fine-grained control over what to commit |
+| `push-all`      | `pa`  | Stage & commit all changes (optional body; pushes directly when nothing to commit) | Quick commits for all modifications      |
+| `push-selected` | `ps`  | Interactively select files to stage & commit (optional body) | Fine-grained control over what to commit |
 | `stash`         | `st`  | Manage stashes: save / browse / apply / drop   | Park work-in-progress, rescue interrupted tasks |
 | `amend`         | `am`  | Amend last commit: message / append files      | Fix the previous commit without leaving the flow |
 
