@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"charm.land/bubbles/v2/cursor"
@@ -35,11 +36,24 @@ func dispatchCmd(form *Form, cmd tea.Cmd) *Form {
 	return dispatchCmdDepth(form, cmd, 32)
 }
 
+// execCmd 执行命令并限时收消息:cursor.Blink 会阻塞到 530ms 的闪烁节拍才返回,
+// 在测试里直接调用会让每个用例白等半秒,超时即视为无关命令丢弃。
+func execCmd(cmd tea.Cmd) tea.Msg {
+	result := make(chan tea.Msg, 1)
+	go func() { result <- cmd() }()
+	select {
+	case msg := <-result:
+		return msg
+	case <-time.After(20 * time.Millisecond):
+		return nil
+	}
+}
+
 func dispatchCmdDepth(form *Form, cmd tea.Cmd, budget int) *Form {
 	if cmd == nil || budget <= 0 {
 		return form
 	}
-	msg := cmd()
+	msg := execCmd(cmd)
 	if msg == nil {
 		return form
 	}
