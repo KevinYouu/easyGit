@@ -373,6 +373,7 @@ var enTranslations = map[string]string{
 	"form.help.confirm":      "Confirm",
 	"form.help.cancel":       "Cancel",
 	"form.help.submit":       "Submit",
+	"form.help.newline":      "New line",
 	"form.help.next":         "Next/Submit",
 	"form.help.toggle":       "Toggle",
 	"form.help.history":      "Choose history message",
@@ -430,7 +431,7 @@ var enTranslations = map[string]string{
 	"squash.title":            "Git Squash",
 	"squash.select.base":      "Select the earliest commit to merge (this and all subsequent commits will be merged into one)",
 	"squash.select.min.two":   "Please select at least 2 commits to squash.",
-	"squash.input.message":    "Enter new commit message:",
+	"squash.input.message":    "Edit squashed commit message (all original text preserved):",
 	"squash.success":          "Successfully squashed commits!",
 	"squash.cancelled":        "Squash operation cancelled.",
 	"squash.error.select":     "Error selecting commit:",
@@ -521,6 +522,12 @@ var enTranslations = map[string]string{
 	"error.command.execution": "Error executing command:",
 	"error.permission.denied": "Permission denied:",
 	"error.file.not.found":    "File not found:",
+
+	// Hidden editor subcommands (invoked by git; failures surface in git output)
+	"internal.editor.file.missing":   "git provided no file path",
+	"internal.editor.read.failed":    "failed to read file",
+	"internal.editor.write.failed":   "failed to write file",
+	"internal.editor.config.invalid": "failed to parse rebase config",
 
 	// Success messages
 	"success.operation.complete": "All operations completed successfully!",

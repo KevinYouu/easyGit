@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/KevinYouu/easyGit/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
@@ -16,14 +17,14 @@ func InternalRebaseEditorCommand() *cobra.Command {
 		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
-				fmt.Println("No file provided")
+				fmt.Fprintln(os.Stderr, i18n.T("internal.editor.file.missing"))
 				os.Exit(1)
 			}
 
 			filePath := args[0]
 			content, err := os.ReadFile(filePath)
 			if err != nil {
-				fmt.Println("Error reading file:", err)
+				fmt.Fprintf(os.Stderr, "%s: %v\n", i18n.T("internal.editor.read.failed"), err)
 				os.Exit(1)
 			}
 
@@ -36,7 +37,7 @@ func InternalRebaseEditorCommand() *cobra.Command {
 			var config map[string]any
 			err = json.Unmarshal([]byte(configStr), &config)
 			if err != nil {
-				fmt.Println("Error parsing config:", err)
+				fmt.Fprintf(os.Stderr, "%s: %v\n", i18n.T("internal.editor.config.invalid"), err)
 				os.Exit(1)
 			}
 
@@ -106,7 +107,7 @@ func InternalRebaseEditorCommand() *cobra.Command {
 			newContent := strings.Join(newLines, "\n")
 			err = os.WriteFile(filePath, []byte(newContent), 0644)
 			if err != nil {
-				fmt.Println("Failed to save rebase plan:", err)
+				fmt.Fprintf(os.Stderr, "%s: %v\n", i18n.T("internal.editor.write.failed"), err)
 				os.Exit(1)
 			}
 		},

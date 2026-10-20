@@ -1,5 +1,14 @@
 # TODO
 
+## 已完成:squash(sq)合并消息保留全部文本
+
+- [x] 根因一:默认消息取自提交列表标签的 `%s`(仅主题),被合并提交的正文与换行全部丢失 → 新增 `GetCommitMessageBodies`(commits.go,`git show -s --format=%B`)与 `buildSquashDefaultMessage`(squash.go):所选提交按旧→新取**完整消息**(主题 + 正文 + 段间空行)拼接,与原生 `rebase -i` squash 一致
+- [x] 根因二:消息输入是单行 `form.Input`,多行文本无处输入 → 新增多行文本表单 `form.TextInput`/`NewTextInputForm`(internal/form/text.go):Enter 提交、ctrl+j/alt+enter 换行、Esc 取消,默认值原样带入且不折叠;关闭 huh 外部编辑器(ctrl+e)避免阻塞
+- [x] 根因三:消息经临时 shell 脚本 `echo` 注入,cmd 下多行不可用、且需两套转义表 → 改为 `GIT_EDITOR` 注入隐藏子命令 `_internal_commit_message_editor`,消息走环境变量 `EASYGIT_COMMIT_MESSAGE` 经 `WriteCommitMessageFile` 整体落盘(CRLF→LF、尾部收敛单个换行),不经 shell 解释;删除 `writeSquashMessageScript`/`escapeBatMessage`/`escapeShMessage` 及其测试
+- [x] 复核修复:注入消息时变基加 `-c commit.cleanup=verbatim`(`rebaseArgs`)——git 默认 `strip` 会删掉所有 `#` 开头行(Issue 号/模板说明),主题被删空还会直接失败;单次 `git show -s -z --format=%H%x1f%B` 读取全部完整消息并按哈希回填顺序(不再逐提交 N 次调用);隐藏编辑器子命令报错文案 i18n 化(`internal.editor.*`)并输出到 stderr;`GetCommitsOptions` 注释改为「标签仅供展示」
+- [x] 回归:完整消息读取(多行正文)/`orderOldestFirst` 排序/默认消息拼装(顺序+空行+无空段)/消息文件写入(多行、CRLF、特殊字符、空消息不改写)/env 注入(多行消息 + 含空格路径 GIT_EDITOR + verbatim 参数)/`rebaseArgs` 表驱动/drop 模式不注入/多行表单渲染(逐行可见、帮助栏 ctrl+j、ctrl+e 禁用)/端到端(编译真实二进制驱动 `git rebase -i`,正文与 `#` 开头行完整)→ `make all` 全绿
+- [x] 文档:docs/features/提交合并.md(流程/消息保留/对比表)、docs/rebase-squash-drop-implementation.md(3.2 注入机制 + 文件清单)、README/README-ZH 命令表与示例同步
+
 ## 已完成:分支删除未合并分支强制删除二次确认(bd)
 
 - [x] `IsBranchMerged`(internal/gitcmd/branch.go):`git merge-base --is-ancestor <branch> HEAD` 判定分支是否已合并进 HEAD,与 `git branch -d` 的安全检查同口径

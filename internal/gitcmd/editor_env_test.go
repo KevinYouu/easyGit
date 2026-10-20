@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -60,7 +59,8 @@ func TestQuoteForEditorEnv(t *testing.T) {
 }
 
 // TestRunInternalRebaseEnvInjection 端到端回归:含空格的 Windows 可执行文件路径
-// 必须被双引号包裹后注入 GIT_SEQUENCE_EDITOR,消息脚本路径按 QuoteForEditorEnv 注入
+// 必须被双引号包裹后注入 GIT_SEQUENCE_EDITOR;合并消息经 GIT_EDITOR(隐藏子命令)
+// 与 EASYGIT_COMMIT_MESSAGE 传递,多行正文原样注入不被折叠
 func TestRunInternalRebaseEnvInjection(t *testing.T) {
 	tempDir, cleanup := testutil.CreateTempGitRepo(t)
 	defer cleanup()
@@ -89,13 +89,16 @@ func TestRunInternalRebaseEnvInjection(t *testing.T) {
 	}
 	defer func() { runGitCommand = oldRun }()
 
-	if err := RunInternalRebase("HEAD~1", "squash", []string{"abc123", "def456"}, "fix: squash test"); err != nil {
+	// 多行合并消息:主题 + 空行 + 两段正文
+	message := "feat: squash test\n\nfirst body line\nsecond body line"
+	if err := RunInternalRebase("HEAD~1", "squash", []string{"abc123", "def456"}, message); err != nil {
 		t.Fatalf("RunInternalRebase() error = %v", err)
 	}
 
-	// 变基参数
-	if len(gotArgs) < 2 || gotArgs[0] != "rebase" || gotArgs[1] != "-i" {
-		t.Fatalf("args = %v, want [rebase -i ...]", gotArgs)
+	// 变基参数:注入消息时必须禁用默认 strip 清理(否则 # 开头的行被删)
+	wantArgs := []string{"-c", "commit.cleanup=verbatim", "rebase", "-i", "HEAD~1"}
+	if strings.Join(gotArgs, " ") != strings.Join(wantArgs, " ") {
+		t.Fatalf("args = %v, want %v", gotArgs, wantArgs)
 	}
 
 	env := make(map[string]string)
@@ -111,123 +114,152 @@ func TestRunInternalRebaseEnvInjection(t *testing.T) {
 		t.Errorf("GIT_SEQUENCE_EDITOR = %q, want %q", env["GIT_SEQUENCE_EDITOR"], wantSeq)
 	}
 
-	// 消息编辑器:脚本路径注入必须与 QuoteForEditorEnv 规则一致
-	editor := env["GIT_EDITOR"]
-	scriptPath := strings.Trim(editor, `"`)
-	if editor != QuoteForEditorEnv(scriptPath) {
-		t.Errorf("GIT_EDITOR 未按 QuoteForEditorEnv 注入: got %q, want %q", editor, QuoteForEditorEnv(scriptPath))
+	// 消息编辑器:同一可执行文件内的隐藏子命令,不经 shell 脚本
+	wantEditor := `"C:\Program Files\easyGit\easyGit.exe" _internal_commit_message_editor`
+	if env["GIT_EDITOR"] != wantEditor {
+		t.Errorf("GIT_EDITOR = %q, want %q", env["GIT_EDITOR"], wantEditor)
 	}
-	if runtime.GOOS == "windows" {
-		if !strings.HasSuffix(scriptPath, ".bat") {
-			t.Errorf("Windows 脚本应为 .bat, got %q", scriptPath)
-		}
-	} else if !strings.HasSuffix(scriptPath, ".sh") {
-		t.Errorf("非 Windows 脚本应为 .sh, got %q", scriptPath)
+
+	// 多行消息必须完整到达消息写入方
+	if env["EASYGIT_COMMIT_MESSAGE"] != message {
+		t.Errorf("EASYGIT_COMMIT_MESSAGE = %q, want %q", env["EASYGIT_COMMIT_MESSAGE"], message)
 	}
 }
 
-// TestRunInternalRebaseScriptCleanup 脚本临时目录在调用结束后被清理
-func TestRunInternalRebaseScriptCleanup(t *testing.T) {
+// TestRebaseArgs 变基参数:注入消息时前置 commit.cleanup=verbatim,
+// drop(不注入)与 --root 场景不追加该配置
+func TestRebaseArgs(t *testing.T) {
+	tests := []struct {
+		name     string
+		base     string
+		injected bool
+		want     []string
+	}{
+		{name: "注入消息", base: "abc123", injected: true, want: []string{"-c", "commit.cleanup=verbatim", "rebase", "-i", "abc123"}},
+		{name: "drop 不注入", base: "abc123", injected: false, want: []string{"rebase", "-i", "abc123"}},
+		{name: "root 注入", base: "--root", injected: true, want: []string{"-c", "commit.cleanup=verbatim", "rebase", "-i", "--root"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := rebaseArgs(tt.base, tt.injected); strings.Join(got, " ") != strings.Join(tt.want, " ") {
+				t.Errorf("rebaseArgs(%q, %v) = %v, want %v", tt.base, tt.injected, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestRunInternalRebaseDropMode drop 模式不注入消息编辑器与 verbatim 清理
+func TestRunInternalRebaseDropMode(t *testing.T) {
 	tempDir, cleanup := testutil.CreateTempGitRepo(t)
 	defer cleanup()
 
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
 	os.Chdir(tempDir)
-
 	testutil.RunGitCommand(t, tempDir, "commit", "--allow-empty", "-m", "base")
-	testutil.RunGitCommand(t, tempDir, "commit", "--allow-empty", "-m", "second")
 
 	oldExe := executablePath
-	executablePath = func() (string, error) { return `/usr/bin/easyGit`, nil }
+	executablePath = func() (string, error) { return "/usr/bin/easyGit", nil }
 	defer func() { executablePath = oldExe }()
 
+	var gotArgs []string
+	var gotEnv []string
 	oldRun := runGitCommand
-	var capturedEnv []string
 	runGitCommand = func(args, env []string) error {
-		capturedEnv = append([]string{}, env...)
+		gotArgs = append([]string{}, args...)
+		gotEnv = append([]string{}, env...)
 		return nil
 	}
 	defer func() { runGitCommand = oldRun }()
 
-	if err := RunInternalRebase("HEAD~1", "squash", []string{"abc123"}, "msg"); err != nil {
+	if err := RunInternalRebase("HEAD~1", "drop", []string{"abc123"}, ""); err != nil {
 		t.Fatalf("RunInternalRebase() error = %v", err)
 	}
 
-	// 调用结束后脚本目录必须已删除
-	for _, kv := range capturedEnv {
-		if after, ok := strings.CutPrefix(kv, "GIT_EDITOR="); ok {
-			editor := strings.Trim(after, `"`)
-			dir := filepath.Dir(editor)
-			if _, err := os.Stat(dir); !os.IsNotExist(err) {
-				t.Errorf("脚本临时目录未被清理: %s", dir)
-			}
+	wantArgs := []string{"rebase", "-i", "HEAD~1"}
+	if strings.Join(gotArgs, " ") != strings.Join(wantArgs, " ") {
+		t.Errorf("args = %v, want %v", gotArgs, wantArgs)
+	}
+
+	env := make(map[string]string)
+	for _, kv := range gotEnv {
+		if i := strings.Index(kv, "="); i > 0 {
+			env[kv[:i]] = kv[i+1:]
 		}
+	}
+	if env["GIT_EDITOR"] != "true" {
+		t.Errorf("GIT_EDITOR = %q, want true", env["GIT_EDITOR"])
+	}
+	if _, ok := env["EASYGIT_COMMIT_MESSAGE"]; ok {
+		t.Error("drop 模式不应注入 EASYGIT_COMMIT_MESSAGE")
 	}
 }
 
-// TestWriteSquashMessageScript 消息注入脚本平台自适应:
-// Windows 生成 .bat(cmd 语法),其他平台生成 .sh(sh 语法);
-// 消息原样写入不丢失(含特殊字符)。
-func TestWriteSquashMessageScript(t *testing.T) {
+// TestWriteCommitMessageFile 消息文件写入:多行正文/空行/特殊字符原样落盘,
+// 尾部规范为单个换行;空消息不改动文件(git 生成的内容保留)
+func TestWriteCommitMessageFile(t *testing.T) {
 	tests := []struct {
 		name    string
 		message string
+		want    string
 	}{
-		{name: "普通消息", message: "fix: squash commits"},
-		{name: "中文消息", message: "合并提交:修复登录问题"},
-		{name: "特殊字符", message: `feat: "quoted" & <tag> 100%`},
+		{name: "单行消息", message: "fix: squash commits", want: "fix: squash commits\n"},
+		{
+			name:    "多行正文插空行",
+			message: "feat: title\n\nbody line 1\nbody line 2",
+			want:    "feat: title\n\nbody line 1\nbody line 2\n",
+		},
+		{
+			name:    "CRLF 规范为 LF",
+			message: "feat: title\r\n\r\nbody",
+			want:    "feat: title\n\nbody\n",
+		},
+		{
+			name:    "尾部多余空行收敛",
+			message: "feat: title\n\nbody\n\n\n",
+			want:    "feat: title\n\nbody\n",
+		},
+		{
+			name:    "特殊字符不经转义",
+			message: `feat: "quoted" & <tag> 100% $HOME $(id)`,
+			want:    "feat: \"quoted\" & <tag> 100% $HOME $(id)\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir, scriptPath, err := writeSquashMessageScript(tt.message)
+			path := filepath.Join(t.TempDir(), "COMMIT_EDITMSG")
+			if err := os.WriteFile(path, []byte("placeholder\n"), 0o644); err != nil {
+				t.Fatalf("准备消息文件失败: %v", err)
+			}
+
+			if err := WriteCommitMessageFile(path, tt.message); err != nil {
+				t.Fatalf("WriteCommitMessageFile() error = %v", err)
+			}
+
+			content, err := os.ReadFile(path)
 			if err != nil {
-				t.Fatalf("writeSquashMessageScript() error = %v", err)
+				t.Fatalf("读取消息文件失败: %v", err)
 			}
-			defer os.RemoveAll(dir)
-
-			if scriptPath == "" {
-				t.Fatal("scriptPath 为空")
-			}
-			if !strings.HasPrefix(scriptPath, dir) {
-				t.Errorf("scriptPath %q 不在临时目录 %q 内", scriptPath, dir)
-			}
-
-			content, err := os.ReadFile(scriptPath)
-			if err != nil {
-				t.Fatalf("读取脚本失败: %v", err)
-			}
-			text := string(content)
-
-			if runtime.GOOS == "windows" {
-				if !strings.HasSuffix(scriptPath, ".bat") {
-					t.Errorf("Windows 脚本应为 .bat, got %q", scriptPath)
-				}
-				if !strings.HasPrefix(text, "@echo off") {
-					t.Errorf("bat 脚本应以 @echo off 开头, got %q", text)
-				}
-			} else {
-				if !strings.HasSuffix(scriptPath, ".sh") {
-					t.Errorf("非 Windows 脚本应为 .sh, got %q", scriptPath)
-				}
-				if !strings.HasPrefix(text, "#!/bin/sh") {
-					t.Errorf("sh 脚本应以 #!/bin/sh 开头, got %q", text)
-				}
-			}
-			// 消息必须原样出现在脚本中(断言不丢失,不依赖跨平台语法细节)
-			// 注意:含特殊字符的消息会被转义,需要检查转义后的版本
-			if !strings.Contains(text, tt.message) {
-				// 消息可能因转义而不直接匹配;验证转义版本存在
-				if runtime.GOOS == "windows" {
-					if !strings.Contains(text, escapeBatMessage(tt.message)) {
-						t.Errorf("脚本内容缺少消息:\n got  %q\n want 包含 %q 或 %q", text, tt.message, escapeBatMessage(tt.message))
-					}
-				} else {
-					if !strings.Contains(text, escapeShMessage(tt.message)) {
-						t.Errorf("脚本内容缺少消息:\n got  %q\n want 包含 %q 或 %q", text, tt.message, escapeShMessage(tt.message))
-					}
-				}
+			if got := string(content); got != tt.want {
+				t.Errorf("消息文件内容 = %q, want %q", got, tt.want)
 			}
 		})
 	}
+
+	t.Run("空消息不改动文件", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "COMMIT_EDITMSG")
+		if err := os.WriteFile(path, []byte("git generated\n"), 0o644); err != nil {
+			t.Fatalf("准备消息文件失败: %v", err)
+		}
+		if err := WriteCommitMessageFile(path, "\n\n"); err != nil {
+			t.Fatalf("WriteCommitMessageFile() error = %v", err)
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("读取消息文件失败: %v", err)
+		}
+		if got := string(content); got != "git generated\n" {
+			t.Errorf("空消息不应覆盖文件, got %q", got)
+		}
+	})
 }

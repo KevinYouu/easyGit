@@ -22,11 +22,12 @@ var rootCmd = &cobra.Command{
 // 不依赖仓库上下文,统一排除;其余命令在 root 层统一检查 git 仓库,
 // 避免各命令重复检查与分散报错。
 var nonGitCommands = map[string]bool{
-	"init":                    true,
-	"version":                 true,
-	"update":                  true,
-	"config":                  true,
-	"_internal_rebase_editor": true, // 变基期间由 git 调用,必然在仓库内
+	"init":                            true,
+	"version":                         true,
+	"update":                          true,
+	"config":                          true,
+	"_internal_rebase_editor":         true, // 变基期间由 git 调用,必然在仓库内
+	"_internal_commit_message_editor": true, // 变基期间由 git 调用,必然在仓库内
 }
 
 // updateRootCommandDescriptions updates all command descriptions based on current language
@@ -123,5 +124,6 @@ func init() {
 		commands.RebaseCommand(),
 		commands.DropCommand(),
 		commands.InternalRebaseEditorCommand(),
+		commands.InternalCommitMessageEditorCommand(),
 	)
 }

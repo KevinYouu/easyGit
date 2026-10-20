@@ -26,8 +26,8 @@ type Commit struct {
 // limit > 0 时仅返回最近 limit 条,否则全部。
 // 返回选项(两行式标签)与提交记录(含邮箱/完整时间戳)。
 // reset/squash/drop 共用数据源,避免各命令重复解析 git log。
-// 提交消息保持完整不截断:表格展示层按列宽截断,而 squash 等命令
-// 从标签提取默认消息,截断会导致获取到残缺文本。
+// 标签仅供列表展示:表格层按列宽截断,截断不影响任何命令的逻辑;
+// squash 的默认合并消息取 GetCommitMessageBodies(完整主题 + 正文)。
 func GetCommitsOptions(limit int) ([]config.Option, []Commit, error) {
 	args := []string{"log", "--pretty=format:%h|%s|%ad|%an|%ae|%ai", "--date=format:%m-%d %H:%M"}
 	if limit > 0 {
@@ -75,6 +75,55 @@ func GetCommitsOptions(limit int) ([]config.Option, []Commit, error) {
 		return nil, nil, fmt.Errorf("%s", i18n.T("rebase.not.enough.commits"))
 	}
 	return options, commits, nil
+}
+
+// GetCommitMessageBodies 按入参顺序返回每条提交的完整信息(主题 + 正文,
+// 保留原始换行与空行)。%s 只取主题,合并多条提交时正文会整体丢失,
+// squash 需要完整文本拼装默认消息。
+// 单次 git show 读取全部提交(逐条调用在 50 条上限下是明显冗余):
+// 记录以 NUL 分隔、完整哈希与正文以 0x1f 分隔,正文按哈希前缀回填到入参顺序,
+// 不依赖 git 的输出顺序,也不依赖 --no-walk=unsorted(git 2.32+)之类的新参数。
+func GetCommitMessageBodies(hashes []string) ([]string, error) {
+	if len(hashes) == 0 {
+		return nil, nil
+	}
+
+	args := append([]string{"show", "-s", "-z", "--format=%H%x1f%B"}, hashes...)
+	output, err := exec.Command("git", args...).Output()
+	if err != nil {
+		return nil, fmt.Errorf("%s %w", i18n.T("error.git.log"), err)
+	}
+
+	bodies := make(map[string]string, len(hashes))
+	for record := range strings.SplitSeq(string(output), "\x00") {
+		fullHash, body, ok := strings.Cut(record, "\x1f")
+		if ok {
+			bodies[fullHash] = body
+		}
+	}
+
+	messages := make([]string, 0, len(hashes))
+	for _, hash := range hashes {
+		body, ok := lookupCommitBody(bodies, hash)
+		if !ok {
+			return nil, fmt.Errorf("%s %s", i18n.T("error.git.log"), hash)
+		}
+		messages = append(messages, body)
+	}
+	return messages, nil
+}
+
+// lookupCommitBody 按哈希(完整或前缀)取完整消息
+func lookupCommitBody(bodies map[string]string, hash string) (string, bool) {
+	if body, ok := bodies[hash]; ok {
+		return body, true
+	}
+	for fullHash, body := range bodies {
+		if strings.HasPrefix(fullHash, hash) {
+			return body, true
+		}
+	}
+	return "", false
 }
 
 // GetRecentCommits 获取最近 50 条提交,返回选项与哈希列表

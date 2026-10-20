@@ -57,6 +57,16 @@ func inputHelpKeys() []HelpKey {
 	}
 }
 
+// textInputHelpKeys 多行文本表单帮助栏:Enter 提交、ctrl+j 插入换行
+// (huh Text 字段默认键位,alt+enter 同样换行,帮助栏只展示常用的一档)
+func textInputHelpKeys() []HelpKey {
+	return []HelpKey{
+		{Key: "Enter", Action: i18n.T("form.help.submit")},
+		{Key: "ctrl+j", Action: i18n.T("form.help.newline")},
+		{Key: "Esc", Action: i18n.T("form.help.cancel")},
+	}
+}
+
 // multiInputHelpKeys 单页多输入表单帮助栏:↑/↓ 上下导航(含 j/k),
 // Enter 在非末字段为「继续」、末字段为「提交」,静态文案统一显示「继续/提交」;
 // shift+tab 保留回退(帮助栏不展示,防冗长)

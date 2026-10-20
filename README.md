@@ -195,7 +195,7 @@ easyGit cherry-pick  # or: easyGit cp
 # Reset to selected commit
 easyGit reset  # or: easyGit rs
 
-# Squash contiguous commits into one
+# Squash contiguous commits into one (message keeps all original text, editable multi-line)
 easyGit squash  # or: easyGit sq
 
 # Drop/Delete specific commits
@@ -255,7 +255,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | `undo`        | `un`  | Restore HEAD to a reflog checkpoint     | "Oh no" recovery after a bad operation   |
 | `clean`       | `cl`  | Discard changes & remove untracked files| Selective cleanup with full preview      |
 | `worktree`    | `wk`  | Manage git worktrees (add/remove/list)  | Parallel work on multiple branches       |
-| `squash`      | `sq`  | Squash contiguous commits into one      | Clean up local commit history (visual)   |
+| `squash`      | `sq`  | Squash contiguous commits (keeps all original text) | Clean up local commit history (visual)   |
 | `drop`        | `d`   | Delete specific commits                 | Remove unwanted commits from history     |
 
 ### Configuration & Utilities

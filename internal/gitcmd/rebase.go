@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/KevinYouu/easyGit/internal/command"
@@ -144,75 +143,27 @@ func handleStandardRebase() error {
 // GetRecentCommits 已移至 commits.go(统一数据源 GetCommitsOptions 的薄封装),
 // 此处不再重复实现。
 
-// squashMessageScript 生成注入提交信息的编辑器脚本路径:
-// 创建独立临时目录,Windows 使用 .bat(cmd 语法),其他平台使用 .sh(sh 语法)。
-// 脚本与目录由调用方负责清理(RemoveAll)。
-func squashMessageScript() (dir, scriptPath string, err error) {
-	dir, err = os.MkdirTemp("", "easygit-*")
-	if err != nil {
-		return "", "", err
+// normalizeCommitMessage 规范化注入的提交信息:统一换行为 \n,
+// 去掉尾部空行后补一个换行。段内换行与空行原样保留,
+// git 侧不再需要二次整理。
+func normalizeCommitMessage(message string) string {
+	message = strings.ReplaceAll(message, "\r\n", "\n")
+	message = strings.TrimRight(message, " \t\n")
+	if message == "" {
+		return ""
 	}
-	if runtime.GOOS == "windows" {
-		return dir, filepath.Join(dir, "easygit-msg-editor.bat"), nil
-	}
-	return dir, filepath.Join(dir, "easygit-msg-editor.sh"), nil
+	return message + "\n"
 }
 
-// writeSquashMessageScript 写入消息注入脚本并返回临时目录与脚本路径。
-// 脚本内容:回显消息到 git 传入的提交信息文件(%1 / $1)。
-// Windows 用 cmd 语法(echo 重定向到已存在的提交信息文件,
-// 不会向文件头写入 BOM),其他平台用 sh 语法。
-// 消息经转义处理防止 shell 注入(特殊字符 % ^ & | < > \ " $ `)。
-func writeSquashMessageScript(newMessage string) (dir, scriptPath string, err error) {
-	dir, scriptPath, err = squashMessageScript()
-	if err != nil {
-		return "", "", err
+// WriteCommitMessageFile 把提交信息整体写入 git 通过 GIT_EDITOR 传入的消息文件。
+// 内容不经 shell 解释(不拼接 echo/重定向),多行正文与任意特殊字符原样落盘;
+// 空消息不写入,保留 git 生成的原文件内容。
+func WriteCommitMessageFile(path, message string) error {
+	normalized := normalizeCommitMessage(message)
+	if normalized == "" {
+		return nil
 	}
-
-	var scriptContent string
-	if runtime.GOOS == "windows" {
-		scriptContent = "@echo off\necho " + escapeBatMessage(newMessage) + "> %1\n"
-	} else {
-		scriptContent = "#!/bin/sh\necho \"" + escapeShMessage(newMessage) + "\" > \"$1\"\n"
-	}
-
-	if err := os.WriteFile(scriptPath, []byte(scriptContent), 0o755); err != nil {
-		os.RemoveAll(dir)
-		return "", "", err
-	}
-	return dir, scriptPath, nil
-}
-
-// escapeBatMessage 转义 Windows cmd 特殊字符防止命令注入:
-// % ^ & | < > 需转义为 ^% ^^ ^& ^| ^< ^>
-func escapeBatMessage(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '%', '^', '&', '|', '<', '>', '"':
-			b.WriteRune('^')
-			b.WriteRune(r)
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
-// escapeShMessage 转义 POSIX shell 特殊字符防止命令注入:
-// \ " $ ` 需转义为 \\ \" \$ \`
-func escapeShMessage(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '\\', '"', '$', '`':
-			b.WriteRune('\\')
-			b.WriteRune(r)
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
+	return os.WriteFile(path, []byte(normalized), 0o644)
 }
 
 // executablePath 当前进程可执行文件路径(测试可注入,用于验证含空格路径的转义拼接)
@@ -228,6 +179,22 @@ var runGitCommand = func(args, env []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// rebaseArgs 构造交互式变基的 git 参数(不含 "git" 自身)。
+// injectedMessage 为 true(本工具注入提交信息)时必须关闭默认的
+// commit.cleanup=strip:它会删掉以 # 开头的行(Issue 号、模板说明)并压缩空行,
+// 与「合并消息保留全部原文」冲突,主题被删空时还会直接提交失败。
+func rebaseArgs(baseCommit string, injectedMessage bool) []string {
+	args := make([]string, 0, 5)
+	if injectedMessage {
+		args = append(args, "-c", "commit.cleanup=verbatim")
+	}
+	args = append(args, "rebase", "-i")
+	if baseCommit == "--root" {
+		return append(args, "--root")
+	}
+	return append(args, baseCommit)
 }
 
 func RunInternalRebase(baseCommit, mode string, targets []string, newMessage string) error {
@@ -249,26 +216,21 @@ func RunInternalRebase(baseCommit, mode string, targets []string, newMessage str
 		fmt.Sprintf("EASYGIT_REBASE_CONFIG=%s", string(configBytes)),
 	)
 
-	if mode == "squash" && newMessage != "" {
-		// 创建临时编辑器脚本注入新提交信息(Windows .bat / 其他 .sh)
-		dir, scriptPath, err := writeSquashMessageScript(newMessage)
-		if err != nil {
-			return fmt.Errorf("failed to create squash message editor script: %w", err)
-		}
-		defer os.RemoveAll(dir)
+	injectedMessage := mode == "squash" && newMessage != ""
 
-		env = append(env, fmt.Sprintf("GIT_EDITOR=%s", QuoteForEditorEnv(scriptPath)))
+	if injectedMessage {
+		// 提交信息经环境变量交给隐藏子命令写入消息文件:
+		// 不生成临时脚本、不经 shell 解释,多行正文不会被折叠
+		env = append(env,
+			fmt.Sprintf("GIT_EDITOR=%s _internal_commit_message_editor", QuoteForEditorEnv(executable)),
+			"EASYGIT_COMMIT_MESSAGE="+newMessage,
+		)
 	} else if mode == "drop" {
 		// drop 不需要编辑器;注入 true 跳过,防止 git 打开默认编辑器
 		env = append(env, "GIT_EDITOR=true")
 	}
 
-	args := []string{"rebase", "-i"}
-	if baseCommit == "--root" {
-		args = append(args, "--root")
-	} else {
-		args = append(args, baseCommit)
-	}
+	args := rebaseArgs(baseCommit, injectedMessage)
 
 	logs.Info(i18n.T("rebase.starting"))
 

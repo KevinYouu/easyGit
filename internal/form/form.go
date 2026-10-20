@@ -19,9 +19,10 @@ import (
 type Form struct {
 	*huh.Form
 	helpKeys          []HelpKey
-	dividerAfterTitle bool // 标题下方渲染全宽分隔线(列表类表单,见 newForm 子类设置)
-	width             int  // 最近一次窗口宽度
-	height            int  // 最近一次窗口高度
+	dividerAfterTitle bool    // 标题下方渲染全宽分隔线(列表类表单,见 newForm 子类设置)
+	initialMsg        tea.Msg // 首帧前派发一次的消息(修正字段初始光标/视图,见 WithInitialMsg)
+	width             int     // 最近一次窗口宽度
+	height            int     // 最近一次窗口高度
 }
 
 // newForm 包装 huh 表单并绑定帮助栏键位。
@@ -56,8 +57,23 @@ func newForm(f *huh.Form, keys []HelpKey, customize ...func(*huh.KeyMap)) *Form 
 	}
 }
 
-// Init 实现 tea.Model
-func (f *Form) Init() tea.Cmd { return f.Form.Init() }
+// Init 实现 tea.Model。initialMsg 非 nil 时与 huh 自身 Init 一起派发:
+// bubbletea 只调用一次 Init,消息在首个 Update 阶段到达字段(此时字段已聚焦)。
+func (f *Form) Init() tea.Cmd {
+	if f.initialMsg == nil {
+		return f.Form.Init()
+	}
+	msg := f.initialMsg
+	f.initialMsg = nil
+	return tea.Batch(f.Form.Init(), func() tea.Msg { return msg })
+}
+
+// WithInitialMsg 让表单在启动后派发一次指定消息,用于修正字段的初始
+// 光标/视图位置(huh 多行文本预填值后光标停在末尾,视图随之停在末尾几行)。
+func (f *Form) WithInitialMsg(msg tea.Msg) *Form {
+	f.initialMsg = msg
+	return f
+}
 
 // Update 实现 tea.Model:透传消息并跟踪窗口尺寸。
 // huh 内部经 compat.ViewModel 调用,更新后仍返回 *huh.Form(单页表单无模型替换),
@@ -68,7 +84,7 @@ func (f *Form) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m, cmd := f.Form.Update(msg)
 	if mf, ok := m.(*huh.Form); ok {
-		return &Form{Form: mf, helpKeys: f.helpKeys, dividerAfterTitle: f.dividerAfterTitle, width: f.width, height: f.height}, cmd
+		return &Form{Form: mf, helpKeys: f.helpKeys, dividerAfterTitle: f.dividerAfterTitle, initialMsg: f.initialMsg, width: f.width, height: f.height}, cmd
 	}
 	return f, cmd
 }

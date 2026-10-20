@@ -61,8 +61,8 @@ var commandInputCases = []struct {
 	// push-all / push-selected:提交类型前缀作默认值
 	{command: "push-all message", title: i18n.T("push.input.commit.message"), defaultValue: "fix: "},
 	{command: "push-selected message", title: i18n.T("push.input.commit.message"), defaultValue: "feat: "},
-	// squash:最早选中提交的消息作默认值(用户数据,代表性取值)
-	{command: "squash message", title: i18n.T("squash.input.message"), defaultValue: "修复登录问题"},
+	// squash 的合并消息走多行文本表单(见 TestSquashTextInputRender),
+	// 不在单行 Input 覆盖列表内
 	// tag:版本号自动递增作默认值,与提交消息同页输入(单页多输入,
 	// 修复连续内联表单主屏残留堆叠);描述与 tag.go 生产调用一致
 	{command: "tag version", multi: []InputSpec{

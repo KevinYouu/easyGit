@@ -17,7 +17,7 @@
 - 命令: `easyGit squash`
 - 逻辑: 替换了原有的 `reset --soft` 粗暴实现。现在通过交互式变基实现：
   - 用户从列表中勾选连续的多个提交。
-  - 用户输入新的合并消息。
+  - 多行文本表单预填合并消息：所选提交的消息按从旧到新拼接（主题 + 正文 + 段间空行），完整保留全部原文。
   - 系统自动执行 `reword` 和 `fixup` 操作，完美融合历史且不破坏后续提交。
 - UI: 使用专门定制的 `TableMultiSelectForm` 展示。
 
@@ -34,8 +34,11 @@
 - 该拦截器读取通过环境变量 `EASYGIT_REBASE_CONFIG` 传入的 JSON 配置，自动解析并重写 `git-rebase-todo` 文件，实现非交互式的静默变基。
 
 ### 3.2 自动化消息注入 (GIT_EDITOR)
-- 在 Squash 模式下，系统会自动创建一个临时的消息注入脚本作为 `GIT_EDITOR`（Windows 为 `.bat`，其他平台为 `.sh`），脚本路径与可执行文件路径统一经 `QuoteForEditorEnv` 双引号转义，兼容含空格的 Windows 安装路径（如 `C:\Program Files\...`）。
-- 该脚本会自动将用户在 `easyGit` 界面输入的合并信息写入 Git 的提交编辑缓冲区，实现“填完即走”的一站式体验。
+- 在 Squash 模式下，`GIT_EDITOR` 注入同一个可执行文件的隐藏子命令 `_internal_commit_message_editor`，消息经环境变量 `EASYGIT_COMMIT_MESSAGE` 传递，由该子命令整体写入 Git 传入的消息文件（`WriteCommitMessageFile`：CRLF 规范为 LF、尾部收敛为单个换行）。
+- 不生成临时 shell 脚本：消息不经 `echo`/重定向解释，多行正文、空行与 `$`、`` ` ``、`&` 等字符原样落盘，Windows 与类 Unix 行为一致（旧实现的 `echo` 在 cmd 下会折叠/截断换行）。
+- 注入消息时变基以 `git -c commit.cleanup=verbatim rebase -i` 执行（`rebaseArgs`）：git 默认 `commit.cleanup=strip` 会删除所有以 `#` 开头的行并压缩空行，与「保留全部原文」冲突，主题被删空时还会让提交失败。
+- 隐藏子命令的报错文案统一走 i18n（`internal.editor.file.missing` / `read.failed` / `write.failed` / `config.invalid`），输出到 stderr 随 git 输出呈现。
+- 可执行文件路径经 `QuoteForEditorEnv` 双引号转义，兼容含空格的 Windows 安装路径（如 `C:\Program Files\...`）。
 
 ### 3.3 TUI 组件优化 (`TableMultiSelectForm`)
 - 基于 `bubbletea` 和 `bubbles/table` 定制。
@@ -49,16 +52,19 @@
 | :--- | :--- | :--- |
 | 核心逻辑 | `internal/gitcmd/rebase.go` | 变基核心引擎、状态检测、公共提交获取逻辑 |
 | | `internal/gitcmd/editor_env.go` | 编辑器环境变量路径转义统一入口 `QuoteForEditorEnv`(Windows 含空格路径) |
-| | `internal/gitcmd/squash.go` | 基于变基引擎重写的合并逻辑 |
+| | `internal/gitcmd/squash.go` | 基于变基引擎重写的合并逻辑、默认合并消息拼装(`buildSquashDefaultMessage`) |
+| | `internal/gitcmd/commits.go` | 提交列表统一数据源 `GetCommitsOptions` 与完整消息读取 `GetCommitMessageBodies`(单次 `git show -z`,按哈希回填顺序) |
 | | `internal/gitcmd/drop.go` | 新增的删除提交逻辑 |
 | UI 组件 | `internal/form/table_multi_select.go` | 专门用于 Git 提交多选的表格组件 |
 | 命令封装 | `cmd/easygit/commands/rebase.go` | `rebase` 命令定义 |
 | | `cmd/easygit/commands/drop.go` | `drop` 命令定义 |
 | | `cmd/easygit/commands/internal_rebase_editor.go` | 变基计划自动重写工具 (隐藏) |
+| | `cmd/easygit/commands/internal_commit_message_editor.go` | 合并消息写入工具 (隐藏,`GIT_EDITOR`) |
+| | `internal/form/text.go` | 多行文本表单 `TextInput`(合并消息编辑) |
 | | `cmd/easygit/root.go` | 注册新命令与多语言刷新 |
 | 国际化 | `internal/i18n/en.go`, `zh.go` | 添加 Rebase/Squash/Drop 相关中英文文案 |
 
 ## 5. 验证方法 (测试用例)
 1. 标准变基: 在冲突状态下运行 `easyGit rebase` 验证状态菜单。
-2. 多选合并: 运行 `easyGit squash` 勾选中间连续的 2 个提交，验证合并后的消息和历史结构。
+2. 多选合并: 运行 `easyGit squash` 勾选中间连续的 2 个提交，验证合并后的消息和历史结构；提交带多行正文时，合并后的消息必须完整保留所有正文行与空行（`TestSquashEndToEndPreservesMultiline` 覆盖）；正文/主题含 `#` 开头的行时必须原样保留（`TestSquashEndToEndPreservesHashLines` 覆盖，依赖 `-c commit.cleanup=verbatim`）。
 3. 多选删除: 运行 `easyGit drop` 勾选 3 个不连续提交，验证它们是否在 `git log` 中消失。

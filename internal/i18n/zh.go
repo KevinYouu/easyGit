@@ -373,6 +373,7 @@ var zhTranslations = map[string]string{
 	"form.help.confirm":      "确认",
 	"form.help.cancel":       "取消",
 	"form.help.submit":       "提交",
+	"form.help.newline":      "换行",
 	"form.help.next":         "继续/提交",
 	"form.help.toggle":       "选择/取消",
 	"form.help.history":      "选择历史消息",
@@ -430,7 +431,7 @@ var zhTranslations = map[string]string{
 	"squash.title":            "Git Squash",
 	"squash.select.base":      "选择要合并的最早提交 (该提交及其之后的所有提交将被合并为一个)",
 	"squash.select.min.two":   "请至少选择 2 个提交进行合并",
-	"squash.input.message":    "输入新的提交信息：",
+	"squash.input.message":    "编辑合并后的提交信息(默认保留所选提交的全部原文)：",
 	"squash.success":          "成功合并提交！",
 	"squash.cancelled":        "合并操作已取消。",
 	"squash.error.select":     "选择提交出错：",
@@ -521,6 +522,12 @@ var zhTranslations = map[string]string{
 	"error.command.execution": "执行命令出错：",
 	"error.permission.denied": "权限被拒绝：",
 	"error.file.not.found":    "文件未找到：",
+
+	// 隐藏编辑器子命令(git 调用,失败信息随 git 输出)
+	"internal.editor.file.missing":   "未收到 git 传入的文件路径",
+	"internal.editor.read.failed":    "读取文件失败",
+	"internal.editor.write.failed":   "写入文件失败",
+	"internal.editor.config.invalid": "变基配置解析失败",
 
 	// Success messages
 	"success.operation.complete": "所有操作成功完成！",
