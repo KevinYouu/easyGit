@@ -140,7 +140,6 @@ var enTranslations = map[string]string{
 	"amend.option.both":           "Both message and files",
 	"amend.option.both.desc":      "Rewrite the message and append file changes together",
 	"amend.message.input":         "New commit message",
-	"amend.input.body":            "Edit commit body (optional):",
 	"amend.select.files":          "Select files to append into the last commit",
 	"amend.no.files":              "No local changes to append.",
 	"amend.no.commits":            "No commits yet: nothing to amend.",

@@ -76,32 +76,6 @@ func TestGetHeadMessage(t *testing.T) {
 	}
 }
 
-// TestSplitCommitMessage 主题与正文拆分:首行是主题,其余为正文;
-// 首段未用空行分隔的历史提交不舍弃后续行
-func TestSplitCommitMessage(t *testing.T) {
-	tests := []struct {
-		name        string
-		message     string
-		wantSubject string
-		wantBody    string
-	}{
-		{name: "仅主题", message: "fix: subject", wantSubject: "fix: subject"},
-		{name: "主题 + 正文", message: "fix: subject\n\nbody line 1\n\nbody line 2", wantSubject: "fix: subject", wantBody: "body line 1\n\nbody line 2"},
-		{name: "首段未空行分隔", message: "subject line one\nsecond line of same paragraph", wantSubject: "subject line one", wantBody: "second line of same paragraph"},
-		{name: "CRLF", message: "fix: subject\r\n\r\nbody", wantSubject: "fix: subject", wantBody: "body"},
-		{name: "尾部空行", message: "fix: subject\n\nbody\n\n", wantSubject: "fix: subject", wantBody: "body"},
-		{name: "空消息", message: "", wantSubject: "", wantBody: ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			subject, body := splitCommitMessage(tt.message)
-			if subject != tt.wantSubject || body != tt.wantBody {
-				t.Errorf("splitCommitMessage(%q) = (%q, %q), want (%q, %q)", tt.message, subject, body, tt.wantSubject, tt.wantBody)
-			}
-		})
-	}
-}
-
 // TestExecuteAmendMultilineMessage 多行消息(主题 + 正文)原样写入提交信息,
 // 主体与正文之间的空行保留
 func TestExecuteAmendMultilineMessage(t *testing.T) {
@@ -233,12 +207,9 @@ func TestAmendFlowMessage(t *testing.T) {
 	}
 	defer func() { amendConfirm = oldConfirm }()
 
-	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
-		if subject != "base" {
-			t.Errorf("输入应预填原主题 base, got %q", subject)
-		}
-		if body != "" {
-			t.Errorf("原提交无正文,预填应为空, got %q", body)
+	restoreInput := stubFunc(t, &amendMessageInput, func(message string) (string, error) {
+		if message != "base" {
+			t.Errorf("输入应预填完整原消息 base, got %q", message)
 		}
 		return "flow rewritten", nil
 	})
@@ -278,7 +249,7 @@ func TestAmendFlowPushedWarningCancel(t *testing.T) {
 	defer func() { amendConfirm = oldConfirm }()
 
 	inputCalled := false
-	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
+	restoreInput := stubFunc(t, &amendMessageInput, func(string) (string, error) {
 		inputCalled = true
 		return "should not happen", nil
 	})
@@ -346,8 +317,8 @@ func writeMessageFile(t *testing.T, content string) string {
 	return path
 }
 
-// TestAmendKeepsMessageWhenUnedited 两次 Enter(未编辑)不重写消息:
-// 预填只能携带可重建的部分,首段未空行分隔的历史消息必须原样保留
+// TestAmendKeepsMessageWhenUnedited 未编辑(直接提交)不重写消息:
+// 预填即完整消息,首段未空行分隔的历史消息必须原样保留
 func TestAmendKeepsMessageWhenUnedited(t *testing.T) {
 	tempDir := setupTwoBranchRepo(t)
 	original := "subject line one\nsecond line of same paragraph"
@@ -357,14 +328,11 @@ func TestAmendKeepsMessageWhenUnedited(t *testing.T) {
 	restoreMenu := stubMenu(t, &amendActionMenu, "message")
 	defer restoreMenu()
 
-	restoreInput := stubFunc(t, &amendMessageInput, func(subject, body string) (string, error) {
-		if subject != "subject line one" {
-			t.Errorf("预填主题 = %q, want subject line one", subject)
+	restoreInput := stubFunc(t, &amendMessageInput, func(message string) (string, error) {
+		if message != original {
+			t.Errorf("预填消息 = %q, want %q", message, original)
 		}
-		if body != "second line of same paragraph" {
-			t.Errorf("预填正文 = %q, want second line of same paragraph", body)
-		}
-		return composeCommitMessage(subject, body), nil // 用户未改动直接确认
+		return message, nil // 用户未改动直接确认
 	})
 	defer restoreInput()
 
@@ -378,5 +346,38 @@ func TestAmendKeepsMessageWhenUnedited(t *testing.T) {
 	}
 	if got := strings.TrimRight(out, "\n"); got != original {
 		t.Errorf("未编辑时消息应保持不变, got %q", got)
+	}
+}
+
+// TestAmendFlowMultilineEditWrittenVerbatim 多行编辑(主题换成两行 + 新增正文)
+// 经完整消息编辑器原样写入,不被拆成「主题 + 空行 + 正文」
+func TestAmendFlowMultilineEditWrittenVerbatim(t *testing.T) {
+	tempDir := setupTwoBranchRepo(t)
+	original := "feat: subject\n\nbody line 1"
+	writeFile(t, tempDir, "f.txt", "changed\n")
+	testutil.RunGitCommand(t, tempDir, "commit", "-q", "-a", "-F", writeMessageFile(t, original))
+
+	restoreMenu := stubMenu(t, &amendActionMenu, "message")
+	defer restoreMenu()
+
+	edited := "feat: subject\ncontinued summary\n\nbody line 1\n\nbody line 2"
+	restoreInput := stubFunc(t, &amendMessageInput, func(message string) (string, error) {
+		if message != original {
+			t.Errorf("预填消息 = %q, want %q", message, original)
+		}
+		return edited, nil
+	})
+	defer restoreInput()
+
+	if err := Amend(); err != nil {
+		t.Fatalf("Amend() error = %v", err)
+	}
+
+	out, err := execOutput(t, tempDir, "log", "-1", "--pretty=%B")
+	if err != nil {
+		t.Fatalf("git log failed: %v", err)
+	}
+	if got := strings.TrimRight(out, "\n"); got != edited {
+		t.Errorf("提交消息 = %q, want %q", got, edited)
 	}
 }

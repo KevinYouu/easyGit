@@ -34,32 +34,23 @@ var amendFilesSelect = func(options []config.Option) ([]string, error) {
 	)
 }
 
-// amendMessageInput 编辑新提交信息:主题单行(历史建议) + 正文多行,
-// 均预填原消息,正文 Enter 直接保留。
-var amendMessageInput = func(subject, body string) (string, error) {
-	// 仅校验非空:历史提交可能不含类型前缀,不强加约定
-	validate := func(msg string) error {
-		if strings.TrimSpace(msg) == "" {
-			return fmt.Errorf("%s", i18n.T("form.input.empty.error"))
-		}
-		return nil
-	}
-	newSubject, err := form.InputWithSuggestions(i18n.T("amend.message.input"), subject, validate, config.GetRecentCommitMessages())
+// amendMessageInput 编辑新提交信息:与 sq 一致用单个多行编辑器,
+// 预填完整消息(%B),主题与正文在同一处编辑(Enter 提交、ctrl+j 换行),
+// 不再拆成「主题 + 正文」两步,首段多行结构也原样可编辑。
+// 预填值即完整消息,未改动时与原文逐字节相等,调用方据此走 --no-edit。
+var amendMessageInput = func(message string) (string, error) {
+	edited, err := form.TextInput(i18n.T("amend.message.input"), message)
 	if err != nil {
 		return "", err
 	}
-	newBody, err := form.TextInputOptional(i18n.T("amend.input.body"), body)
-	if err != nil {
-		return "", err
-	}
-	return composeCommitMessage(newSubject, newBody), nil
+	return trimBlankEdgeLines(strings.ReplaceAll(edited, "\r\n", "\n")), nil
 }
 
 // amendConfirm 确认框(测试可注入)
 var amendConfirm = form.Confirm
 
 // getHeadMessage 当前 HEAD 提交的完整消息(%B)。
-// %s 会把首段并成一行、%b 因此为空,拆分主题与正文只能用 %B。
+// %s 会把首段折成一行、%b 因此为空,编辑器要看到原文只能用 %B。
 func getHeadMessage() (string, error) {
 	cmd := exec.Command("git", "log", "-1", "--pretty=%B")
 	output, err := cmd.Output()
@@ -67,17 +58,6 @@ func getHeadMessage() (string, error) {
 		return "", fmt.Errorf("%s %w", i18n.T("error.git.log"), err)
 	}
 	return trimBlankEdgeLines(strings.ReplaceAll(string(output), "\r\n", "\n")), nil
-}
-
-// splitCommitMessage 把完整消息拆成主题(首行)与正文(其余内容,去掉一个前导空行):
-// 允许消息没有正文,也兼容首段未用空行分隔的历史提交。
-func splitCommitMessage(message string) (subject, body string) {
-	message = strings.ReplaceAll(message, "\r\n", "\n")
-	subject, rest, found := strings.Cut(message, "\n")
-	if !found {
-		return strings.TrimRight(subject, " \t"), ""
-	}
-	return strings.TrimRight(subject, " \t"), trimBlankEdgeLines(rest)
 }
 
 // isHeadPushed 判断 HEAD 提交是否已存在于任何远程分支
@@ -195,7 +175,6 @@ func Amend() error {
 	if err != nil || original == "" {
 		return fmt.Errorf("%s", i18n.T("amend.no.commits"))
 	}
-	subject, body := splitCommitMessage(original)
 
 	options := []config.Option{
 		{Label: i18n.T("amend.option.message"), Description: i18n.T("amend.option.message.desc"), Value: "message"},
@@ -277,14 +256,13 @@ func Amend() error {
 
 	message := ""
 	if changeMessage {
-		prefilled := composeCommitMessage(subject, body)
-		edited, err := amendMessageInput(subject, body)
+		edited, err := amendMessageInput(original)
 		if err != nil {
 			return nil // Esc 取消
 		}
-		// 未编辑时不重写消息(--no-edit):预填只能携带能重建的部分,
-		// 无辜重写会丢掉原消息里的细节。
-		if edited != prefilled {
+		// 未编辑时不重写消息(--no-edit):预填即完整消息,
+		// 一行未改就必然与原文相等,不会把原消息按主题/正文重建。
+		if edited != original {
 			message = edited
 		}
 	}

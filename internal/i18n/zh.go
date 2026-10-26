@@ -140,7 +140,6 @@ var zhTranslations = map[string]string{
 	"amend.option.both":           "同时修改消息与文件",
 	"amend.option.both.desc":      "改写消息并一并追加文件改动",
 	"amend.message.input":         "新的提交消息",
-	"amend.input.body":            "编辑提交正文(可留空)：",
 	"amend.select.files":          "选择要并入上次提交的文件",
 	"amend.no.files":              "没有可追加的本地修改。",
 	"amend.no.commits":            "还没有任何提交,无法修改。",
