@@ -154,6 +154,33 @@ func TestBuildPushSteps(t *testing.T) {
 	}
 }
 
+// TestCommitBodyEnabled 补录正文开关:默认关闭,配置开启后生效
+func TestCommitBodyEnabled(t *testing.T) {
+	config.SetTestDBPath(filepath.Join(t.TempDir(), "test.db"))
+	defer config.SetTestDBPath("")
+	if err := config.Initialize(); err != nil {
+		t.Fatalf("Initialize() error = %v", err)
+	}
+
+	if commitBodyEnabled() {
+		t.Error("未配置时应关闭")
+	}
+
+	if err := config.SaveCommitBody(config.CommitBodyOn); err != nil {
+		t.Fatalf("SaveCommitBody(on) error = %v", err)
+	}
+	if !commitBodyEnabled() {
+		t.Error("开启后应生效")
+	}
+
+	if err := config.SaveCommitBody(config.CommitBodyOff); err != nil {
+		t.Fatalf("SaveCommitBody(off) error = %v", err)
+	}
+	if commitBodyEnabled() {
+		t.Error("关闭后不应生效")
+	}
+}
+
 // TestPushAllNoChangesNoRemote 干净工作区 + 无远程:提示后直接返回,不进入表单
 func TestPushAllNoChangesNoRemote(t *testing.T) {
 	config.SetTestDBPath(filepath.Join(t.TempDir(), "test.db"))

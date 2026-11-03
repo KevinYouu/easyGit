@@ -17,6 +17,7 @@ const (
 	ConfigKeyTheme          = "theme"
 	ConfigKeyConflictEditor = "conflict-editor"
 	ConfigKeyPullBeforePush = "pull-before-push"
+	ConfigKeyCommitBody     = "commit-body"
 )
 
 type Option struct {
@@ -44,6 +45,7 @@ func BuildConfigOptions() []Option {
 		{Label: i18n.T("config.option.theme"), Value: ConfigKeyTheme},
 		{Label: i18n.T("config.option.conflict.editor"), Value: ConfigKeyConflictEditor},
 		{Label: i18n.T("config.option.pull"), Value: ConfigKeyPullBeforePush},
+		{Label: i18n.T("config.option.commit.body"), Value: ConfigKeyCommitBody},
 	}
 
 	// 摘要按分派键定位写入,避免硬编码索引在增项时错位
@@ -111,6 +113,13 @@ func BuildConfigOptions() []Option {
 		summary[ConfigKeyPullBeforePush].Description = i18n.T("config.summary.pull.never")
 	} else {
 		summary[ConfigKeyPullBeforePush].Description = i18n.T("config.summary.pull.always")
+	}
+
+	// 补录提交正文摘要(默认关闭)
+	if bodySetting, _ := GetCommitBody(); bodySetting == CommitBodyOn {
+		summary[ConfigKeyCommitBody].Description = i18n.T("config.summary.commit.body.on")
+	} else {
+		summary[ConfigKeyCommitBody].Description = i18n.T("config.summary.commit.body.off")
 	}
 
 	return options

@@ -123,17 +123,26 @@ func buildPushSteps(hasChanges bool, message string, remotes []string, branch st
 	return appendPushSteps(steps, remotes, branch, pullBefore)
 }
 
-// commitMessageInputs 收集主题(单行,带历史建议)与可选正文(Enter 跳过),
-// 返回完整提交信息与主题。
+// commitBodyEnabled 补录提交正文开关(未设置默认关闭)
+func commitBodyEnabled() bool {
+	v, err := config.GetCommitBody()
+	return err == nil && v == config.CommitBodyOn
+}
+
+// commitMessageInputs 收集提交信息:单行主题带历史建议,
+// 配置开启补录正文时再采集可选正文(Enter 跳过)。返回完整提交信息与主题。
 func commitMessageInputs(defaultSubject string) (message, subject string, err error) {
 	subject, err = form.InputWithSuggestions(i18n.T("push.input.commit.message"), defaultSubject, validateCommitMessage, config.GetRecentCommitMessages())
 	if err != nil {
 		return "", "", fmt.Errorf("input: %w", err)
 	}
 
-	body, err := form.TextInputOptional(i18n.T("push.input.commit.body"), "")
-	if err != nil {
-		return "", "", fmt.Errorf("input body: %w", err)
+	body := ""
+	if commitBodyEnabled() {
+		body, err = form.TextInputOptional(i18n.T("push.input.commit.body"), "")
+		if err != nil {
+			return "", "", fmt.Errorf("input body: %w", err)
+		}
 	}
 	return composeCommitMessage(subject, body), subject, nil
 }

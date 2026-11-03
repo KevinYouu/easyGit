@@ -23,7 +23,7 @@ Instead of typing multiple Git commands or remembering complex flags, easyGit pr
 - 🔀 **Parallel Multi-Remote Push** - `pa`/`ps`/`tc`/`td`/`bd` push to multiple remotes concurrently; one failing remote never blocks the others, and the summary lists every failed step
 - 🎯 **Interactive Selection** - Choose branches, commits, tags, and files through visual menus; press `/` in any list to filter instantly
 - 🧠 **Remembers Your Choices** - Commit types, reset modes, merge strategies, cherry-pick options, and recent commit messages (↑/↓ in the message input) are remembered across sessions
-- 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences (incl. pull-before-push), commit types, tag version cap, theme, and conflict editor
+- 🔧 **Smart Configuration** - One-stop `config` center for language, push preferences (incl. pull-before-push and optional commit body), commit types, tag version cap, theme, and conflict editor
 - 🌍 **Multilingual** - Full English and Chinese support with auto-detection
 - 🎨 **Beautiful Interface** - Clear visual feedback with modern TUI components; full-width divider lines frame every screen, and a `❯` indicator follows your cursor across all selection lists
 - 📐 **Responsive Layout** - Tables, forms, and progress bars adapt to terminal size; wide screens are fully utilized, narrow screens never overflow
@@ -201,7 +201,7 @@ easyGit squash  # or: easyGit sq
 # Drop/Delete specific commits
 easyGit drop  # or: easyGit d
 
-# Configure easyGit (language, theme, push settings incl. pull-before-push, commit types, tag version cap)
+# Configure easyGit (language, theme, push settings incl. pull-before-push and optional commit body, commit types, tag version cap)
 easyGit config
 
 # Update easyGit
@@ -229,8 +229,8 @@ Priority: `--theme` flag > config center setting > auto-detect.
 
 | Command         | Alias | Description                                    | Use Case                                 |
 | --------------- | ----- | ---------------------------------------------- | ---------------------------------------- |
-| `push-all`      | `pa`  | Stage & commit all changes (optional body; pushes directly when nothing to commit) | Quick commits for all modifications      |
-| `push-selected` | `ps`  | Interactively select files to stage & commit (optional body) | Fine-grained control over what to commit |
+| `push-all`      | `pa`  | Stage & commit all changes (single-line message; body optional via config; pushes directly when nothing to commit) | Quick commits for all modifications      |
+| `push-selected` | `ps`  | Interactively select files to stage & commit (single-line message; body optional via config) | Fine-grained control over what to commit |
 | `stash`         | `st`  | Manage stashes: save / browse / apply / drop   | Park work-in-progress, rescue interrupted tasks |
 | `amend`         | `am`  | Amend last commit: message / append files      | Fix the previous commit without leaving the flow |
 
@@ -263,7 +263,7 @@ Priority: `--theme` flag > config center setting > auto-detect.
 | Command           | Alias | Description                                              | Use Case                                            |
 | ----------------- | ----- | -------------------------------------------------------- | --------------------------------------------------- |
 | `init`            | -     | Initialize easyGit configuration                         | First-time setup (usually automatic)                |
-| `config`          | -     | Open the interactive configuration center                | Change language, theme, push settings (incl. pull-before-push), commit types, tag version cap, conflict editor |
+| `config`          | -     | Open the interactive configuration center                | Change language, theme, push settings (incl. pull-before-push and optional commit body), commit types, tag version cap, conflict editor |
 | `update`          | -     | Update easyGit to latest version                         | Get new features and bug fixes                      |
 | `version`         | `v`   | Show current version information                         | Check installed version                             |
 
